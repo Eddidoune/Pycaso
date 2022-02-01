@@ -35,7 +35,7 @@ class Calibrate(dict):
                 List of the images paths to detect
             
         Returns:
-            BA : list (Dim = N * 3)
+            corners_list : list (Dim = N * 3)
                 List of the detected corners 
         """
         for im in imgs:
@@ -53,65 +53,14 @@ class Calibrate(dict):
                     corners, ids, img, self.board)
                 print("{} point(s) detected".format(ret))
                 print('---')
-                BA = []
+                corners_list = []
                 BU = []
                 for i in range (0, len(chcorners)) :
                     BU.append(chcorners[i][0])
-                    BA.append([BU[i][0],BU[i][1],chids[i][0]])
-        return (BA) 
-
-    def ChArucco_board (self, dpi = 300) :
-        """Create ChArucco board for the calibration
-        
-        Args:
-           dpi : int
-               Resolution of the picture
-           
-        Returns:
-           ChArucco_Board_build_img : numpy.ndarray
-               Black and white array --> Save as a png
-        """
-        ncx = self.ncx
-        ncy = self.ncy
-        sqr = self.sqr
-        mrk = self.mrk
-        n = ncx * ncy / 2
-        ChArucco_Board_img = []
-        r = sqr//mrk
-        if r != 2 :
-            print('Impossible to print the ChArucco board (unresolve for sqr/mrk = 2) ')
-            ChArucco_Board_img = None
-        for e in range (int(n)) :
-            ChArucco_mrk = cv2.aruco.drawMarker(self.dictionary, e, 100)
-            x, y = ChArucco_mrk.shape
-            dx, dy = x//2, y//2
-            black_square = np.ones ((x//2,y//2)) * 255
-            ChArucco_square = np.empty((2*x, 2*y))
-            for i in range (4) :
-                for j in range (4) :
-                    if (i == 0) or (i == 3) or (j == 0) or (j == 3) :
-                        ChArucco_square[dx*i:dx*(i+1),dy*j:dy*(j+1)] = black_square
-                    else :
-                        ChArucco_square[dx*i:dx*(i+1),dy*j:dy*(j+1)] = ChArucco_mrk[dx*(i-1):dx*i,dy*(j-1):dy*j]          
-            ChArucco_Board_img.append(ChArucco_square)
-        x, y = ChArucco_Board_img[0].shape
-        white_square = np.zeros ((x,y))
-        shapetot = (y*ncy, x*ncx)
-        ChArucco_Board_build_img = np.empty(shapetot)
-        e = 0
-        for i in range(ncy) :
-            for j in range(ncx) :
-                if ((i+j)%2) == 0 :
-                    ChArucco_Board_build_img[x*i:x*(i+1),y*j:y*(j+1)] = ChArucco_Board_img[e]
-                    e += 1
-                else :
-                    ChArucco_Board_build_img[x*i:x*(i+1),y*j:y*(j+1)] = white_square
-        plt.imshow(ChArucco_Board_build_img, interpolation='nearest', cmap='gray', vmin=0, vmax=255)
-        plt.savefig('ChArucco_Board_build_img.png', dpi=dpi)
-        plt.show()        
-        return (ChArucco_Board_build_img)
+                    corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+        return (corners_list) 
    
-def Modele_calibration(nx, ny, l) : 
+def calibration_model(nx, ny, l) : 
     """ Creation of the model of the calibration pattern
     
     Args:
@@ -133,7 +82,7 @@ def Modele_calibration(nx, ny, l) :
             Xref.append([(nx-(j+1))*l, (i+1)*l, j+(ny-1)*i])
     return Xref
 
-def Modeles_calibration_images_tronquage (List_images, Xcal, __dict__) :
+def cut_calibration_model (List_images, Xcal, __dict__) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, delete it on all the others images. 
         Delete also on the real positions of the corners.
@@ -214,7 +163,7 @@ def Modeles_calibration_images_tronquage (List_images, Xcal, __dict__) :
 
 def detection (__dict__,
                detection = True,
-               saving_folder = 'Fichiers_txt') :
+               saving_folder = 'Folders_npy') :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -225,7 +174,8 @@ def detection (__dict__,
        detection : bool, optional
            If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
        saving_folder : str, optional
-           Where to save datas
+           Sabing folder to save datas
+           
     Returns:
        all_Ucam : numpy.ndarray
            The corners of the pattern detect by the camera
@@ -251,8 +201,8 @@ def detection (__dict__,
     if detection :
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
-        Xref = Modele_calibration(ncx, ncy, sqr)
-        all_Xref, all_Ucam = Modeles_calibration_images_tronquage(Images, Xref, __dict__)
+        Xref = calibration_model(ncx, ncy, sqr)
+        all_Xref, all_Ucam = cut_calibration_model(Images, Xref, __dict__)
         
         all_Xref = np.asarray(all_Xref)
         all_Xref = all_Xref[:, :, [0, 1]]
@@ -266,44 +216,101 @@ def detection (__dict__,
     # Taking pre-calculated datas from the saving_folder
     else :
         print('    - Taking datas from ', saving_folder)        
-        all_Ucam = np.load(str(saving_folder) +"/all_Ucam_" + name + ".npy")
-        all_Xref = np.load(str(saving_folder) +"/all_Xref_" + name + ".npy")
+        all_Ucam = np.load(Save_Ucam_Xref[0])
+        all_Xref = np.load(Save_Ucam_Xref[1])
     return(all_Ucam, all_Xref)
+
+def camera_np_coordinates (all_Ucam, 
+                           all_Xref, 
+                           x3_list) :
+    """Organising the coordinates of the calibration
+    
+    Args:
+       all_Ucam : numpy.ndarray
+           The corners of the pattern detect by the camera
+       all_Xref : numpy.ndarray
+           The theorical corners of the pattern
+       x3_list : numpy.ndarray
+           List of the different z position. (Ordered the same way in the target folder)
+       saving_folder : str, optional
+           Where to save datas
+    Returns:
+       xc1 : numpy.ndarray
+           Organised real positions of camera 1
+       xc2 : numpy.ndarray
+           Organised real positions of camera 2
+       Xc1 : numpy.ndarray
+           Organised detected positions of camera 1
+       Xc2 : numpy.ndarray
+           Organised detected positions of camera 2
+    """
+    for i in [1, 2] :
+        print('')
+        mid = all_Ucam.shape[0]//2    
+        all_Ucami = all_Ucam[(i-1)*mid:i*mid,:,:]
+        all_Xrefi = all_Xref[i*(mid-1):i*mid,:,:]
+        sU = all_Ucami.shape
+        Xref = all_Xrefi[0]
+        all_Xrefi = np.empty ((sU[0], sU[1], sU[2]+1))
+        x = np.empty ((sU[0] * sU[1], sU[2]+1))
+        X = np.empty ((sU[0] * sU[1], sU[2]))
+        for j in range (sU[0]) :
+            all_Xrefi[j][:,0] = Xref[:,0]
+            all_Xrefi[j][:,1] = Xref[:,1]
+            all_Xrefi[j][:,2] = x3_list[j]
+
+            x[j*sU[1] : (j+1)*sU[1], :]  = all_Xrefi[j]
+            X[j*sU[1] : (j+1)*sU[1], :]  = all_Ucami[j]
+
+        # Real position in space : Xref (x1, x2, x3)
+        x1 = x[:,0]
+        x2 = x[:,1]
+        x3 = x[:,2]
+        x = np.asarray([x1,x2,x3]) # reshape x
+
+        # Position detected from cameras : Ucam (X1, X2)
+        X1 = X[:,0]
+        X2 = X[:,1]
+        X = np.asarray([X1,X2]) # reshape X
+        if i == 1 :
+            xc1, Xc1 = x, X
+        if i == 2 :
+            xc2, Xc2 = x, X
+    return (xc1, xc2, Xc1, Xc2)
 
 
 if __name__ == '__main__' :
-    # Show the reals and theoreticals points  
-    micro = {
-    'name' : 'micro',
-    'ncx' : 16,
-    'ncy' : 12 ,
-    'sqr' : 300*(10**(-6))}  
-    macro = {
-    'name' : 'macro',
-    'ncx' : 10,
-    'ncy' : 8 ,
-    'sqr' : 7.35*(10**(-3))}  
-    test = {
-    'name' : 'test',
-    'ncx' : 20,
-    'ncy' : 20 ,
-    'sqr' : 7.35*(10**(-3))}  
-    # Choose the dict
-    __dict__ = micro
+    ()
+    # # Show the reals and theoreticals points  
+    # micro = {
+    # 'name' : 'micro',
+    # 'ncx' : 16,
+    # 'ncy' : 12 ,
+    # 'sqr' : 300*(10**(-6))}  
+    # macro = {
+    # 'name' : 'macro',
+    # 'ncx' : 10,
+    # 'ncy' : 8 ,
+    # 'sqr' : 7.35*(10**(-3))}  
+    # test = {
+    # 'name' : 'test',
+    # 'ncx' : 20,
+    # 'ncy' : 20 ,
+    # 'sqr' : 7.35*(10**(-3))}  
+    # # Choose the dict
+    # __dict__ = micro
     
-    Images = sorted(glob('./Images/micro/right-test/*.tif'))
-    ncx = __dict__['ncx']
-    ncy = __dict__['ncy']
-    sqr = __dict__['sqr']
-    mrk = sqr/2
+    # Images = sorted(glob('./Images/micro/right-test/*.tif'))
+    # ncx = __dict__['ncx']
+    # ncy = __dict__['ncy']
+    # sqr = __dict__['sqr']
+    # mrk = sqr/2
     
-    # Corners detection
-    print('    - Detection of the pattern in progress ...')
-    # Creation of the theoretical pattern + detection of camera's pattern
-    Xref = Modele_calibration(ncx, ncy, sqr)
-    all_Xref, all_Ucam = Modeles_calibration_images_tronquage(Images, Xref, __dict__)
+    # # Corners detection
+    # print('    - Detection of the pattern in progress ...')
+    # # Creation of the theoretical pattern + detection of camera's pattern
+    # Xref = calibration_model(ncx, ncy, sqr)
+    # all_Xref, all_Ucam = cut_calibration_model(Images, Xref, __dict__)
 
-    all_Xref = np.asarray(all_Xref)
-    all_Ucam = np.asarray(all_Ucam)
-
-    # ChArucco_Board_build_img = Calibrate (__dict__).ChArucco_board()    
+    # all_Xref = np.asarray(all_Xref)
+    # all_Ucam = np.asarray(all_Ucam)

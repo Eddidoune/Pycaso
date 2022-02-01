@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from matplotlib import pyplot as plt
+import scipy.optimize as sopt
 
 
 class Direct_Polynome(dict) :
@@ -224,23 +225,50 @@ class Polynome(dict) :
         return (M)
 
 
-    def polynomial_LM (self, a, *x) :
+    def polynomial_LM_CF (self, a, *x) :
+        """Definition of the functionnal F (for curve_fit method)
+        
+        Args:
+           x : numpy.ndarray
+               Real points x(x1, x2, x3)
+           a : numpy.ndarray
+               cst of the polynomial function M = f(x)
+           
+        Returns:
+           Xc : numpy.ndarray
+               Calculted position
+        """
         polynomial_form = self.polynomial_form
         x = np.array ([x])
         x = x.reshape((3,len(x[0])//3))
         M = Polynome({'polynomial_form' : polynomial_form}).pol_form(x)    
-        X = np.matmul(a, M)
-        X = X.reshape(4*len(x[0]))
-        return (X)
+        Xc = np.matmul(a, M)
+        Xc = Xc.reshape(4*len(x[0]))
+        return (Xc)
     
-    def polynomial_Least_Square (self, x, X, a) :
+    def polynomial_LM_LS (self, x, X, a) :
+        """Definition of the functionnal F (for least_squares method)
+        
+        Args:
+           x : numpy.ndarray
+               Real points x(x1, x2, x3)
+           X : numpy.ndarray
+               Measured points X(Xl1, Xl2, Xr1, Xr2)
+           a : numpy.ndarray
+               cst of the polynomial function M = f(x)
+           
+        Returns:
+           X-Xc : numpy.ndarray
+               Functional calculation
+        """
         polynomial_form = self.polynomial_form
         x = np.array ([x])
         x = x.reshape((3,len(x[0])//3))
         M = Polynome({'polynomial_form' : polynomial_form}).pol_form(x) 
         Xc = np.matmul(a, M)
         Xc = Xc.reshape(4*len(x[0]))
-        return (X-Xc)
+        F = X-Xc
+        return (F)
     
     def polynomial_system (self, x, a) :
         """Create the matrix M = f(x) with f the polynomial function of degree (aab : a for x1, x2 and b for x3)
@@ -248,7 +276,7 @@ class Polynome(dict) :
         Args:
            x : numpy.ndarray
                Real points x(x1, x2, x3)
-           a : numpy.ndarray, opt
+           a : numpy.ndarray
                cst of the polynomial function M = f(x)
            
         Returns:
@@ -261,30 +289,23 @@ class Polynome(dict) :
             
         return(X)    
 
-def fit_plan_to_points(point, 
-                        ax = plt.subplot(111, projection='3d'), 
-                        title = 'no title', 
-                        axes_xyz = 1, 
-                        label = 'xs'):
-    """Create the matrix Y = f(x) with f the polynomial function chose
+
+def fit_plan_to_points(point,
+                        title = 'no title'):
+    """Plot the median plan from a serie of points
     
     Args:
-       point : numpy.ndarray (shape = b,3)
-           Real points x(x1, x2, x3)
-       ax : ax = plt.subplot(111, projection='3d')
+       point : numpy.ndarray (shape = m,3)
+           Real points x(x1, x2, x3)       
        title : str
-       
+           Title of the plotted figure
+            
     Returns:
        plot points + associated plan
     """
-    if axes_xyz == 1 :
-        xs = point[:,0]
-        ys = point[:,1]
-        zs = point[:,2]
-    elif axes_xyz == 0 :
-        xs, ys, zs = point 
-
-    ax.scatter(xs, ys, zs, color='b', label = label)
+    xs, ys, zs = point 
+    ax = plt.subplot(111, projection='3d')
+    ax.scatter(xs, ys, zs, color='b')
     
     # do fit
     tmp_A = []
@@ -321,31 +342,27 @@ def fit_plan_to_points(point,
     return (errors, mean_error, residual)
 
 def fit_plans_to_points(points, 
-                         title = 'no title', 
-                         axes_xyz = 2, 
-                         label = 'xs'):
-    """Create the matrix Y = f(x) with f the polynomial function chose
+                         title = 'no title'):
+    """Plot the medians plans from series of points
     
     Args:
-       points : numpy.ndarray (shape = a,b,3)
-           Real points x(x1, x2, x3)
+       points : numpy.ndarray (shape = l,m,3)
+           Real points x(x1, x2, x3)       
        title : str
-       
+           Title of the plotted figures
+            
     Returns:
-       plot points + associated plans on an unique graph
+       plot points + associated plans
     """
     # plot raw data
-    plt.figure()
-    ax = plt.subplot(111, projection='3d')
     l, m, n = points.shape
     errors = np.zeros((l, n))
-    print(errors.shape)
-
     mean_error = np.zeros(l)
     residual = np.zeros(l)
     for i in range (len(points)) :
         point = points[i]
-        errors[i], mean_error[i], residual[i] = fit_plan_to_points(point, ax, title = title, axes_xyz = axes_xyz-1, label = label)
+        errors[i], mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
+    plt.figure()
         
     print('Plan square max error = ', (np.max(errors)), ' mm')
     print('Plan square mean error = ', (np.mean(mean_error**2))**(1/2), ' mm')
@@ -354,20 +371,130 @@ def fit_plans_to_points(points,
     plt.show()
 
 def refplans(xc1, x3_list) :
+    """Plot the medians plans from references points
+    
+    Args:
+       xc1 : numpy.ndarray (shape = 3,n)
+           Real points x(x1, x2, x3)       
+       x3_list : numpy.ndarray
+           List of the different plans coordinates
+            
+    Returns:
+       plot points + associated plans
+    """
     m, n = xc1.shape
     o = len(x3_list)
     n = n//o
     x,y,z = xc1
-    xcons = np.zeros((o,m,n))
-    for i in range (o) :
-        xcons[i] = x[i*n:(i+1)*n], y[i*n:(i+1)*n], z[i*n:(i+1)*n]
+    xcons = np.transpose (xc1)
+    xcons = xcons.reshape((o,n,m))
+    xcons = np.transpose(xcons, (0,2,1))
+    # xcons = np.zeros((o,m,n))
+    # for i in range (o) :
+    #     xcons[i] = x[i*n:(i+1)*n], y[i*n:(i+1)*n], z[i*n:(i+1)*n]
     fit_plans_to_points(xcons, 
-                        title = 'Calibration plans',
-                        axes_xyz = 1,
-                        label = 'xs')
+                        title = 'Calibration plans')
+
+def least_square_method (Xc1_identification, 
+                         Xc2_identification, 
+                         A111) :
+    """Resolve by least square method the system A . x = X for each points detected and both cameras
+    
+    Args:
+       Xc1_identification : numpy.ndarray
+           Real positions of camera 1
+       Xc2_identification : numpy.ndarray
+           Real positions of camera 2
+       A111 : numpy.ndarray
+           Constants of the first order calibration polynome
+           
+    Returns:
+       x0 : numpy.ndarray
+           Solution x = xsol of the system 
+    """
+    N = len (Xc1_identification)
+    x0 = np.zeros((3, N))
+    for i in range (N) :
+        X1c1, X2c1 = Xc1_identification[i,0], Xc1_identification[i,1]
+        X1c2, X2c2 = Xc2_identification[i,0], Xc2_identification[i,1]
+        a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
+        a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
+    
+        A = np.array([a1c1, a2c1, a1c2, a2c2])
+        X = np.array([X1c1-a1c1[0], X2c1-a2c1[0], X1c2-a1c2[0], X2c2-a2c2[0]])
+        
+        A = A[:,1:4]
+        At = np.transpose (A)
+        J = np.matmul(At, A)
+        J_ = np.linalg.inv(J)
+        XA = np.matmul(X, A)
+        
+        x0[:, i] = np.matmul(J_, XA)
+    
+    return (x0)    
+
+def Levenberg_Marquardt_solving (Xc1_identification, 
+                                 Xc2_identification, 
+                                 A, 
+                                 x0, 
+                                 polynomial_form, 
+                                 method = 'curve_fit', 
+                                 title = '') :
+    """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
+    
+    Args:
+       Xc1_identification : numpy.ndarray
+           Real positions of camera 1
+       Xc2_identification : numpy.ndarray
+           Real positions of camera 2
+       A : numpy.ndarray
+           Constants of the calibration polynome
+       x0 : numpy.ndarray
+           Initial guess
+       polynomial_form : int
+           Polynomial form
+       method : str
+           Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
+       title : str
+           Title
+           
+    Returns:
+       xopt : numpy.ndarray
+           Solution of the LM resolution
+       Xcalculated : numpy.ndarray
+           Solution calculated
+       Xdetected : numpy.ndarray
+           Solution detected (Xc1_identification, Xc2_identification)
+    """
+    N = len(x0[0])    
+    Xdetected = np.array([Xc1_identification[:,0], Xc1_identification[:,1], Xc2_identification[:,0], Xc2_identification[:,1]])
+    X0 = Xdetected.reshape((4*N))
+    A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
+    method
+    x0 = x0.reshape((3*N))
+    if method == 'curve_fit' :
+        xopt, pcov = sopt.curve_fit(Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
+                                    A0, 
+                                    X0, 
+                                    p0 = x0, 
+                                    method ='lm')
+    elif method == 'least_squares' :
+        results = sopt.least_squares(Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_LS, 
+                                  x0, 
+                                  args = (X0,A0))  
+        xopt = results.x
+    
+    xopt = np.array(xopt)
+    xopt = xopt.reshape((3,N))
+    Xcalculated = Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
+    Xdiff = np.absolute(Xcalculated - Xdetected)
+    print(str(polynomial_form), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
+    
+    # plt.plot(x00, y00, z00, 'r.', label = 'x0')
+    fit_plans_to_points(xopt.reshape((1,xopt.shape[0], xopt.shape[1])), 
+                                title = title)
+    return (xopt, Xcalculated, Xdetected)
+
 
 if __name__ == '__main__' :
     ()
-
-
-
