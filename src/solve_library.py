@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import numpy as np
+import pandas as pd
+try : 
+    import cupy as np
+except ImportError:
+    import numpy as np
 from matplotlib import pyplot as plt
 import scipy.optimize as sopt
-
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import RandomizedSearchCV
 
 class Direct_Polynome(dict) :
     def __init__(self, _dict_):
@@ -88,7 +95,7 @@ class Direct_Polynome(dict) :
         return (M)
     
 
-class Polynome(dict) :
+class Soloff_Polynome(dict) :
     def __init__(self, _dict_):
         self._dict_ = _dict_
         self.polynomial_form = _dict_['polynomial_form']
@@ -241,7 +248,7 @@ class Polynome(dict) :
         polynomial_form = self.polynomial_form
         x = np.array ([x])
         x = x.reshape((3,len(x[0])//3))
-        M = Polynome({'polynomial_form' : polynomial_form}).pol_form(x)    
+        M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)    
         Xc = np.matmul(a, M)
         Xc = Xc.reshape(4*len(x[0]))
         return (Xc)
@@ -264,7 +271,7 @@ class Polynome(dict) :
         polynomial_form = self.polynomial_form
         x = np.array ([x])
         x = x.reshape((3,len(x[0])//3))
-        M = Polynome({'polynomial_form' : polynomial_form}).pol_form(x) 
+        M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x) 
         Xc = np.matmul(a, M)
         Xc = Xc.reshape(4*len(x[0]))
         F = X-Xc
@@ -284,7 +291,7 @@ class Polynome(dict) :
                M = f(x)
         """
         polynomial_form = self.polynomial_form
-        M = Polynome({'polynomial_form' : polynomial_form}).pol_form(x)   
+        M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)   
         X = np.matmul(a, M)
             
         return(X)    
@@ -326,8 +333,8 @@ def fit_plan_to_points(point,
     # plot plan
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
-    X,Y = np.meshgrid(np.linspace(xlim[0], xlim[1], 10),
-                      np.linspace(ylim[0], ylim[1], 10))
+    X,Y = np.meshgrid(np.linspace(np.min(xs), np.max(xs), 10),
+                      np.linspace(np.min(ys), np.max(ys), 10))
     Z = np.zeros(X.shape)
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
@@ -364,9 +371,9 @@ def fit_plans_to_points(points,
         errors[i], mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
     plt.figure()
         
-    print('Plan square max error = ', (np.max(errors)), ' mm')
+    print('Plan square max error = ', (np.max(abs(errors))), ' mm')
     print('Plan square mean error = ', (np.mean(mean_error**2))**(1/2), ' mm')
-    print('Plan square mean residual = ', (np.mean(residual**2))**(1/2), ' mm')
+    print('Plan square mean residual = ', (np.mean(residual**2))**(1/2))
 
     plt.show()
 
@@ -395,15 +402,15 @@ def refplans(xc1, x3_list) :
     fit_plans_to_points(xcons, 
                         title = 'Calibration plans')
 
-def least_square_method (Xc1_identification, 
-                         Xc2_identification, 
+def least_square_method (Xc1_identified, 
+                         Xc2_identified, 
                          A111) :
     """Resolve by least square method the system A . x = X for each points detected and both cameras
     
     Args:
-       Xc1_identification : numpy.ndarray
+       Xc1_identified : numpy.ndarray
            Real positions of camera 1
-       Xc2_identification : numpy.ndarray
+       Xc2_identified : numpy.ndarray
            Real positions of camera 2
        A111 : numpy.ndarray
            Constants of the first order calibration polynome
@@ -412,11 +419,11 @@ def least_square_method (Xc1_identification,
        x0 : numpy.ndarray
            Solution x = xsol of the system 
     """
-    N = len (Xc1_identification)
+    N = len (Xc1_identified)
     x0 = np.zeros((3, N))
     for i in range (N) :
-        X1c1, X2c1 = Xc1_identification[i,0], Xc1_identification[i,1]
-        X1c2, X2c2 = Xc2_identification[i,0], Xc2_identification[i,1]
+        X1c1, X2c1 = Xc1_identified[i,0], Xc1_identified[i,1]
+        X1c2, X2c2 = Xc2_identified[i,0], Xc2_identified[i,1]
         a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
         a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
     
@@ -433,19 +440,18 @@ def least_square_method (Xc1_identification,
     
     return (x0)    
 
-def Levenberg_Marquardt_solving (Xc1_identification, 
-                                 Xc2_identification, 
+def Levenberg_Marquardt_solving (Xc1_identified, 
+                                 Xc2_identified, 
                                  A, 
                                  x0, 
                                  polynomial_form, 
-                                 method = 'curve_fit', 
-                                 title = '') :
+                                 method = 'curve_fit') :
     """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
     
     Args:
-       Xc1_identification : numpy.ndarray
+       Xc1_identified : numpy.ndarray
            Real positions of camera 1
-       Xc2_identification : numpy.ndarray
+       Xc2_identified : numpy.ndarray
            Real positions of camera 2
        A : numpy.ndarray
            Constants of the calibration polynome
@@ -455,8 +461,6 @@ def Levenberg_Marquardt_solving (Xc1_identification,
            Polynomial form
        method : str
            Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
-       title : str
-           Title
            
     Returns:
        xopt : numpy.ndarray
@@ -464,36 +468,114 @@ def Levenberg_Marquardt_solving (Xc1_identification,
        Xcalculated : numpy.ndarray
            Solution calculated
        Xdetected : numpy.ndarray
-           Solution detected (Xc1_identification, Xc2_identification)
-    """
+           Solution detected (Xc1_identified, Xc2_identified)
+    """   
     N = len(x0[0])    
-    Xdetected = np.array([Xc1_identification[:,0], Xc1_identification[:,1], Xc2_identification[:,0], Xc2_identification[:,1]])
-    X0 = Xdetected.reshape((4*N))
+    Xdetected = np.array([Xc1_identified[:,0], Xc1_identified[:,1], Xc2_identified[:,0], Xc2_identified[:,1]])
     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
-    method
-    x0 = x0.reshape((3*N))
+    xopt = np.zeros((3*N))
     if method == 'curve_fit' :
-        xopt, pcov = sopt.curve_fit(Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
-                                    A0, 
-                                    X0, 
-                                    p0 = x0, 
-                                    method ='lm')
+        for i in range (N) :
+            X0i = Xdetected[:,i]
+            x0i = x0[:,i]
+            xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
+                                        A0, 
+                                        X0i, 
+                                        p0 = x0i, 
+                                        method ='lm')
+            xopt[i], xopt[N + i], xopt[2*N + i] = xopti
     elif method == 'least_squares' :
-        results = sopt.least_squares(Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_LS, 
-                                  x0, 
-                                  args = (X0,A0))  
-        xopt = results.x
+        for i in range (N) :
+            X0i = Xdetected[:,i]
+            x0i = x0[:,i]
+            results = sopt.least_squares(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_LS, 
+                                      x0i, 
+                                      args = (X0i,A0))  
+            xopti = results.x
+            xopt[i], xopt[N + i], xopt[2*N + i] = xopti 
     
     xopt = np.array(xopt)
     xopt = xopt.reshape((3,N))
-    Xcalculated = Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
+    Xcalculated = Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
     Xdiff = np.absolute(Xcalculated - Xdetected)
     print(str(polynomial_form), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
     
-    # plt.plot(x00, y00, z00, 'r.', label = 'x0')
-    fit_plans_to_points(xopt.reshape((1,xopt.shape[0], xopt.shape[1])), 
-                                title = title)
+
     return (xopt, Xcalculated, Xdetected)
+
+def AI_solve (file,
+              n_estimators=800, 
+              min_samples_leaf=1, 
+              min_samples_split=2, 
+              random_state=1, 
+              max_features='sqrt',
+              max_depth=100,bootstrap='true',
+              hyperparameters_tuning = False) :  
+    
+    dat=pd.read_csv(file, sep=" " )
+    dat=np.array(dat)
+    N = int(len(dat)*4/5)
+    
+    # 1st meta-model
+    X=dat[0:N,0:4]
+    Y=dat[0:N,4:7]
+    model = RandomForestRegressor(n_estimators=n_estimators, 
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
+    model.fit(X,Y)
+    
+    # TEST 
+    X2=dat[N:,0:4]
+    Y2=dat[N:,4:7]
+    predictions = model.predict(X2)
+    print(mean_squared_error(predictions, Y2))
+    
+    # hyperparameter tuning 
+    if hyperparameters_tuning :
+        # Number of trees in random forest
+        n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+        # Number of features to consider at every split
+        max_features = ['auto', 'sqrt']
+        # Maximum number of levels in tree
+        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+        max_depth.append(None)
+        # Minimum number of samples required to split a node
+        min_samples_split = [2, 5, 10]
+        # Minimum number of samples required at each leaf node
+        min_samples_leaf = [1, 2, 4]
+        # Method of selecting samples for training each tree
+        bootstrap = [True, False]# Create the random grid
+        random_grid = {'n_estimators': n_estimators,
+                        'max_features': max_features,
+                        'max_depth': max_depth,
+                        'min_samples_split': min_samples_split,
+                        'min_samples_leaf': min_samples_leaf,
+                        'bootstrap': bootstrap}
+        
+        rf_random = RandomizedSearchCV(estimator = model, param_distributions = random_grid, n_iter = 100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+        rf_random.fit(X, Y)
+        
+        best_random = rf_random.best_estimator_
+        print('Best hyper parameters')
+        print(best_random)
+    
+    #################################
+    def evaluate(model, test_features, test_labels):
+        predictions = model.predict(test_features)
+        errors = abs(predictions - test_labels)
+        mape = 100 * np.mean(errors / np.max(test_labels))
+        accuracy = 100 - mape
+        print('Model Performance')
+        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+        print('Accuracy = {:0.2f}%.'.format(accuracy))
+        return accuracy
+    
+    accuracy = evaluate(model, X, Y)
+    return(model, accuracy)
 
 
 if __name__ == '__main__' :
