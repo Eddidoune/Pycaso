@@ -88,7 +88,9 @@ def calibration_model(nx, ny, l) :
             Xref.append([(nx-(j+1))*l, (i+1)*l, j+(ny-1)*i])
     return Xref
 
-def cut_calibration_model (List_images, Xcal, __dict__) :
+def cut_calibration_model (List_images, 
+                           Xcal, 
+                           __dict__) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, delete it on all the others images. 
         Delete also on the real positions of the corners.
@@ -168,8 +170,8 @@ def cut_calibration_model (List_images, Xcal, __dict__) :
 
 
 def pattern_detection (__dict__,
-               detection = True,
-               saving_folder = 'Folders_npy') :
+                       detection = True,
+                       saving_folder = 'Folders_npy') :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -227,9 +229,9 @@ def pattern_detection (__dict__,
 
 
 
-def DIC_detection (__dict__,
-                   detection = True,
-                   saving_folder = 'Folders_npy') :
+def DIC_3D_detection (__dict__,
+                      detection = True,
+                      saving_folder = 'Folders_npy') :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -249,20 +251,19 @@ def DIC_detection (__dict__,
     right_folder = __dict__['right_folder']
     name = __dict__['name']
     window = __dict__['window']
-    Images_left = sorted(glob(str(left_folder) + '/*.tif'))
-    Images_right = sorted(glob(str(right_folder) + '/*.tif'))
-    Images = Images_left
-    N = len(Images)
-    for i in range (N) :
-        Images.append(Images_right[i]) 
-    
     Save_Ucam_Xref = str(saving_folder) +"/all_X_DIC_" + name + ".npy"
-    [lx1, lx2], [ly1, ly2] = window
-    all_left = []
-    all_right = []
-
-    # Corners detection
     if detection :
+        Images_left = sorted(glob(str(left_folder) + '/*.tif'))
+        Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+        Images = Images_left
+        N = len(Images)
+        for i in range (N) :
+            Images.append(Images_right[i]) 
+        [lx1, lx2], [ly1, ly2] = window
+        all_left = []
+        all_right = []
+
+        # Corners detection
         print('    - DIC in progress ...')
         # DIC detection of the points from each camera
         for i in range (N) :
@@ -299,6 +300,66 @@ def DIC_detection (__dict__,
         all_X = np.load(Save_Ucam_Xref)
     
     return(all_X)
+
+
+
+def DIC_fields (__dict__,
+                detection = True,
+                saving_folder = 'Folders_npy') :
+    """Detect the corners of Charucco's pattern.
+    
+    Args:
+       __dict__ : dict
+           Pattern properties define in a dict.
+       detection : bool, optional
+           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+       saving_folder : str, optional
+           Folder to save datas
+           
+    Returns:
+       all_X : numpy.ndarray
+           The corners of the pattern detect by the camera ranged in an array arrange with all left pictures followed by all right pictures. 
+           Expl : [left_picture_1, left_picture_2, right_picture_1, right_picture_2]
+    """
+    left_folder = __dict__['left_folder']
+    right_folder = __dict__['right_folder']
+    name = __dict__['name']
+    Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
+    if detection :
+        Images_left = sorted(glob(str(left_folder) + '/*.tif'))
+        Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+        Images = Images_left
+        N = len(Images)
+        for i in range (N) :
+            Images.append(Images_right[i])    
+        # Corners detection
+        if detection :
+            print('    - DIC in progress ...')
+            # DIC detection of the points from each camera
+            for i in range (N) :
+                image_t0_left, image_ti_left = Images[0], Images[i]
+                image_t0_right, image_ti_right = Images[N], Images[i+N]
+                Ul, Vl = DIC.strain_field(image_t0_left, image_ti_left)
+                Ur, Vr = DIC.strain_field(image_t0_right, image_ti_right)
+                if i == 0 :
+                    U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                    V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                    U_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                    V_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_left[i] = Ul
+                V_left[i] = Vl
+                U_right[i] = Ur
+                V_right[i] = Vr
+        all_UV = np.array([U_left, V_left, U_right, V_right])       
+        np.save(Save_UV, all_UV)
+        print('    - Saving datas in ', saving_folder)
+    # Taking pre-calculated datas from the saving_folder
+    else :
+        print('    - Taking datas from ', saving_folder)        
+        all_UV = np.load(Save_UV)
+        U_left, V_left, U_right, V_right = all_UV
+        
+    return(U_left, V_left, U_right, V_right)
 
 
 
