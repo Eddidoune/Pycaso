@@ -357,7 +357,7 @@ if __name__ == '__main__' :
     'ncx' : 16,
     'ncy' : 12,
     'sqr' : 0.3,
-    'window' : [[700, 1200], [700, 1200]]}  #in mm
+    'window' : [[500, 1500], [500, 1500]]}  #in mm
     
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
@@ -426,10 +426,10 @@ if __name__ == '__main__' :
     print('')
 
     direct_A, Magnification = full_direct_calibration (__calibration_dict__,
-                                                     x3_list,
-                                                     saving_folder,
-                                                     direct_polynomial_form,
-                                                     detection = False)
+                                                       x3_list,
+                                                       saving_folder,
+                                                       direct_polynomial_form,
+                                                       detection = False)
     '''
     print('')
     print('#####       ')
@@ -467,16 +467,16 @@ if __name__ == '__main__' :
                                            detection = False,
                                            saving_folder = saving_folder)
     # Identify all the cinematic fields
-    U_left, V_left, U_right, V_right = data.DIC_fields(__DIC_dict__, 
+    all_U_left, all_V_left, all_U_right, all_V_right = data.DIC_fields(__DIC_dict__, 
                                                        detection = False,
                                                        saving_folder = saving_folder)
-    
     Nimages, Npoints, Naxes = X3D_identified.shape
     Np_img = Nimages//2    
+    all_U, all_V, all_W = np.zeros((3,Nimages, Npoints))
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (Np_img) :
+    for image in range (1) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -537,11 +537,11 @@ if __name__ == '__main__' :
         # Soloff identification
         t0 = time.time()
         xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
-                                                                    X_c2,
-                                                                    A111, 
-                                                                    A_pol,
-                                                                    polynomial_form = polynomial_form,
-                                                                    method = 'curve_fit')       
+                                                                   X_c2,
+                                                                   A111, 
+                                                                   A_pol,
+                                                                   polynomial_form = polynomial_form,
+                                                                   method = 'curve_fit')       
         np.save(saving_folder + '/xsolution_soloff' + str(image) + '.npy', xSoloff_solution)
         xSoloff_solution = np.load(saving_folder + '/xsolution_soloff' + str(image) + '.npy')
 
@@ -551,6 +551,8 @@ if __name__ == '__main__' :
         # Points coordinates
         xS, yS, zS = xSoloff_solution
         xSoloff_solutions[image] = xSoloff_solution
+        fit, errors, mean_error, residual = solvel.fit_plan_to_points(xSoloff_solution)
+        zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]       
         
         
         
@@ -563,9 +565,9 @@ if __name__ == '__main__' :
                 linestyle ='-.', linewidth = 0.3,
                 alpha = 0.2)
         my_cmap = plt.get_cmap('hsv')
-        sctt = ax.scatter3D(xS, yS, zS,
+        sctt = ax.scatter3D(xS, yS, zS_recal,
                             alpha = 0.8,
-                            c = zS,
+                            c = zS_recal,
                             cmap = my_cmap)
         plt.title("Soloff all pts" + str(image))
         ax.set_xlabel('x (mm)', fontweight ='bold')
@@ -573,11 +575,10 @@ if __name__ == '__main__' :
         ax.set_zlabel('z (mm)', fontweight ='bold')
         fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
         
-        fit, errors, mean_error, residual = solvel.fit_plan_to_points(xSoloff_solution)
         plt.show()
-                
         
         
+        '''
         # Chose the Number of Datas for Artificial Intelligence Learning
         NDIAL = 1000
         # Create the .csv to make an IA identification
@@ -590,24 +591,24 @@ if __name__ == '__main__' :
         xIA, yIA, zIA = xIA_solution
         xIA_solutions[image] = xIA_solution
         
-        # # Creating figure
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # ax.grid(visible = True, color ='grey',
-        #         linestyle ='-.', linewidth = 0.3,
-        #         alpha = 0.2)
-        # my_cmap = plt.get_cmap('hsv')
-        # sctt = ax.scatter3D(xIA, yIA, zIA,
-        #                     alpha = 0.8,
-        #                     c = zIA,
-        #                     cmap = my_cmap)
-        # plt.title("IA all pts" + str(image))
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        # plt.show()
-        
+        # Creating figure
+        fig = plt.figure(figsize = (16, 9))
+        ax = plt.axes(projection ="3d")
+        ax.grid(visible = True, color ='grey',
+                linestyle ='-.', linewidth = 0.3,
+                alpha = 0.2)
+        my_cmap = plt.get_cmap('hsv')
+        sctt = ax.scatter3D(xIA, yIA, zIA,
+                            alpha = 0.8,
+                            c = zIA,
+                            cmap = my_cmap)
+        plt.title("IA all pts" + str(image))
+        ax.set_xlabel('x (mm)', fontweight ='bold')
+        ax.set_ylabel('y (mm)', fontweight ='bold')
+        ax.set_zlabel('z (mm)', fontweight ='bold')
+        fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
+        plt.show()
+        '''
         
         
         
