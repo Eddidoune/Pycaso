@@ -180,11 +180,11 @@ def full_Soloff_identification (Xc1_identified,
     
     # Solve the polynomials constants ai with curve-fit method (Levenberg Marcquardt)
     x_solution, Xcalculated, Xdetected = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
-                                                                       Xc2_identified, 
-                                                                       A_pol, 
-                                                                       x0, 
-                                                                       polynomial_form = polynomial_form, 
-                                                                       method = 'curve_fit')
+                                                                            Xc2_identified, 
+                                                                            A_pol, 
+                                                                            x0, 
+                                                                            polynomial_form = polynomial_form, 
+                                                                            method = 'curve_fit')
     return (x_solution, Xcalculated, Xdetected)
 
 
@@ -357,7 +357,7 @@ if __name__ == '__main__' :
     'ncx' : 16,
     'ncy' : 12,
     'sqr' : 0.3,
-    'window' : [[300, 1700], [300, 1700]]}  #in mm
+    'window' : [[700, 1200], [700, 1200]]}  #in mm
     
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
@@ -471,10 +471,12 @@ if __name__ == '__main__' :
                                                        detection = False,
                                                        saving_folder = saving_folder)
     
-    sys.exit()
-    Nimg = len(X3D_identified)//2    
-    
-    for image in range (1) :
+    Nimages, Npoints, Naxes = X3D_identified.shape
+    Np_img = Nimages//2    
+    xDirect_solutions = np.zeros((Np_img, 3, Npoints))
+    xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
+    xIA_solutions = np.zeros((Np_img, 3, Npoints))
+    for image in range (Np_img) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -482,7 +484,7 @@ if __name__ == '__main__' :
         print('...')
         
         X_c1 = X3D_identified[image]
-        X_c2 = X3D_identified[image+Nimg]
+        X_c2 = X3D_identified[image+Np_img]
         
         # Direct identification
         t0 = time.time()
@@ -490,7 +492,8 @@ if __name__ == '__main__' :
                                                        X_c2,
                                                        direct_A,
                                                        direct_polynomial_form = direct_polynomial_form)
-        x_direct, y_direct, z_direct = xDirect_solution
+        xD, yD, zD = xDirect_solution
+        xDirect_solutions[image] = xDirect_solution
         t1 = time.time()
         print('time direct = ',t1 - t0)
         print('end direct')
@@ -505,9 +508,9 @@ if __name__ == '__main__' :
         # # Creating color map
         # my_cmap = plt.get_cmap('hsv')
         # # Creating plot
-        # sctt = ax.scatter3D(x_direct, y_direct, z_direct,
+        # sctt = ax.scatter3D(xD, yD, zD,
         #                     alpha = 0.8,
-        #                     c = z_direct,
+        #                     c = zD,
         #                     cmap = my_cmap)
         # plt.title("Direct all pts" + str(image))
         # ax.set_xlabel('x (mm)', fontweight ='bold')
@@ -516,7 +519,6 @@ if __name__ == '__main__' :
         # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
         # # show plot
         # plt.show()
-        
         
         
         
@@ -548,26 +550,32 @@ if __name__ == '__main__' :
         print('end SOLOFF')
         # Points coordinates
         xS, yS, zS = xSoloff_solution
-        
-        # # Creating figure
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # ax.grid(visible = True, color ='grey',
-        #         linestyle ='-.', linewidth = 0.3,
-        #         alpha = 0.2)
-        # my_cmap = plt.get_cmap('hsv')
-        # sctt = ax.scatter3D(xS, yS, zS,
-        #                     alpha = 0.8,
-        #                     c = zS,
-        #                     cmap = my_cmap)
-        # plt.title("Soloff all pts" + str(image))
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        # plt.show()
+        xSoloff_solutions[image] = xSoloff_solution
         
         
+        
+        
+        
+        # Creating figure
+        fig = plt.figure(figsize = (16, 9))
+        ax = plt.axes(projection ="3d")
+        ax.grid(visible = True, color ='grey',
+                linestyle ='-.', linewidth = 0.3,
+                alpha = 0.2)
+        my_cmap = plt.get_cmap('hsv')
+        sctt = ax.scatter3D(xS, yS, zS,
+                            alpha = 0.8,
+                            c = zS,
+                            cmap = my_cmap)
+        plt.title("Soloff all pts" + str(image))
+        ax.set_xlabel('x (mm)', fontweight ='bold')
+        ax.set_ylabel('y (mm)', fontweight ='bold')
+        ax.set_zlabel('z (mm)', fontweight ='bold')
+        fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
+        
+        fit, errors, mean_error, residual = solvel.fit_plan_to_points(xSoloff_solution)
+        plt.show()
+                
         
         
         # Chose the Number of Datas for Artificial Intelligence Learning
@@ -580,6 +588,7 @@ if __name__ == '__main__' :
                                                NDIAL = NDIAL,
                                                file = file)
         xIA, yIA, zIA = xIA_solution
+        xIA_solutions[image] = xIA_solution
         
         # # Creating figure
         # fig = plt.figure(figsize = (16, 9))
@@ -633,7 +642,7 @@ if __name__ == '__main__' :
         
 
         # # Difference IA and direct
-        # xdiff, ydiff, zdiff = x_direct - xIA, y_direct - yIA, z_direct - zIA
+        # xdiff, ydiff, zdiff = xD - xIA, yD - yIA, zD - zIA
         # r = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
         # # Creating figure
         # fig = plt.figure(figsize = (16, 9))

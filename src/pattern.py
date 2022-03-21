@@ -67,8 +67,8 @@ class Calibrate(dict):
 if __name__ == '__main__' :
     # Show the reals and theoreticals points  
     test = {
-    'ncx' : 16,
-    'ncy' : 12,
+    'ncx' : 18,
+    'ncy' : 24,
     'dpi' : 1200}
     # Choose the dict
     __dict__ = test

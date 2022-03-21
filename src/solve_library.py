@@ -331,8 +331,6 @@ def fit_plan_to_points(point,
     errors = np.reshape(errors, (len(errors)))
     
     # plot plan
-    xlim = ax.get_xlim()
-    ylim = ax.get_ylim()
     X,Y = np.meshgrid(np.linspace(np.min(xs), np.max(xs), 10),
                       np.linspace(np.min(ys), np.max(ys), 10))
     Z = np.zeros(X.shape)
@@ -340,13 +338,15 @@ def fit_plan_to_points(point,
         for c in range(X.shape[1]):
             Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
     ax.plot_wireframe(X,Y,Z, color='k')
-    
+        
     ax.set_title(title)
     ax.set_xlabel('x (mm)')
     ax.set_ylabel('y (mm)')
     ax.set_zlabel('z (mm)')
-
-    return (errors, mean_error, residual)
+    
+    fit = np.transpose(np.array(fit))[0]
+    
+    return (fit, errors, mean_error, residual)
 
 def fit_plans_to_points(points, 
                          title = 'no title'):
@@ -363,12 +363,13 @@ def fit_plans_to_points(points,
     """
     # plot raw data
     l, m, n = points.shape
+    fit = np.zeros((l, 3))
     errors = np.zeros((l, n))
     mean_error = np.zeros(l)
     residual = np.zeros(l)
     for i in range (len(points)) :
         point = points[i]
-        errors[i], mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
+        fit[i], errors[i], mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
     plt.figure()
         
     print('Plan square max error = ', (np.max(abs(errors))), ' mm')
@@ -376,6 +377,7 @@ def fit_plans_to_points(points,
     print('Plan square mean residual = ', (np.mean(residual**2))**(1/2))
 
     plt.show()
+    return (fit, errors, mean_error, residual)
 
 def refplans(xc1, x3_list) :
     """Plot the medians plans from references points
@@ -440,68 +442,129 @@ def least_square_method (Xc1_identified,
     
     return (x0)    
 
+# def Levenberg_Marquardt_solving (Xc1_identified, 
+#                                  Xc2_identified, 
+#                                  A, 
+#                                  x0, 
+#                                  polynomial_form, 
+#                                  method = 'curve_fit') :
+#     """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
+    
+#     Args:
+#        Xc1_identified : numpy.ndarray
+#            Real positions of camera 1
+#        Xc2_identified : numpy.ndarray
+#            Real positions of camera 2
+#        A : numpy.ndarray
+#            Constants of the calibration polynome
+#        x0 : numpy.ndarray
+#            Initial guess
+#        polynomial_form : int
+#            Polynomial form
+#        method : str
+#            Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
+           
+#     Returns:
+#        xopt : numpy.ndarray
+#            Solution of the LM resolution
+#        Xcalculated : numpy.ndarray
+#            Solution calculated
+#        Xdetected : numpy.ndarray
+#            Solution detected (Xc1_identified, Xc2_identified)
+#     """   
+#     N = len(x0[0])    
+#     Xdetected = np.array([Xc1_identified[:,0], Xc1_identified[:,1], Xc2_identified[:,0], Xc2_identified[:,1]])
+#     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
+#     xopt = np.zeros((3*N))
+#     if method == 'curve_fit' :
+#         for i in range (N) :
+#             X0i = Xdetected[:,i]
+#             x0i = x0[:,i]
+#             xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
+#                                         A0, 
+#                                         X0i, 
+#                                         p0 = x0i, 
+#                                         method ='lm')
+#             xopt[i], xopt[N + i], xopt[2*N + i] = xopti
+#     elif method == 'least_squares' :
+#         for i in range (N) :
+#             X0i = Xdetected[:,i]
+#             x0i = x0[:,i]
+#             results = sopt.least_squares(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_LS, 
+#                                       x0i, 
+#                                       args = (X0i,A0))  
+#             xopti = results.x
+#             xopt[i], xopt[N + i], xopt[2*N + i] = xopti 
+    
+#     xopt = np.array(xopt)
+#     xopt = xopt.reshape((3,N))
+#     Xcalculated = Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
+#     Xdiff = np.absolute(Xcalculated - Xdetected)
+#     print(str(polynomial_form), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
+    
+
+#     return (xopt, Xcalculated, Xdetected)
+
 def Levenberg_Marquardt_solving (Xc1_identified, 
                                  Xc2_identified, 
                                  A, 
                                  x0, 
                                  polynomial_form, 
                                  method = 'curve_fit') :
-    """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
-    
-    Args:
-       Xc1_identified : numpy.ndarray
-           Real positions of camera 1
-       Xc2_identified : numpy.ndarray
-           Real positions of camera 2
-       A : numpy.ndarray
-           Constants of the calibration polynome
-       x0 : numpy.ndarray
-           Initial guess
-       polynomial_form : int
-           Polynomial form
-       method : str
-           Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
-           
-    Returns:
-       xopt : numpy.ndarray
-           Solution of the LM resolution
-       Xcalculated : numpy.ndarray
-           Solution calculated
-       Xdetected : numpy.ndarray
-           Solution detected (Xc1_identified, Xc2_identified)
-    """   
+    from joblib import Parallel, delayed, dump, load
+    import os
+    core_number = os.cpu_count()
+    folder = './joblib_memmap'
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass  
+
     N = len(x0[0])    
     Xdetected = np.array([Xc1_identified[:,0], Xc1_identified[:,1], Xc2_identified[:,0], Xc2_identified[:,1]])
     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
-    xopt = np.zeros((3*N))
-    if method == 'curve_fit' :
-        for i in range (N) :
-            X0i = Xdetected[:,i]
-            x0i = x0[:,i]
+    xopt = np.zeros((3,N))
+    data_filename_memmap = os.path.join(folder, 'data_memmap')
+    dump(Xdetected, data_filename_memmap)
+    Xdetected = load(data_filename_memmap, mmap_mode='r')
+    
+    win_size = Xdetected.shape[1]/core_number
+    slices = []
+    for i in range (core_number) :
+        start = i*win_size
+        slices.append(slice(round(start), round(start + win_size)))
+    
+    def xopt_solve (X, sl) :
+        Ns = sl.stop - sl.start
+        xopt = np.zeros((3*Ns))
+        Xdetected_part = X[:,sl]
+        x0_part = x0[:,sl]
+        for i in range (Xdetected_part.shape[1]) :
+            X0i = Xdetected_part[:,i]
+            x0i = x0_part[:,i]
             xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
                                         A0, 
                                         X0i, 
                                         p0 = x0i, 
                                         method ='lm')
-            xopt[i], xopt[N + i], xopt[2*N + i] = xopti
-    elif method == 'least_squares' :
-        for i in range (N) :
-            X0i = Xdetected[:,i]
-            x0i = x0[:,i]
-            results = sopt.least_squares(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_LS, 
-                                      x0i, 
-                                      args = (X0i,A0))  
-            xopti = results.x
-            xopt[i], xopt[N + i], xopt[2*N + i] = xopti 
+            xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
+        return (xopt)
+
+    xopt_parallel = Parallel(n_jobs=8)(delayed(xopt_solve)(Xdetected, sl) for sl in slices)
+
+    for part in range (len(xopt_parallel)) :
+        sl = slices[part]
+        xopt_part = xopt_parallel[part]
+        xopt[:,sl] = xopt_part.reshape((3,sl.stop - sl.start))
+        
     
-    xopt = np.array(xopt)
-    xopt = xopt.reshape((3,N))
     Xcalculated = Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
     Xdiff = np.absolute(Xcalculated - Xdetected)
     print(str(polynomial_form), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
     
-
     return (xopt, Xcalculated, Xdetected)
+
+
 
 def AI_solve (file,
               n_estimators=800, 
