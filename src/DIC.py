@@ -174,7 +174,8 @@ def getresidue(ima,imb,f):
 def strain_field (image_1, 
                   image_2, 
                   window = [False], 
-                  show = False) :
+                  show = False,
+                  mirror = False) :
     """Calcul the strain field betxeen two images.
 
     Args:
@@ -187,12 +188,12 @@ def strain_field (image_1,
         Graphic :           Plot the strain_field
         savefig :           Save the graphic in the folder 'Resultats'
     """    
-    
-    #img_ref_original = cv2.imread('2021-09-03/Mecanique/test1_1_percent_files/ref.tif',0) # Reference Image (Image 1 at instant t)
     img_ref_original = cv2.imread(image_1,0) 
-    #img_ref = np.array(img_ref_original[200:4350,820:4350])
     img_def_original = cv2.imread(image_2,0) 
-    #img_def = np.array(img_def_original[200:4350,820:4350])
+    if mirror :
+        img_ref_original = cv2.flip(img_ref_original, 1)
+        img_def_original = cv2.flip(img_def_original, 1)
+
     if any(window) :
         [lx1, lx2], [ly1, ly2] = window
         img_ref_original = img_ref_original[ly1:ly2, lx1:lx2]

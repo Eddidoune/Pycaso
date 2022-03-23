@@ -251,55 +251,178 @@ def DIC_3D_detection (__dict__,
     right_folder = __dict__['right_folder']
     name = __dict__['name']
     window = __dict__['window']
-    Save_Ucam_Xref = str(saving_folder) +"/all_X_DIC_" + name + ".npy"
-    if detection :
-        Images_left = sorted(glob(str(left_folder) + '/*.tif'))
-        Images_right = sorted(glob(str(right_folder) + '/*.tif'))
-        Images = Images_left
-        N = len(Images)
-        for i in range (N) :
-            Images.append(Images_right[i]) 
-        [lx1, lx2], [ly1, ly2] = window
-        all_left = []
-        all_right = []
+    Save_all_U = str(saving_folder) +"/all_U_" + name + ".npy"
+    Save_all_V = str(saving_folder) +"/all_V_" + name + ".npy"
+    Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
+    
+    Images_left = sorted(glob(str(left_folder) + '/*.tif'))
+    Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+    Images = Images_left
+    N = len(Images)
+    for i in range (N) :
+        Images.append(Images_right[i]) 
+    [lx1, lx2], [ly1, ly2] = window
+    all_left = []
+    all_right = []
 
-        # Corners detection
-        print('    - DIC in progress ...')
-        # DIC detection of the points from each camera
-        for i in range (N) :
+    # Corners detection
+    print('    - DIC in progress ...')
+    # DIC detection of the points from each camera
+    for i in range (N) :
+        if detection :
             image_1, image_2 = Images[i], Images[i+N]
             U, V = DIC.strain_field(image_1, image_2)
+            if i == 0 :
+                all_U = np.empty((N, U.shape[0], U.shape[1]))
+                all_V = np.empty((N, V.shape[0], V.shape[1]))
+            all_U[i] = U
+            all_V[i] = V
+            np.save(Save_all_U, all_U)
+            np.save(Save_all_V, all_V)
+            print('    - Saving datas in ', saving_folder)
+        else :
+            # Taking pre-calculated datas from the saving_folder
+            print('    - Taking datas from ', saving_folder)        
+            all_U = np.load(Save_all_U)
+            all_V = np.load(Save_all_V)
+            X_map = np.load(Save_X_map)
+        
+    for i in range (N) :
+        U, V = all_U[i], all_V[i]
+        nX1, nX2 = U.shape
+        # ntot = (lx2 - lx1) * (ly2 - ly1)
+        linsp = np.arange(nX1)+1
+        linsp = np.reshape (linsp, (1,nX1))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
+        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
+        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
+        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
 
-            nX1, nX2 = U.shape
-            ntot = (lx2 - lx1) * (ly2 - ly1)
-            linsp = np.arange(nX1)+1
-            linsp = np.reshape (linsp, (1,nX1))
-            X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
-            X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
-            X1matrix = X1matrix[ly1:ly2, lx1:lx2]
-            X2matrix = X2matrix[ly1:ly2, lx1:lx2]
+        if detection :
+            # Generate the mapping
+            X_map = np.transpose(np.array([np.ravel(X1matrix), np.ravel(X2matrix)]))
+            X_map = X_map.reshape((X1matrix.shape[0],X1matrix.shape[1],2))
+            np.save(Save_X_map, X_map)
 
-            # Left camera --> position = each px
-            X_c1 = np.transpose(np.array([X1matrix.reshape(ntot), X2matrix.reshape(ntot)]))
-            UV = np.transpose(np.array([U[ly1:ly2, lx1:lx2].reshape(ntot), V[ly1:ly2, lx1:lx2].reshape(ntot)]))
+        # Left camera --> position = each px
+        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), np.ravel(X2matrix_w)]))
+        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), np.ravel(V[ly1:ly2, lx1:lx2])]))
 
-            # Right camera --> position = each px + displacement
-            X_c2 = X_c1 + UV
+        # Right camera --> position = each px + displacement
+        X_c2 = X_c1 + UV
 
-            all_left.append(X_c1)
-            all_right.append(X_c2)
-        all_X = all_left
-        for i in range (N) :
-            all_X.append(all_right[i])
-        all_X = np.asarray(all_X)
-        np.save(Save_Ucam_Xref, all_X)
-        print('    - Saving datas in ', saving_folder)
-    # Taking pre-calculated datas from the saving_folder
-    else :
-        print('    - Taking datas from ', saving_folder)        
-        all_X = np.load(Save_Ucam_Xref)
+        all_left.append(X_c1)
+        all_right.append(X_c2)
+    all_X = all_left
+    for i in range (N) :
+        all_X.append(all_right[i])
+    all_X = np.asarray(all_X)
     
-    return(all_X)
+    return(all_X, X_map)
+
+
+
+def DIC_3D_detection_lagrangian (__dict__,
+                      detection = True,
+                      saving_folder = 'Folders_npy',
+                      mirror = False) :
+    """Detect the corners of Charucco's pattern.
+    
+    Args:
+       __dict__ : dict
+           Pattern properties define in a dict.
+       detection : bool, optional
+           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+       saving_folder : str, optional
+           Folder to save datas
+           
+    Returns:
+       all_X : numpy.ndarray
+           The corners of the pattern detect by the camera ranged in an array arrange with all left pictures followed by all right pictures. 
+           Expl : [left_picture_1, left_picture_2, right_picture_1, right_picture_2]
+    """
+    left_folder = __dict__['left_folder']
+    right_folder = __dict__['right_folder']
+    name = __dict__['name']
+    window = __dict__['window']
+    Save_all_U = str(saving_folder) +"/Lagrangian_all_U_" + name + ".npy"
+    Save_all_V = str(saving_folder) +"/Lagrangian_all_V_" + name + ".npy"
+    Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
+    
+    Images_left = sorted(glob(str(left_folder) + '/*.tif'))
+    Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+    Images = Images_left
+    N = len(Images)
+    for i in range (N) :
+        Images.append(Images_right[i]) 
+    [lx1, lx2], [ly1, ly2] = window
+    all_left = []
+    all_right = []
+
+    # if mirror :
+    #     imgl_flip_lr = cv2.flip(dt1, 1)
+    #     cv2.imwrite(left_folder + str(np.around(i, 6)) + '.png', imgl_flip_lr)    
+    #     imgr_flip_lr = cv2.flip(dt2, 1)
+    #     cv2.imwrite(right_folder + str(np.around(i, 6)) + '.png', imgr_flip_lr)   
+    # else :    
+    #     imwrite(left_folder + str(np.around(i, 6)) + '.png', dt1)
+    #     imwrite(right_folder + str(np.around(i, 6)) + '.png', dt2)
+
+    # Corners detection
+    print('    - DIC in progress ...')
+    # DIC detection of the points from each camera
+    image_ref = Images[0]
+    for i in range (N) :
+        if detection :
+            image_def = Images[i+N]
+            U, V = DIC.strain_field(image_ref, image_def)
+            if i == 0 :
+                all_U = np.empty((N, U.shape[0], U.shape[1]))
+                all_V = np.empty((N, V.shape[0], V.shape[1]))
+            all_U[i] = U
+            all_V[i] = V
+            np.save(Save_all_U, all_U)
+            np.save(Save_all_V, all_V)
+            print('    - Saving datas in ', saving_folder)
+        else :
+            # Taking pre-calculated datas from the saving_folder
+            print('    - Taking datas from ', saving_folder)        
+            all_U = np.load(Save_all_U)
+            all_V = np.load(Save_all_V)
+            X_map = np.load(Save_X_map)
+        
+    for i in range (N) :
+        U, V = all_U[i], all_V[i]
+        nX1, nX2 = U.shape
+        # ntot = (lx2 - lx1) * (ly2 - ly1)
+        linsp = np.arange(nX1)+1
+        linsp = np.reshape (linsp, (1,nX1))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
+        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
+        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
+        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
+
+        if detection :
+            # Generate the mapping
+            X_map = np.transpose(np.array([np.ravel(X1matrix), np.ravel(X2matrix)]))
+            X_map = X_map.reshape((X1matrix.shape[0],X1matrix.shape[1],2))
+            np.save(Save_X_map, X_map)
+
+        # Left camera --> position = each px
+        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), np.ravel(X2matrix_w)]))
+        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), np.ravel(V[ly1:ly2, lx1:lx2])]))
+
+        # Right camera --> position = each px + displacement
+        X_c2 = X_c1 + UV
+
+        all_left.append(X_c1)
+        all_right.append(X_c2)
+    all_X = all_left
+    for i in range (N) :
+        all_X.append(all_right[i])
+    all_X = np.asarray(all_X)
+    
+    return(all_X, X_map)
 
 
 
@@ -340,7 +463,7 @@ def DIC_fields (__dict__,
                 image_t0_left, image_ti_left = Images[0], Images[i]
                 image_t0_right, image_ti_right = Images[N], Images[i+N]
                 Ul, Vl = DIC.strain_field(image_t0_left, image_ti_left)
-                Ur, Vr = DIC.strain_field(image_t0_right, image_ti_right)
+                Ur, Vr = DIC.strain_field(image_t0_left, image_ti_right)
                 if i == 0 :
                     U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
                     V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))

@@ -15,7 +15,7 @@ import os
 import time
 from glob import glob
 # import DIC
-# import cv2
+import cv2
 import solve_library as solvel
 import data_library as data
 import matplotlib.pyplot as plt
@@ -26,7 +26,7 @@ def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
     
     Args:
-       X1 : numpy.ndarray
+       X1 : numpy.ndarrayx
            Organised real positions (X1 = X axe)
        X2 : numpy.ndarray
            Organised real positions (X2 = Y axe)
@@ -330,7 +330,7 @@ def full_IA_identification (X_c1,
     return (xIA_solution)
 
 if __name__ == '__main__' :
-    main_path = "/home/caroneddy/These/Stereo_camera/Socapy_archives/src"
+    main_path = "/home/caroneddy/These/Stereo_camera/Socapy_archives/src"    
     
     # Define the inputs
     __calibration_dict__ = {
@@ -463,20 +463,48 @@ if __name__ == '__main__' :
     print('#####       ')
     print('')
     
-    X3D_identified = data.DIC_3D_detection(__DIC_dict__, 
-                                           detection = False,
-                                           saving_folder = saving_folder)
+    X3D_identified, X_map = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
+                                                             detection = False,
+                                                             saving_folder = saving_folder,
+                                                             mirror = True)
     # Identify all the cinematic fields
     all_U_left, all_V_left, all_U_right, all_V_right = data.DIC_fields(__DIC_dict__, 
-                                                       detection = False,
-                                                       saving_folder = saving_folder)
+                                                                       detection = False,
+                                                                       saving_folder = saving_folder)
+    # t = 1
+    # X_left_t0 = X3D_identified[0]
+    # X_right_t0 = X3D_identified[5]
+    
+    # [lx1, lx2], [ly1, ly2] = __DIC_dict__['window']
+    # # [lx1, lx2], [ly1, ly2] = [500,505], [500,505]
+    # U_left = all_U_left[t]
+    # V_left = all_V_left[t]
+    # ntot = (lx2 - lx1) * (ly2 - ly1)
+    
+    # Ul, Vl = U_left[ly1:ly2, lx1:lx2], V_left[ly1:ly2, lx1:lx2]
+    # UVl = np.transpose(np.array([np.ravel(Ul), np.ravel(Vl)]))
+    # X_left_t1 = X_left_t0 + UVl
+    
+    # U_right = all_U_right[t]
+    # V_right = all_V_right[t]
+    # Ur, Vr = U_right[ly1:ly2, lx1:lx2], V_right[ly1:ly2, lx1:lx2]
+    # UVr = np.transpose(np.array([np.ravel(Ur), np.ravel(Vr)]))
+    # X_right_t1 = X_right_t0 + UVr
+    
+    # X_map = np.reshape(X_map, X_right_t0.shape)
+    # U_right = np.ravel(U_right)
+    # Ureal = np.interp(U_right, X_map, X_right_t0)
+        
+    
+    
+    
     Nimages, Npoints, Naxes = X3D_identified.shape
     Np_img = Nimages//2    
     all_U, all_V, all_W = np.zeros((3,Nimages, Npoints))
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (1) :
+    for image in range (Np_img) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -537,11 +565,11 @@ if __name__ == '__main__' :
         # Soloff identification
         t0 = time.time()
         xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
-                                                                   X_c2,
-                                                                   A111, 
-                                                                   A_pol,
-                                                                   polynomial_form = polynomial_form,
-                                                                   method = 'curve_fit')       
+                                                                    X_c2,
+                                                                    A111, 
+                                                                    A_pol,
+                                                                    polynomial_form = polynomial_form,
+                                                                    method = 'curve_fit')       
         np.save(saving_folder + '/xsolution_soloff' + str(image) + '.npy', xSoloff_solution)
         xSoloff_solution = np.load(saving_folder + '/xsolution_soloff' + str(image) + '.npy')
 
@@ -576,6 +604,9 @@ if __name__ == '__main__' :
         fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
         
         plt.show()
+        
+        
+        
         
         
         '''
