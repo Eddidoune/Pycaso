@@ -21,6 +21,7 @@ import data_library as data
 import matplotlib.pyplot as plt
 # from mpl_toolkits import mplot3d
 import csv
+import math
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
@@ -38,10 +39,10 @@ def magnification (X1, X2, x1, x2) :
        Magnification : int
            Magnification between reals and detected positions
     """
-    Delta_X1 = np.mean(abs(X1-np.mean(X1)))
-    Delta_X2 = np.mean(abs(X2-np.mean(X2)))
-    Delta_x1 = np.mean(abs(x1-np.mean(x1)))
-    Delta_x2 = np.mean(abs(x2-np.mean(x2)))
+    Delta_X1 = np.nanmean(abs(X1-np.nanmean(X1)))
+    Delta_X2 = np.nanmean(abs(X2-np.nanmean(X2)))
+    Delta_x1 = np.nanmean(abs(x1-np.nanmean(x1)))
+    Delta_x2 = np.nanmean(abs(x2-np.nanmean(x2)))
     Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
     return (Magnification)
 
@@ -105,7 +106,7 @@ def full_Soloff_calibration (__calibration_dict__,
 
     
     # Detect points from folders
-    all_Ucam, all_Xref = data.pattern_detection(__calibration_dict__,
+    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
                                    detection = detection,
                                    saving_folder = saving_folder)        
 
@@ -140,7 +141,8 @@ def full_Soloff_calibration (__calibration_dict__,
             # Error of projection
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
-            print('Max ; min projection error (polynomial form ' + str(polynomial_form) + ') for camera ' + str(camera) + ' = ' + str(np.amax(proj_error))+ ' ; ' + str(np.amin(proj_error)) + ' px')
+            print(Xd)
+            print('Max ; min projection error (polynomial form ' + str(polynomial_form) + ') for camera ' + str(camera) + ' = ' + str(np.nanmax(proj_error))+ ' ; ' + str(np.nanmin(proj_error)) + ' px')
     A111, A_pol = A_0
     return(A111, A_pol, Magnification)
 
@@ -300,7 +302,9 @@ def full_IA_identification (X_c1,
     # Organise the list of parameters
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
     Xr0, Yr0 = X_c2[:,0], X_c2[:,1]
-
+            
+    # List of random points (To minimize the size of calculation)
+    rd_list = np.ndarray.astype((np.random.rand(NDIAL)*X_c1.shape[0]),int)    
     with open(file, 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, 
                                 delimiter=' ',
@@ -334,8 +338,8 @@ if __name__ == '__main__' :
     
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_03_15/left_posttraction_filtered',
-    'right_folder' : main_path + '/Images_example/2022_03_15/right_posttraction_filtered',
+    'left_folder' : main_path + '/Images_example/2022_03_25/left_101_x6.3',
+    'right_folder' : main_path + '/Images_example/2022_03_25/right_101_x6.3',
     'name' : 'micro_calibration',
     'ncx' : 16,
     'ncy' : 12,
@@ -365,7 +369,7 @@ if __name__ == '__main__' :
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
 
-    saving_folder = main_path + '/results/2022_03_15_results/101_posttraction_filtered'
+    saving_folder = main_path + '/results/2022_03_25_results/101_x6.3'
 
     # saving_folder = 'TXT_example'
 
@@ -384,15 +388,25 @@ if __name__ == '__main__' :
     print('Start calibration')
     print('#####       ')
 
-    all_Ucam, all_Xref = data.pattern_detection(__calibration_dict__,
-                                               detection = False,
-                                               saving_folder = saving_folder)   
+    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
+                                                        detection = False,
+                                                        saving_folder = saving_folder)
+    pts_left, pts_right = nb_pts
+    plt.scatter(x3_list, pts_left)
+    plt.scatter(x3_list, pts_right)
+    plt.xlabel('z-position (mm)')
+    plt.ylabel('Number of points detected')
+    plt.title('Points detected in function of z-position')
+    plt.show()
     
+        
     A111, A_pol, Magnification = full_Soloff_calibration (__calibration_dict__,
                                                          x3_list,
                                                          saving_folder,
                                                          polynomial_form = polynomial_form,
                                                          detection = False)
+
+    sys.exit()
     print('')
     print('#####       ')
     print('End calibration --> Start identification')
@@ -462,15 +476,15 @@ if __name__ == '__main__' :
     print('Identification by DIC')
     print('#####       ')
     print('')
-    
+        
     X3D_identified, X_map = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
                                                              detection = False,
                                                              saving_folder = saving_folder,
-                                                             mirror = True)
+                                                             flip = True)
     # Identify all the cinematic fields
-    all_U_left, all_V_left, all_U_right, all_V_right = data.DIC_fields(__DIC_dict__, 
-                                                                       detection = False,
-                                                                       saving_folder = saving_folder)
+    # all_U_left, all_V_left, all_U_right, all_V_right = data.DIC_fields(__DIC_dict__, 
+    #                                                                    detection = False,
+    #                                                                    saving_folder = saving_folder)
     # t = 1
     # X_left_t0 = X3D_identified[0]
     # X_right_t0 = X3D_identified[5]
@@ -504,7 +518,7 @@ if __name__ == '__main__' :
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (Np_img) :
+    for image in range (2) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -546,31 +560,18 @@ if __name__ == '__main__' :
         # ax.set_zlabel('z (mm)', fontweight ='bold')
         # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
         # # show plot
-        # plt.show()
-        
-        
-        
-        # List of random points (To minimize the size of calculation)
-        rd_list = np.ndarray.astype((np.random.rand(10000)*X_c1.shape[0]),int)
-        g = len(rd_list)
-        Xl = np.zeros((g, 2))
-        Xr = np.zeros((g, 2))
-        for j in range(g) :
-            Xl[j] = X_c1[rd_list[j]]
-            Xr[j] = X_c2[rd_list[j]]
-            
-            
+        # plt.show()            
             
 
         # Soloff identification
         t0 = time.time()
-        xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
-                                                                    X_c2,
-                                                                    A111, 
-                                                                    A_pol,
-                                                                    polynomial_form = polynomial_form,
-                                                                    method = 'curve_fit')       
-        np.save(saving_folder + '/xsolution_soloff' + str(image) + '.npy', xSoloff_solution)
+        # xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
+        #                                                             X_c2,
+        #                                                             A111, 
+        #                                                             A_pol,
+        #                                                             polynomial_form = polynomial_form,
+        #                                                             method = 'curve_fit')       
+        # np.save(saving_folder + '/xsolution_soloff' + str(image) + '.npy', xSoloff_solution)
         xSoloff_solution = np.load(saving_folder + '/xsolution_soloff' + str(image) + '.npy')
 
         t1 = time.time()
@@ -605,8 +606,38 @@ if __name__ == '__main__' :
         
         plt.show()
         
+        sys.exit()
         
-        
+        if image != 0 :
+            N_xy = int(math.sqrt(len(xS)))
+            x0, y0, z0 = np.reshape(xSoloff_solutions[0],(3,N_xy,N_xy))
+            xt, yt, zt = np.reshape(xSoloff_solution,(3,N_xy,N_xy))
+            U, V, W = x0-xt, y0-yt, z0-zt
+            # Plot the displacements fields (here U)
+            Exy, Exx = np.gradient(U)
+            Eyy, Eyx = np.gradient(V)
+            Ezy, Ezx = np.gradient(W)
+            Exx = 100 * Exx
+            Eyy = 100 * Eyy
+            Ezy = 100 * Ezy
+            
+            aa = 20
+            plt.imshow(Exx,plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(np.min(Exx)/aa,np.max(Exx)/aa)
+            cb.set_label(r'Exx (%)')
+            plt.title('Exx')
+            plt.show()
+            
+            plt.imshow(Eyy,plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(np.min(Eyy)/aa,np.max(Eyy)/aa)
+            cb.set_label(r'Eyy (%)')
+            plt.title('Eyy')
+            plt.show()
+            
+            plt.imshow(Ezy,plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(np.min(Ezy)/aa,np.max(Ezy)/aa)
+            cb.set_label(r'Ezy (%)')
+            plt.title('Ezy')
+            plt.show()
+
+            
         
         
         '''

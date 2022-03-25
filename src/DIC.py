@@ -175,7 +175,7 @@ def strain_field (image_1,
                   image_2, 
                   window = [False], 
                   show = False,
-                  mirror = False) :
+                  flip = False) :
     """Calcul the strain field betxeen two images.
 
     Args:
@@ -190,7 +190,7 @@ def strain_field (image_1,
     """    
     img_ref_original = cv2.imread(image_1,0) 
     img_def_original = cv2.imread(image_2,0) 
-    if mirror :
+    if flip :
         img_ref_original = cv2.flip(img_ref_original, 1)
         img_def_original = cv2.flip(img_def_original, 1)
 

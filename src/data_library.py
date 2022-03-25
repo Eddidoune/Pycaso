@@ -64,7 +64,7 @@ class Calibrate(dict):
                         corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
             else :
                 corners_list = False
-        return (corners_list) 
+        return (corners_list, ret) 
    
 def calibration_model(nx, ny, l) : 
     """ Creation of the model of the calibration pattern
@@ -116,9 +116,11 @@ def cut_calibration_model (List_images,
     M = len(List_images)
     
     # First, detect the holes = missing points
+    nb_pts = []
     for i in range (0, M) :
-        B = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
+        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
         Ucam_init.append(B)
+        nb_pts.append(pts)
         N = len(B)
         points = []
         for j in range (0, N) :
@@ -166,7 +168,75 @@ def cut_calibration_model (List_images,
     all_x = []
     for i in range (0, M) :
         all_x.append(Xref)
-    return (all_x, all_X)
+        
+    # Use it as array
+    all_x = np.asarray(all_x)
+    all_x = all_x[:, :, [0, 1]]
+    all_X = np.asarray(all_X)
+    all_X = all_X[:, :, [0, 1]]
+    return (all_x, all_X, nb_pts)
+
+
+
+def NAN_calibration_model (List_images, 
+                           Xref, 
+                           __dict__) :
+    """ Group all of the images detected and filter the points not detected. 
+        For each corners not detected on an image, delete it on all the others images. 
+        Delete also on the real positions of the corners.
+    
+    Args:
+        List_images : list
+            List of the detected corners
+        Xcal : list
+            List of the real corners
+        pattern : str
+            Name of the pattern used ('macro' or 'micro')
+        
+    Returns:
+        all_x : np.array (Dim = Nimages * N * 3)
+            Array of the real corners
+        all_X : np.array (Dim = Nimages * N * 3)
+            Array of the detected corners
+            
+    """    
+    M = len(List_images)
+    
+    # First, detect the holes = missing points
+    Nall = len(Xref)
+    nb_pts = np.zeros(M)
+    all_X = np.zeros((M, Nall, 3))
+
+    for i in range (0, M) :
+        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
+        nb_pts[i] = pts
+        B = np.asarray(B)
+        build = 0
+        while build < Nall :
+            if len(B) == build :
+                B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
+                build += 1
+            else :
+                if B[build, 2] == build :
+                    build += 1
+                else :
+                    B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
+        all_X[i] = B
+
+    all_x = []
+    for i in range (0, M) :
+        all_x.append(Xref)        
+    # Use it as array
+    all_x = np.asarray(all_x)
+    all_x = all_x[:, :, [0, 1]]
+    all_X = all_X[:, :, [0, 1]]
+    nb_pts.reshape((2, M//2))
+    
+    return (all_x, all_X, nb_pts)
+
+
+
+
 
 
 def pattern_detection (__dict__,
@@ -202,36 +272,42 @@ def pattern_detection (__dict__,
     for i in range (len(Images_right)) :
         Images.append(Images_right[i])
     
-    Save_Ucam_Xref = [str(saving_folder) +"/all_X_" + name + ".npy", str(saving_folder) + "/all_x_" + name + ".npy"]
+    Save_Ucam_Xref = [str(saving_folder) + "/all_X_" + name + ".npy", 
+                      str(saving_folder) + "/all_x_" + name + ".npy", 
+                      str(saving_folder) + "/nb_pts_" + name + ".npy"]
     
     # Corners detection
     if detection :
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
-        all_x, all_X = cut_calibration_model(Images, Xref, __dict__)
-
-        all_x = np.asarray(all_x)
-        all_x = all_x[:, :, [0, 1]]
-        all_X = np.asarray(all_X)
-        all_X = all_X[:, :, [0, 1]]
-
-        np.save(Save_Ucam_Xref[0], all_X)
-        np.save(Save_Ucam_Xref[1], all_x)
-
-        print('    - Saving datas in ', saving_folder)
+        # all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
+        all_x, all_X, nb_pts = NAN_calibration_model(Images, Xref, __dict__)
+        if all_X[0] == [] :
+            print('Not any point detected in all images/cameras')
+        
+        else :
+            np.save(Save_Ucam_Xref[0], all_X)
+            np.save(Save_Ucam_Xref[1], all_x)
+            np.save(Save_Ucam_Xref[2], nb_pts)
+    
+            print('    - Saving datas in ', saving_folder)
     # Taking pre-calculated datas from the saving_folder
     else :
         print('    - Taking datas from ', saving_folder)        
         all_X = np.load(Save_Ucam_Xref[0])
         all_x = np.load(Save_Ucam_Xref[1])
-    return(all_X, all_x)
+        nb_pts = np.load(Save_Ucam_Xref[2])
+        print(Save_Ucam_Xref[2])
+        
+    return(all_X, all_x, nb_pts)
 
 
 
 def DIC_3D_detection (__dict__,
                       detection = True,
-                      saving_folder = 'Folders_npy') :
+                      saving_folder = 'Folders_npy',
+                      flip = False) :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -271,7 +347,9 @@ def DIC_3D_detection (__dict__,
     for i in range (N) :
         if detection :
             image_1, image_2 = Images[i], Images[i+N]
-            U, V = DIC.strain_field(image_1, image_2)
+            U, V = DIC.strain_field(image_1, 
+                                    image_2, 
+                                    flip = flip)
             if i == 0 :
                 all_U = np.empty((N, U.shape[0], U.shape[1]))
                 all_V = np.empty((N, V.shape[0], V.shape[1]))
@@ -325,7 +403,7 @@ def DIC_3D_detection (__dict__,
 def DIC_3D_detection_lagrangian (__dict__,
                       detection = True,
                       saving_folder = 'Folders_npy',
-                      mirror = False) :
+                      flip = False) :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -359,15 +437,6 @@ def DIC_3D_detection_lagrangian (__dict__,
     all_left = []
     all_right = []
 
-    # if mirror :
-    #     imgl_flip_lr = cv2.flip(dt1, 1)
-    #     cv2.imwrite(left_folder + str(np.around(i, 6)) + '.png', imgl_flip_lr)    
-    #     imgr_flip_lr = cv2.flip(dt2, 1)
-    #     cv2.imwrite(right_folder + str(np.around(i, 6)) + '.png', imgr_flip_lr)   
-    # else :    
-    #     imwrite(left_folder + str(np.around(i, 6)) + '.png', dt1)
-    #     imwrite(right_folder + str(np.around(i, 6)) + '.png', dt2)
-
     # Corners detection
     print('    - DIC in progress ...')
     # DIC detection of the points from each camera
@@ -375,7 +444,9 @@ def DIC_3D_detection_lagrangian (__dict__,
     for i in range (N) :
         if detection :
             image_def = Images[i+N]
-            U, V = DIC.strain_field(image_ref, image_def)
+            U, V = DIC.strain_field(image_ref, 
+                                    image_def, 
+                                    flip = flip)
             if i == 0 :
                 all_U = np.empty((N, U.shape[0], U.shape[1]))
                 all_V = np.empty((N, V.shape[0], V.shape[1]))

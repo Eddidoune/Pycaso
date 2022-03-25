@@ -442,68 +442,6 @@ def least_square_method (Xc1_identified,
     
     return (x0)    
 
-# def Levenberg_Marquardt_solving (Xc1_identified, 
-#                                  Xc2_identified, 
-#                                  A, 
-#                                  x0, 
-#                                  polynomial_form, 
-#                                  method = 'curve_fit') :
-#     """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
-    
-#     Args:
-#        Xc1_identified : numpy.ndarray
-#            Real positions of camera 1
-#        Xc2_identified : numpy.ndarray
-#            Real positions of camera 2
-#        A : numpy.ndarray
-#            Constants of the calibration polynome
-#        x0 : numpy.ndarray
-#            Initial guess
-#        polynomial_form : int
-#            Polynomial form
-#        method : str
-#            Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
-           
-#     Returns:
-#        xopt : numpy.ndarray
-#            Solution of the LM resolution
-#        Xcalculated : numpy.ndarray
-#            Solution calculated
-#        Xdetected : numpy.ndarray
-#            Solution detected (Xc1_identified, Xc2_identified)
-#     """   
-#     N = len(x0[0])    
-#     Xdetected = np.array([Xc1_identified[:,0], Xc1_identified[:,1], Xc2_identified[:,0], Xc2_identified[:,1]])
-#     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
-#     xopt = np.zeros((3*N))
-#     if method == 'curve_fit' :
-#         for i in range (N) :
-#             X0i = Xdetected[:,i]
-#             x0i = x0[:,i]
-#             xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
-#                                         A0, 
-#                                         X0i, 
-#                                         p0 = x0i, 
-#                                         method ='lm')
-#             xopt[i], xopt[N + i], xopt[2*N + i] = xopti
-#     elif method == 'least_squares' :
-#         for i in range (N) :
-#             X0i = Xdetected[:,i]
-#             x0i = x0[:,i]
-#             results = sopt.least_squares(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_LS, 
-#                                       x0i, 
-#                                       args = (X0i,A0))  
-#             xopti = results.x
-#             xopt[i], xopt[N + i], xopt[2*N + i] = xopti 
-    
-#     xopt = np.array(xopt)
-#     xopt = xopt.reshape((3,N))
-#     Xcalculated = Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
-#     Xdiff = np.absolute(Xcalculated - Xdetected)
-#     print(str(polynomial_form), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
-    
-
-#     return (xopt, Xcalculated, Xdetected)
 
 def Levenberg_Marquardt_solving (Xc1_identified, 
                                  Xc2_identified, 
@@ -511,6 +449,31 @@ def Levenberg_Marquardt_solving (Xc1_identified,
                                  x0, 
                                  polynomial_form, 
                                  method = 'curve_fit') :
+    """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
+    
+    Args:
+        Xc1_identified : numpy.ndarray
+            Real positions of camera 1
+        Xc2_identified : numpy.ndarray
+            Real positions of camera 2
+        A : numpy.ndarray
+            Constants of the calibration polynome
+        x0 : numpy.ndarray
+            Initial guess
+        polynomial_form : int
+            Polynomial form
+        method : str
+            Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
+           
+    Returns:
+        xopt : numpy.ndarray
+            Solution of the LM resolution
+        Xcalculated : numpy.ndarray
+            Solution calculated
+        Xdetected : numpy.ndarray
+            Solution detected (Xc1_identified, Xc2_identified)
+    """   
+
     from joblib import Parallel, delayed, dump, load
     import os
     core_number = os.cpu_count()
@@ -572,14 +535,18 @@ def AI_solve (file,
               min_samples_split=2, 
               random_state=1, 
               max_features='sqrt',
-              max_depth=100,bootstrap='true',
+              max_depth=100,
+              bootstrap='true',
               hyperparameters_tuning = False) :  
     
     dat=pd.read_csv(file, sep=" " )
     dat=np.array(dat)
+    # The model learn on 4/5 of all datas. Then the accuracy is estimated on the last 1/5 datas.
     N = int(len(dat)*4/5)
     
     # 1st meta-model
+    X=dat[0:N,0:4]
+    Y=dat[0:N,4:7]
     X=dat[0:N,0:4]
     Y=dat[0:N,4:7]
     model = RandomForestRegressor(n_estimators=n_estimators, 
@@ -637,7 +604,7 @@ def AI_solve (file,
         print('Accuracy = {:0.2f}%.'.format(accuracy))
         return accuracy
     
-    accuracy = evaluate(model, X, Y)
+    accuracy = evaluate(model, X2, Y2)
     return(model, accuracy)
 
 
