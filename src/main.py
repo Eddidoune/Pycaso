@@ -14,7 +14,7 @@ import pathlib
 import os
 import time
 from glob import glob
-# import DIC
+import pandas as pd
 import cv2
 import solve_library as solvel
 import data_library as data
@@ -228,7 +228,7 @@ def full_direct_calibration (__calibration_dict__,
         print ('Only define for polynomial degrees (1, 2, 3 or 4')
         sys.exit()
     # Detect points from folders
-    all_Ucam, all_Xref = data.pattern_detection(__calibration_dict__, detection = detection, saving_folder = saving_folder)        
+    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__, detection = detection, saving_folder = saving_folder)        
 
     # Creation of the reference matrix Xref and the real position Ucam for each camera i
     x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
@@ -334,12 +334,12 @@ def full_IA_identification (X_c1,
     return (xIA_solution)
 
 if __name__ == '__main__' :
-    main_path = "/home/caroneddy/These/Stereo_camera/Socapy_archives/src"    
+    main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
     
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_03_25/left_101_x6.3',
-    'right_folder' : main_path + '/Images_example/2022_03_25/right_101_x6.3',
+    'left_folder' : main_path + '/Images_example/2022_03_28/left_101_x5',
+    'right_folder' : main_path + '/Images_example/2022_03_28/right_101_x5',
     'name' : 'micro_calibration',
     'ncx' : 16,
     'ncy' : 12,
@@ -355,8 +355,8 @@ if __name__ == '__main__' :
     'window' : [[500, 1500], [500, 1500]]}  #in mm
     
     __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_03_15/left_identification',
-    'right_folder' : main_path + '/Images_example/2022_03_15/right_identification',
+    'left_folder' : main_path + '/Images_example/2022_03_25/left_101_x5_identification',
+    'right_folder' : main_path + '/Images_example/2022_03_25/right_101_x5_identification',
     'name' : 'micro_identification',
     'ncx' : 16,
     'ncy' : 12,
@@ -368,8 +368,8 @@ if __name__ == '__main__' :
     x3_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
-
-    saving_folder = main_path + '/results/2022_03_25_results/101_x6.3'
+        
+    saving_folder = main_path + '/results/2022_03_28_results/101_x5'
 
     # saving_folder = 'TXT_example'
 
@@ -397,16 +397,15 @@ if __name__ == '__main__' :
     plt.xlabel('z-position (mm)')
     plt.ylabel('Number of points detected')
     plt.title('Points detected in function of z-position')
+    plt.ylim(0,165)
     plt.show()
+
     
-        
     A111, A_pol, Magnification = full_Soloff_calibration (__calibration_dict__,
                                                          x3_list,
                                                          saving_folder,
                                                          polynomial_form = polynomial_form,
                                                          detection = False)
-
-    sys.exit()
     print('')
     print('#####       ')
     print('End calibration --> Start identification')
@@ -518,7 +517,7 @@ if __name__ == '__main__' :
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (2) :
+    for image in range (Np_img) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -528,6 +527,10 @@ if __name__ == '__main__' :
         X_c1 = X3D_identified[image]
         X_c2 = X3D_identified[image+Np_img]
         
+        # Create the DataFrame
+        data_c = {'X1' :  X_c1[:,0], 'Y1' :  X_c1[:,1], 'X2' :  X_c2[:,0], 'Y2' :  X_c2[:,1]}
+        df = pd.DataFrame(data = data_c)
+        
         # Direct identification
         t0 = time.time()
         xDirect_solution = full_direct_identification (X_c1,
@@ -535,6 +538,9 @@ if __name__ == '__main__' :
                                                        direct_A,
                                                        direct_polynomial_form = direct_polynomial_form)
         xD, yD, zD = xDirect_solution
+        df.insert(df.shape[1], 'xDirect', xD, True)
+        df.insert(df.shape[1], 'yDirect', yD, True)
+        df.insert(df.shape[1], 'zDirect', zD, True)
         xDirect_solutions[image] = xDirect_solution
         t1 = time.time()
         print('time direct = ',t1 - t0)
@@ -565,14 +571,17 @@ if __name__ == '__main__' :
 
         # Soloff identification
         t0 = time.time()
-        # xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
-        #                                                             X_c2,
-        #                                                             A111, 
-        #                                                             A_pol,
-        #                                                             polynomial_form = polynomial_form,
-        #                                                             method = 'curve_fit')       
-        # np.save(saving_folder + '/xsolution_soloff' + str(image) + '.npy', xSoloff_solution)
-        xSoloff_solution = np.load(saving_folder + '/xsolution_soloff' + str(image) + '.npy')
+        soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
+        if os.path.exists(soloff_file) :
+            xSoloff_solution = np.load(soloff_file)
+        else :
+            xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
+                                                                        X_c2,
+                                                                        A111, 
+                                                                        A_pol,
+                                                                        polynomial_form = polynomial_form,
+                                                                        method = 'curve_fit')       
+            np.save(soloff_file, xSoloff_solution)
 
         t1 = time.time()
         print('time Soloff = ',t1 - t0)
@@ -582,7 +591,9 @@ if __name__ == '__main__' :
         xSoloff_solutions[image] = xSoloff_solution
         fit, errors, mean_error, residual = solvel.fit_plan_to_points(xSoloff_solution)
         zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]       
-        
+        df.insert(df.shape[1], 'xSoloff', xS, True)
+        df.insert(df.shape[1], 'ySoloff', yS, True)
+        df.insert(df.shape[1], 'zSoloff', zS_recal, True)        
         
         
         
@@ -602,17 +613,21 @@ if __name__ == '__main__' :
         ax.set_xlabel('x (mm)', fontweight ='bold')
         ax.set_ylabel('y (mm)', fontweight ='bold')
         ax.set_zlabel('z (mm)', fontweight ='bold')
+        ax.set_zlim(-0.02, 0.05)
         fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
         
         plt.show()
         
-        sys.exit()
+        # sys.exit()
         
         if image != 0 :
             N_xy = int(math.sqrt(len(xS)))
             x0, y0, z0 = np.reshape(xSoloff_solutions[0],(3,N_xy,N_xy))
             xt, yt, zt = np.reshape(xSoloff_solution,(3,N_xy,N_xy))
             U, V, W = x0-xt, y0-yt, z0-zt
+            df.insert(df.shape[1], 'U', U, True)
+            df.insert(df.shape[1], 'V', V, True)
+            df.insert(df.shape[1], 'W', W, True)
             # Plot the displacements fields (here U)
             Exy, Exx = np.gradient(U)
             Eyy, Eyx = np.gradient(V)
@@ -622,7 +637,9 @@ if __name__ == '__main__' :
             Ezy = 100 * Ezy
             
             aa = 20
-            plt.imshow(Exx,plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(np.min(Exx)/aa,np.max(Exx)/aa)
+            plt.imshow(Exx,plt.get_cmap('hot'))
+            cb = plt.colorbar()
+            plt.clim(np.min(Exx)/aa,np.max(Exx)/aa)
             cb.set_label(r'Exx (%)')
             plt.title('Exx')
             plt.show()
@@ -651,6 +668,9 @@ if __name__ == '__main__' :
                                                NDIAL = NDIAL,
                                                file = file)
         xIA, yIA, zIA = xIA_solution
+        df.insert(df.shape[1], 'xIA', xIA, True)
+        df.insert(df.shape[1], 'yIA', yIA, True)
+        df.insert(df.shape[1], 'zIA', zIA, True)   
         xIA_solutions[image] = xIA_solution
         
         # Creating figure

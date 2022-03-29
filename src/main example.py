@@ -332,7 +332,7 @@ def full_IA_identification (X_c1,
     return (xIA_solution)
 
 if __name__ == '__main__' :
-    main_path = "/home/caroneddy/These/Stereo_camera/Socapy_archives/src"    
+    main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
     
     # Define the inputs
     __calibration_dict__ = {

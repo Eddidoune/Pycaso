@@ -116,11 +116,11 @@ def cut_calibration_model (List_images,
     M = len(List_images)
     
     # First, detect the holes = missing points
-    nb_pts = []
+    nb_pts = np.zeros(M)
     for i in range (0, M) :
         B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
         Ucam_init.append(B)
-        nb_pts.append(pts)
+        nb_pts[i] = pts
         N = len(B)
         points = []
         for j in range (0, N) :
@@ -169,11 +169,16 @@ def cut_calibration_model (List_images,
     for i in range (0, M) :
         all_x.append(Xref)
         
-    # Use it as array
-    all_x = np.asarray(all_x)
-    all_x = all_x[:, :, [0, 1]]
-    all_X = np.asarray(all_X)
-    all_X = all_X[:, :, [0, 1]]
+
+    if all_X[0] == [] :
+        ()
+    else :
+        # Use it as array
+        all_X = np.asarray(all_X)
+        all_X = all_X[:, :, [0, 1]]
+        all_x = np.asarray(all_x)
+        all_x = all_x[:, :, [0, 1]]
+    nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
 
 
@@ -282,7 +287,7 @@ def pattern_detection (__dict__,
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
         # all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
-        all_x, all_X, nb_pts = NAN_calibration_model(Images, Xref, __dict__)
+        all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
         if all_X[0] == [] :
             print('Not any point detected in all images/cameras')
         

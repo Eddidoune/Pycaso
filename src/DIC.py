@@ -250,7 +250,7 @@ if __name__ == '__main__' :
     ('#############################################################')
     ('#############################################################')
     
-    path_images = "/home/caroneddy/These/Stereo_camera/Socapy/src/Images_example" # Path where the images that we want to compare are.
+    path_images = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/Images_example" # Path where the images that we want to compare are.
     
     all_image = False # If all_image = True, the program will not take care about image_ref and image_def but it will take all the pairs of images (Starting at 'start_image' and ending at 'end_image'
     start_image = 3
