@@ -3,7 +3,7 @@
 """
 Created on Fri Nov 26 09:19:07 2021
 
-@author: caroneddy
+@author: Eddidoune
 """
 try : 
     import cupy as np
@@ -112,8 +112,8 @@ def full_Soloff_calibration (__calibration_dict__,
 
     # Creation of the reference matrix Xref and the real position Ucam for each camera
     x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, 
-                                               all_Xref, 
-                                               x3_list)
+                                             all_Xref, 
+                                             x3_list)
     
     # Plot the references plans
     solvel.refplans(x, x3_list)
@@ -231,10 +231,10 @@ def full_direct_calibration (__calibration_dict__,
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__, detection = detection, saving_folder = saving_folder)        
 
     # Creation of the reference matrix Xref and the real position Ucam for each camera i
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
+    x, Xc1, Xc2, mask = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
 
     # Plot the references plans
-    solvel.refplans(x, x3_list)
+    solvel.refplans(x, x3_list, mask = mask)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -345,14 +345,14 @@ if __name__ == '__main__' :
     'ncy' : 12,
     'sqr' : 0.3}  #in mm
     
-    __pattern_dict__ = {
-    'left_folder' : main_path + '/Images_example/test_left',
-    'right_folder' : main_path + '/Images_example/test_right',
-    'name' : 'micro_identification',
-    'ncx' : 16,
-    'ncy' : 12,
-    'sqr' : 0.3,
-    'window' : [[500, 1500], [500, 1500]]}  #in mm
+    # __pattern_dict__ = {
+    # 'left_folder' : main_path + '/Images_example/test_left',
+    # 'right_folder' : main_path + '/Images_example/test_right',
+    # 'name' : 'micro_identification',
+    # 'ncx' : 16,
+    # 'ncy' : 12,
+    # 'sqr' : 0.3,
+    # 'window' : [[500, 1500], [500, 1500]]}  #in mm
     
     __DIC_dict__ = {
     'left_folder' : main_path + '/Images_example/2022_03_25/left_101_x5_identification',
@@ -363,13 +363,14 @@ if __name__ == '__main__' :
     'sqr' : 0.3,
     'window' : [[500, 1500], [500, 1500]]}  #in mm
     
+    # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
     x3_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
         
-    saving_folder = main_path + '/results/2022_03_28_results/101_x5'
+    saving_folder = main_path + '/results/2022_03_28_results/101_x5_NAN'
 
     # saving_folder = 'TXT_example'
 
@@ -390,6 +391,7 @@ if __name__ == '__main__' :
 
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
                                                         detection = False,
+                                                        NAN = True,
                                                         saving_folder = saving_folder)
     pts_left, pts_right = nb_pts
     plt.scatter(x3_list, pts_left)
@@ -400,41 +402,48 @@ if __name__ == '__main__' :
     plt.ylim(0,165)
     plt.show()
 
-    
+    # sys.exit()    
+
     A111, A_pol, Magnification = full_Soloff_calibration (__calibration_dict__,
-                                                         x3_list,
-                                                         saving_folder,
-                                                         polynomial_form = polynomial_form,
-                                                         detection = False)
+                                                            x3_list,
+                                                            saving_folder,
+                                                            polynomial_form = polynomial_form,
+                                                            detection = False)
+
     print('')
     print('#####       ')
-    print('End calibration --> Start identification')
+    print('End calibration')
     print('#####       ')
+
+    # print('')
+    # print('#####       ')
+    # print('Start pattern identification')
+    # print('#####       ')
     # X_identified, all_x_identified = data.pattern_detection(__pattern_dict__,
-    #                                detection = False,
-    #                                saving_folder = saving_folder)
+    #                                 detection = False,
+    #                                 saving_folder = saving_folder)
     # Nimg = len(X_identified)//2
     # for image in range (Nimg) :
     #     Xc1_identified, Xc2_identified = X_identified[image], X_identified[image+Nimg]
 
     #     xsolution, Xcalculated, Xdetected = full_Soloff_identification (Xc1_identified,
-    #                                    Xc2_identified,
-    #                                    A111, 
-    #                                    A_pol,
-    #                                    polynomial_form = polynomial_form,
-    #                                    method = 'curve_fit')
+    #                                     Xc2_identified,
+    #                                     A111, 
+    #                                     A_pol,
+    #                                     polynomial_form = polynomial_form,
+    #                                     method = 'curve_fit')
 
-        # solvel.fit_plans_to_points(xsolution.reshape((1,xsolution.shape[0], xsolution.shape[1])), 
-        #                             title = 'Reconstruction ( curve_fit method ; polynomial_form : 3) ; ' + str(image))    
-    print('')
-    print('#####       ')
-    print('End identification')
-    print('#####       ')
-    print('')
+    #     solvel.fit_plans_to_points(xsolution.reshape((1,xsolution.shape[0], xsolution.shape[1])), 
+    #                                 title = 'Reconstruction ( curve_fit method ; polynomial_form : 3) ; ' + str(image))    
+    # print('')
+    # print('#####       ')
+    # print('End pattern identification')
+    # print('#####       ')
+    # print('')
         
     print('')
     print('#####       ')
-    print('Direct method - Start calibration')
+    print('Direct method calibration')
     print('#####       ')
     print('')
 
@@ -477,7 +486,7 @@ if __name__ == '__main__' :
     print('')
         
     X3D_identified, X_map = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
-                                                             detection = False,
+                                                             detection = True,
                                                              saving_folder = saving_folder,
                                                              flip = True)
     # Identify all the cinematic fields

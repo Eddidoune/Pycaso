@@ -89,7 +89,7 @@ def calibration_model(nx, ny, l) :
     return Xref
 
 def cut_calibration_model (List_images, 
-                           Xcal, 
+                           Xref, 
                            __dict__) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, delete it on all the others images. 
@@ -98,7 +98,7 @@ def cut_calibration_model (List_images,
     Args:
         List_images : list
             List of the detected corners
-        Xcal : list
+        Xref : list
             List of the real corners
         pattern : str
             Name of the pattern used ('macro' or 'micro')
@@ -111,12 +111,13 @@ def cut_calibration_model (List_images,
             
     """    
     Ucam_init = []
-    Xref = []
+    # Xref = []
     holes = [] # List of the missing points
     M = len(List_images)
     
     # First, detect the holes = missing points
     nb_pts = np.zeros(M)
+    print('M ', M)
     for i in range (0, M) :
         B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
         Ucam_init.append(B)
@@ -125,7 +126,7 @@ def cut_calibration_model (List_images,
         points = []
         for j in range (0, N) :
             points.append(B[j][2])
-        Nall = len(Xcal)
+        Nall = len(Xref)
         holes_j = [j for j in range(Nall)]
         for j in range (0, N) :
             p = points[N-(j+1)]
@@ -155,19 +156,19 @@ def cut_calibration_model (List_images,
                     j += 1
         all_X.append(Ucam_remove)
         
-    Pmax = len(Xcal)
+    Pmax = len(Xref)
     print('----------')
     print(str(T) + ' points deleted in each images on a total of ' + str(Pmax) + ' points')
     print('----------')
           
     # Then delete those holes on all_x
-    Xref = deepcopy(Xcal)
+    x = deepcopy(Xref)
     for t in range (0, T) :     
         p = holes[T-(t+1)]
-        del(Xref[p])
+        del(x[p])
     all_x = []
     for i in range (0, M) :
-        all_x.append(Xref)
+        all_x.append(x)
         
 
     if all_X[0] == [] :
@@ -187,13 +188,12 @@ def NAN_calibration_model (List_images,
                            Xref, 
                            __dict__) :
     """ Group all of the images detected and filter the points not detected. 
-        For each corners not detected on an image, delete it on all the others images. 
-        Delete also on the real positions of the corners.
+        For each corners not detected on an image, replace the points with NAN. 
     
     Args:
         List_images : list
             List of the detected corners
-        Xcal : list
+        Xref : list
             List of the real corners
         pattern : str
             Name of the pattern used ('macro' or 'micro')
@@ -211,7 +211,6 @@ def NAN_calibration_model (List_images,
     Nall = len(Xref)
     nb_pts = np.zeros(M)
     all_X = np.zeros((M, Nall, 3))
-
     for i in range (0, M) :
         B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
         nb_pts[i] = pts
@@ -235,8 +234,7 @@ def NAN_calibration_model (List_images,
     all_x = np.asarray(all_x)
     all_x = all_x[:, :, [0, 1]]
     all_X = all_X[:, :, [0, 1]]
-    nb_pts.reshape((2, M//2))
-    
+    nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_x, all_X, nb_pts)
 
 
@@ -246,6 +244,7 @@ def NAN_calibration_model (List_images,
 
 def pattern_detection (__dict__,
                        detection = True,
+                       NAN = False,
                        saving_folder = 'Folders_npy') :
     """Detect the corners of Charucco's pattern.
     
@@ -287,7 +286,12 @@ def pattern_detection (__dict__,
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
         # all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
-        all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
+        if NAN :
+            all_x, all_X, nb_pts = NAN_calibration_model(Images, Xref, __dict__)
+            print('NANNNNNN')
+        else :
+            all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
+
         if all_X[0] == [] :
             print('Not any point detected in all images/cameras')
         
@@ -617,6 +621,23 @@ def camera_np_coordinates (all_X,
             Xc1 = X
         if i == 2 :
             Xc2 = X
+    # If there is some NAN value, then delete all 2D and 3D corresponding points
+    if np.isnan(Xc1).any() or np.isnan(Xc2).any() :
+        mask1 = np.ma.masked_invalid(Xc1)
+        mask2 = np.ma.masked_invalid(Xc2)
+        mask = mask1.mask + mask2.mask
+        Xc1 = Xc1[np.logical_not(mask)]
+        Xc1 = np.reshape(Xc1, (2, len(Xc1)//2))
+        Xc2 = Xc2[np.logical_not(mask)]
+        Xc2 = np.reshape(Xc2, (2, len(Xc2)//2))
+        mask = mask[0]
+        x1 = x1[np.logical_not(mask)]
+        x2 = x2[np.logical_not(mask)]
+        x3 = x3[np.logical_not(mask)]
+        x = np.asarray([x1,x2,x3])
+    else :
+        mask = np.array([False])
+        
     return (x, Xc1, Xc2)
 
 

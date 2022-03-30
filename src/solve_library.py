@@ -362,17 +362,20 @@ def fit_plans_to_points(points,
        plot points + associated plans
     """
     # plot raw data
-    l, m, n = points.shape
+    l = len (points)
     fit = np.zeros((l, 3))
-    errors = np.zeros((l, n))
+    errors = []
     mean_error = np.zeros(l)
     residual = np.zeros(l)
+    maxerror = []
     for i in range (len(points)) :
         point = points[i]
-        fit[i], errors[i], mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
+        fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
+        maxerror.append(np.max(abs(errori)))
+        errors.append(errori)
     plt.figure()
         
-    print('Plan square max error = ', (np.max(abs(errors))), ' mm')
+    print('Plan square max error = ', (max(maxerror)), ' mm')
     print('Plan square mean error = ', (np.mean(mean_error**2))**(1/2), ' mm')
     print('Plan square mean residual = ', (np.mean(residual**2))**(1/2))
 
@@ -392,15 +395,18 @@ def refplans(xc1, x3_list) :
        plot points + associated plans
     """
     m, n = xc1.shape
-    o = len(x3_list)
-    n = n//o
     x,y,z = xc1
-    xcons = np.transpose (xc1)
-    xcons = xcons.reshape((o,n,m))
-    xcons = np.transpose(xcons, (0,2,1))
-    # xcons = np.zeros((o,m,n))
-    # for i in range (o) :
-    #     xcons[i] = x[i*n:(i+1)*n], y[i*n:(i+1)*n], z[i*n:(i+1)*n]
+    xcons = []
+    p0, pf = 0, 0
+    for z_i in x3_list :
+        while z[pf] == z_i :
+            pf += 1
+            if pf > n-1 :
+                break
+        plan = np.array ([x[p0:pf], y[p0:pf], z[p0:pf]])
+        p0 = pf
+        xcons.append (plan)
+
     fit_plans_to_points(xcons, 
                         title = 'Calibration plans')
 
