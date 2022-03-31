@@ -285,10 +285,8 @@ def pattern_detection (__dict__,
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
-        # all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
         if NAN :
             all_x, all_X, nb_pts = NAN_calibration_model(Images, Xref, __dict__)
-            print('NANNNNNN')
         else :
             all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
 
@@ -313,29 +311,39 @@ def pattern_detection (__dict__,
 
 
 
-def DIC_3D_detection (__dict__,
+def DIC_3D_detection (__DIC_dict__,
                       detection = True,
                       saving_folder = 'Folders_npy',
                       flip = False) :
-    """Detect the corners of Charucco's pattern.
+    """Use the DIC to locate all the points from the left picture in the right
+    twin picture.
     
     Args:
-       __dict__ : dict
-           Pattern properties define in a dict.
+       __DIC_dict__ : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
        detection : bool, optional
-           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+           If True, all the analysis will be done. If False, the code will 
+           take the informations in 'saving_folder'
        saving_folder : str, optional
-           Folder to save datas
+           Folder to save or take datas
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
            
     Returns:
        all_X : numpy.ndarray
-           The corners of the pattern detect by the camera ranged in an array arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, right_picture_2]
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions in their right twin picture. 
+           Expl : all_X = [left_picture_1, 
+                           left_picture_2, 
+                           right_picture_1 (Compared with left_picture_1), 
+                           right_picture_2 (Compared with left_picture_2)]
     """
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
-    window = __dict__['window']
+    left_folder = __DIC_dict__['left_folder']
+    right_folder = __DIC_dict__['right_folder']
+    name = __DIC_dict__['name']
+    window = __DIC_dict__['window']
     Save_all_U = str(saving_folder) +"/all_U_" + name + ".npy"
     Save_all_V = str(saving_folder) +"/all_V_" + name + ".npy"
     Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
@@ -405,33 +413,47 @@ def DIC_3D_detection (__dict__,
         all_X.append(all_right[i])
     all_X = np.asarray(all_X)
     
-    return(all_X, X_map)
+    return(all_X)
 
 
 
-def DIC_3D_detection_lagrangian (__dict__,
+def DIC_3D_detection_lagrangian (__DIC_dict__,
                       detection = True,
                       saving_folder = 'Folders_npy',
-                      flip = False) :
-    """Detect the corners of Charucco's pattern.
+                      flip = False,
+                      img_ref = '') :
+    """Use the DIC to locate all the points from the reference picture
+    (first left one) in the deformed ones (other left and right pictures).
     
     Args:
-       __dict__ : dict
-           Pattern properties define in a dict.
+       __DIC_dict__ : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
        detection : bool, optional
-           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+           If True, all the analysis will be done. If False, the code will 
+           take the informations in 'saving_folder'
        saving_folder : str, optional
-           Folder to save datas
+           Folder to save or take datas
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
+       img_ref : str, optional
+           Name of the reference image for the DIC calculation
            
     Returns:
        all_X : numpy.ndarray
-           The corners of the pattern detect by the camera ranged in an array arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, right_picture_2]
+           All the points of the first picture (1 point per pixel) in an array 
+           arrange with their positions in all left pictures followed by all 
+           right pictures. 
+           Expl : all_X = [left_picture_1 = ref picture, 
+                           left_picture_2, 
+                           right_picture_1, 
+                           right_picture_2]
     """
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
-    window = __dict__['window']
+    left_folder = __DIC_dict__['left_folder']
+    right_folder = __DIC_dict__['right_folder']
+    name = __DIC_dict__['name']
+    window = __DIC_dict__['window']
     Save_all_U = str(saving_folder) +"/Lagrangian_all_U_" + name + ".npy"
     Save_all_V = str(saving_folder) +"/Lagrangian_all_V_" + name + ".npy"
     Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
@@ -443,16 +465,22 @@ def DIC_3D_detection_lagrangian (__dict__,
     for i in range (N) :
         Images.append(Images_right[i]) 
     [lx1, lx2], [ly1, ly2] = window
-    all_left = []
-    all_right = []
+    N = len(Images)
 
     # Corners detection
     print('    - DIC in progress ...')
     # DIC detection of the points from each camera
-    image_ref = Images[0]
+    for img in Images :
+        if img == img_ref:
+            image_ref = img_ref
+        else :
+            image_ref = Images[0]
+    print('Image reference = ', image_ref)
+
+    all_X = []
     for i in range (N) :
         if detection :
-            image_def = Images[i+N]
+            image_def = Images[i]
             U, V = DIC.strain_field(image_ref, 
                                     image_def, 
                                     flip = flip)
@@ -494,39 +522,45 @@ def DIC_3D_detection_lagrangian (__dict__,
 
         # Right camera --> position = each px + displacement
         X_c2 = X_c1 + UV
-
-        all_left.append(X_c1)
-        all_right.append(X_c2)
-    all_X = all_left
-    for i in range (N) :
-        all_X.append(all_right[i])
-    all_X = np.asarray(all_X)
+        all_X.append(X_c2)
     
-    return(all_X, X_map)
+    return(all_X)
 
 
 
-def DIC_fields (__dict__,
+def DIC_fields (__DIC_dict__,
                 detection = True,
-                saving_folder = 'Folders_npy') :
-    """Detect the corners of Charucco's pattern.
+                saving_folder = 'Folders_npy',
+                flip = False) :
+    """Use the DIC to calcul all the left deformed fields ans the right 
+    deformed fields.
     
     Args:
-       __dict__ : dict
-           Pattern properties define in a dict.
+       __DIC_dict__ : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
        detection : bool, optional
-           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+           If True, all the analysis will be done. If False, the code will 
+           take the informations in 'saving_folder'
        saving_folder : str, optional
-           Folder to save datas
+           Folder to save or take datas
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
            
     Returns:
-       all_X : numpy.ndarray
-           The corners of the pattern detect by the camera ranged in an array arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, right_picture_2]
+       U_left : numpy.ndarray
+           All the left deformed fields in x direction.
+       V_left : numpy.ndarray 
+           All the left deformed fields in y direction.
+       U_right : numpy.ndarray 
+           All the right deformed fields in x direction.
+       V_right : numpy.ndarray
+           All the right deformed fields in y direction.
     """
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
+    left_folder = __DIC_dict__['left_folder']
+    right_folder = __DIC_dict__['right_folder']
+    name = __DIC_dict__['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
     if detection :
         Images_left = sorted(glob(str(left_folder) + '/*.tif'))
@@ -542,8 +576,12 @@ def DIC_fields (__dict__,
             for i in range (N) :
                 image_t0_left, image_ti_left = Images[0], Images[i]
                 image_t0_right, image_ti_right = Images[N], Images[i+N]
-                Ul, Vl = DIC.strain_field(image_t0_left, image_ti_left)
-                Ur, Vr = DIC.strain_field(image_t0_left, image_ti_right)
+                Ul, Vl = DIC.strain_field(image_t0_left, 
+                                          image_ti_left,
+                                          flip = flip)
+                Ur, Vr = DIC.strain_field(image_t0_right, 
+                                          image_ti_right,
+                                          flip = flip)
                 if i == 0 :
                     U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
                     V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
@@ -642,37 +680,136 @@ def camera_np_coordinates (all_X,
 
 
 if __name__ == '__main__' :
-    ()
-    # # Show the reals and theoreticals points  
-    # micro = {
-    # 'name' : 'micro',
-    # 'ncx' : 16,
-    # 'ncy' : 12 ,
-    # 'sqr' : 0.3}  
-    # macro = {
-    # 'name' : 'macro',
-    # 'ncx' : 10,
-    # 'ncy' : 8 ,
-    # 'sqr' : 7.35}  
-    # test = {
-    # 'name' : 'test',
-    # 'ncx' : 20,
-    # 'ncy' : 20 ,
-    # 'sqr' : 7.35}  
-    # # Choose the dict
-    # __dict__ = micro
+    import sys
+    import pathlib
+    import os
+    import matplotlib.pyplot as plt
+    main_path = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src'    
     
-    # Images = sorted(glob('./Images/micro/right-test/*.tif'))
-    # ncx = __dict__['ncx']
-    # ncy = __dict__['ncy']
-    # sqr = __dict__['sqr']
-    # mrk = sqr/2
+    # Define the inputs
+    __calibration_dict__ = {
+    'left_folder' : main_path + '/Images_example/2022_02_28/test1',
+    'right_folder' : main_path + '/Images_example/2022_02_28/test2',
+    'name' : 'micro_calibration',
+    'ncx' : 16,
+    'ncy' : 12,
+    'sqr' : 0.3}
     
-    # # Corners detection
-    # print('    - Detection of the pattern in progress ...')
-    # # Creation of the theoretical pattern + detection of camera's pattern
-    # Xref = calibration_model(ncx, ncy, sqr)
-    # all_x, all_X = cut_calibration_model(Images, Xref, __dict__)
+    # __DIC_dict__ = {
+    # 'left_folder' : main_path + '/Images_example/2022_02_28/left_coin_identification',
+    # 'right_folder' : main_path + '/Images_example/2022_02_28/right_coin_identification',
+    # 'name' : 'micro_identification',
+    # 'window' : [[300, 1700], [300, 1700]]}
+    
+    # Create the list of z plans
+    Folder = __calibration_dict__['left_folder']
+    Imgs = sorted(glob(str(Folder) + '/*'))
+    x3_list = np.zeros((len(Imgs)))
+    for i in range (len(Imgs)) :
+        x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
 
-    # all_x = np.asarray(all_x)
-    # all_X = np.asarray(all_X)
+    # Chose the degrees for Soloff and direct polynomial fitting
+    polynomial_form = 332
+    direct_polynomial_form = 4
+
+    # Create the result folder if not exist
+    saving_folder = main_path + '/results/2022_02_28_results/Test'
+    
+    # Create the result folder if not exist
+    if os.path.exists(saving_folder) :
+        ()
+    else :
+        P = pathlib.Path(saving_folder)
+        pathlib.Path.mkdir(P, parents = True)    
+    
+    __dict__ = __calibration_dict__
+    left_folder = __dict__['left_folder']
+    right_folder = __dict__['right_folder']
+    name = __dict__['name']
+    ncx = __dict__['ncx']
+    ncy = __dict__['ncy']
+    sqr = __dict__['sqr']
+    Images_left = sorted(glob(str(left_folder) + '/*'))
+    Images_right = sorted(glob(str(right_folder) + '/*'))
+    Images = Images_left
+    for i in range (len(Images_right)) :
+        Images.append(Images_right[i])
+    
+    Save_Ucam_Xref = [str(saving_folder) + "/all_X_" + name + ".npy", 
+                      str(saving_folder) + "/all_x_" + name + ".npy", 
+                      str(saving_folder) + "/nb_pts_" + name + ".npy"]
+    
+    # Corners detection
+    print('    - Detection of the pattern in progress ...')
+    # Creation of the theoretical pattern + detection of camera's pattern
+    Xref = calibration_model(ncx, ncy, sqr)
+    List_images = Images
+    
+    
+    
+    
+
+
+
+    
+    M = len(List_images)
+    
+    # First, detect the holes = missing points
+    Nall = len(Xref)
+    nb_pts = np.zeros(M)
+    all_X = np.zeros((M, Nall, 3))
+    for i in range (0, 1) :
+        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
+        nb_pts[i] = pts
+        B = np.asarray(B)
+        build = 0
+        while build < Nall :
+            if len(B) == build :
+                B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
+                build += 1
+            else :
+                if B[build, 2] == build :
+                    build += 1
+                else :
+                    B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
+        all_X[i] = B
+
+    all_x = []
+    for i in range (0, M) :
+        all_x.append(Xref)        
+    # Use it as array
+    all_x = np.asarray(all_x)
+    all_x = all_x[:, :, [0, 1]]
+    all_X = all_X[:, :, [0, 1]]
+    nb_pts = np.reshape(nb_pts, (2, M//2))
+    
+    
+    
+    import time
+    points = []
+    def onclick(event):
+        global points
+        print('xdata=%f, ydata=%f' %
+              (event.xdata, event.ydata))
+        points.append([event.xdata, event.ydata])
+        plt.close()
+        
+        
+    for i in range (3) :
+        a = len(points)
+        fig, ax = plt.subplots()
+        img = cv2.imread(List_images[i], 0)
+        plt.imshow(img[300:500,300:500])
+        ax.plot(np.random.rand(10))    
+        cid = fig.canvas.mpl_connect('button_press_event', onclick)
+        plt.show()
+        b = a
+        while b == a :
+            # time.sleep(1)
+            b = len(points)
+             
+
+
+
+    
+    

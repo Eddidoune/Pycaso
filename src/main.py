@@ -28,16 +28,16 @@ def magnification (X1, X2, x1, x2) :
     
     Args:
        X1 : numpy.ndarrayx
-           Organised real positions (X1 = X axe)
+           Organised detected positions (X1 = X axe)
        X2 : numpy.ndarray
-           Organised real positions (X2 = Y axe)
+           Organised detected positions (X2 = Y axe)
        x1 : numpy.ndarray
-           Organised detected positions (x1 = x axe)
-       x1 : numpy.ndarray
-           Organised detected positions (x2 = y axe)
+           Organised real positions (x1 = x axe)
+       x2 : numpy.ndarray
+           Organised real positions (x2 = y axe)
     Returns:
        Magnification : int
-           Magnification between reals and detected positions
+           Magnification between detected and real positions
     """
     Delta_X1 = np.nanmean(abs(X1-np.nanmean(X1)))
     Delta_X2 = np.nanmean(abs(X2-np.nanmean(X2)))
@@ -358,9 +358,6 @@ if __name__ == '__main__' :
     'left_folder' : main_path + '/Images_example/2022_03_25/left_101_x5_identification',
     'right_folder' : main_path + '/Images_example/2022_03_25/right_101_x5_identification',
     'name' : 'micro_identification',
-    'ncx' : 16,
-    'ncy' : 12,
-    'sqr' : 0.3,
     'window' : [[500, 1500], [500, 1500]]}  #in mm
     
     # Create the list of z plans
@@ -371,9 +368,8 @@ if __name__ == '__main__' :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
         
     saving_folder = main_path + '/results/2022_03_28_results/101_x5_NAN'
-
-    # saving_folder = 'TXT_example'
-
+    
+    # Chose the polynomial degree for the calibration fitting
     polynomial_form = 332
     direct_polynomial_form = 4
 
@@ -484,11 +480,12 @@ if __name__ == '__main__' :
     print('Identification by DIC')
     print('#####       ')
     print('')
-        
-    X3D_identified, X_map = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
+
+    X3D_identified = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
                                                              detection = True,
                                                              saving_folder = saving_folder,
                                                              flip = True)
+
     # Identify all the cinematic fields
     # all_U_left, all_V_left, all_U_right, all_V_right = data.DIC_fields(__DIC_dict__, 
     #                                                                    detection = False,
