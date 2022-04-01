@@ -3,6 +3,7 @@
 from glob import glob
 from copy import deepcopy
 import DIC
+import math
 
 try : 
     import cupy as np
@@ -10,6 +11,7 @@ except ImportError:
     import numpy as np
 import cv2
 import cv2.aruco as aruco
+
 
 class Calibrate(dict):
     """Identification class of the corners of a chessboard by Charuco's method"""
@@ -30,41 +32,140 @@ class Calibrate(dict):
             self.mrk,
             self.dictionary)
     
-    def calibrate(self, imgs):
+    def calibrate(self, im):
         """ Detection of the corners
         
         Args:
-            imgs : list
-                List of the images paths to detect
+            im : str
+                Image path to detect
             
         Returns:
             corners_list : list (Dim = N * 3)
                 List of the detected corners 
         """
-        for im in imgs:
-            print("=> Calculation of the image {0}".format(im))
-            img = cv2.imread(im, 0)
-            corners, ids, rejectedImgPts = aruco.detectMarkers(img, self.dictionary, parameters=self.parameters)
-            print(len(corners), " marks detected")
-            if len(corners) != 0 :
-                if len(corners) < len(self.board.ids):
-                    for idd in self.board.ids:
-                        if idd not in ids:
-                            print("mark ", idd, " not detected")
-                            
-                if ids is not None and len(ids) > 0:
-                    ret, chcorners, chids = aruco.interpolateCornersCharuco(
-                        corners, ids, img, self.board)
-                    print("{} point(s) detected".format(ret))
-                    print('---')
-                    corners_list = []
-                    BU = []
-                    for i in range (0, len(chcorners)) :
-                        BU.append(chcorners[i][0])
-                        corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
-            else :
-                corners_list = False
+        print("=> Calculation of the image {0}".format(im))
+        img = cv2.imread(im, 0)
+        corners, ids, rejectedImgPts = aruco.detectMarkers(img, self.dictionary, parameters=self.parameters)
+        print(len(corners), " marks detected")
+        if len(corners) != 0 :
+            if len(corners) < len(self.board.ids):
+                for idd in self.board.ids:
+                    if idd not in ids:
+                        print("mark ", idd, " not detected")
+                        
+            if ids is not None and len(ids) > 0:
+                ret, chcorners, chids = aruco.interpolateCornersCharuco(
+                    corners, ids, img, self.board)
+                print("{} point(s) detected".format(ret))
+                print('---')
+                corners_list = []
+                BU = []
+                for i in range (0, len(chcorners)) :
+                    BU.append(chcorners[i][0])
+                    corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+        else :
+            corners_list = False
         return (corners_list, ret) 
+    
+    def complete_missing_points (self, corners_list, im) :  
+        """ Detection of the corners
+        
+        Args:
+            corners_list : numpy.array
+                Array of the detected (automatically) points 
+            im : str
+                Image path to detect
+            
+        Returns:
+            corners_list : list (Dim = N * 3)
+                List of the detected (automatically + manually) corners 
+        """        
+        def onclick(event):
+            global missing_points
+            missing_points = [event.xdata, event.ydata]
+            plt.close()
+        
+        x, y, ids = np.transpose(corners_list)
+        img = cv2.imread(im, 0)
+        
+        # fig, ax = plt.subplots()
+        # im = cv2.imread(List_images[i], 0)
+        # plt.imshow(im)
+        # plt.scatter(x,y, c='r')
+        # for name, txt in enumerate(ids):
+        #     ax.annotate(txt, (x[name], y[name]))
+        
+        nx, ny = (self.ncx-1), (self.ncy-1)
+        n_corners = nx*ny
+        pts_list = np.arange(n_corners)
+        
+        pts_list = np.reshape(pts_list, (ny,nx))
+        pt1 = corners_list[0]
+        x1, y1, id1 = pt1
+        line1, column1 = np.where(pts_list==id1)
+        pts_list_cut = np.delete(pts_list, line1, 0)
+        pts_list_cut = np.delete(pts_list_cut, column1, 1)
+        pts_list_cut = np.ravel(pts_list_cut)
+        pt2 = []
+        for pt in pts_list_cut :
+            if np.any(corners_list[:,2] == pt) :
+                line2, column2 = np.where(pts_list == pt)
+                line, column = np.where(corners_list == pt)
+                pt2 = corners_list[line]
+                x2, y2, id2 = pt2[0]
+                break
+        if np.any(pt2) :
+            # Define the referencial coordiantes of the pattern grid
+            nx = line2 - line1
+            ny = column2 - column1
+            dx = x2 - x1
+            dy = y2 - y1
+            dP = math.sqrt(dx**2 + dy**2)
+            l = dP / math.sqrt(nx**2 + ny**2)
+            alpha = math.atan(dy/dx)
+            alpha2 = math.atan(ny/nx)
+            alpha1 = alpha - alpha2
+            xx = l * math.sin(alpha1)
+            xy = l * math.cos(alpha1)
+            yx = - l * math.cos(alpha1)
+            yy = l * math.sin(alpha1)
+            
+            # Define the origine point
+            d0x = column1 * xx + line1 * yx
+            d0y = column1 * xy + line1 * yy
+            x0 = x1 - d0x
+            y0 = y1 - d0y
+            
+            # Find the holes
+            for id_ in np.ravel(pts_list) :
+                if np.any(corners_list[:,2] == id_) :
+                    ()
+                else : 
+                    # Find the missing point
+                    line2, column2 = np.where(pts_list == id_)
+                    dix = column2 * xx + line2 * yx
+                    diy = - column2 * xy - line2 * yy
+                    xi = x0 + dix
+                    yi = y0 + diy
+                    d = l/4
+
+                    # Pick the missing point
+                    fig, ax = plt.subplots()
+                    plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)])
+                    ax.plot(np.random.rand(10))    
+                    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+                    plt.title('Hybrid detection : Click on the missing corner')
+                    plt.show()
+                    plt.waitforbuttonpress()
+                    xi = xi+missing_points[0]-d
+                    yi = yi+missing_points[1]-d
+                    arr = np.array([xi[0], yi[0], id_])
+                    corners_list = np.insert(corners_list, id_, arr, axis=0)
+        else :
+            print('Impossible to detect manualy corners of image : ', im)
+            corners_list = False
+        return (corners_list)
+
    
 def calibration_model(nx, ny, l) : 
     """ Creation of the model of the calibration pattern
@@ -119,7 +220,7 @@ def cut_calibration_model (List_images,
     nb_pts = np.zeros(M)
     print('M ', M)
     for i in range (0, M) :
-        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
+        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i]))[0])
         Ucam_init.append(B)
         nb_pts[i] = pts
         N = len(B)
@@ -186,7 +287,8 @@ def cut_calibration_model (List_images,
 
 def NAN_calibration_model (List_images, 
                            Xref, 
-                           __dict__) :
+                           __dict__,
+                           hybrid_detection = True) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, replace the points with NAN. 
     
@@ -197,6 +299,9 @@ def NAN_calibration_model (List_images,
             List of the real corners
         pattern : str
             Name of the pattern used ('macro' or 'micro')
+        hybrid_detection : bool, optional
+            If True, then the missing points are filled with manual/visual 
+            detection
         
     Returns:
         all_x : np.array (Dim = Nimages * N * 3)
@@ -212,20 +317,30 @@ def NAN_calibration_model (List_images,
     nb_pts = np.zeros(M)
     all_X = np.zeros((M, Nall, 3))
     for i in range (0, M) :
-        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
+        im = sorted(glob(List_images[i]))[0]
+        corners_list, pts = Calibrate(__dict__).calibrate(im)
         nb_pts[i] = pts
-        B = np.asarray(B)
+        corners_list = np.asarray(corners_list)
+        if hybrid_detection :
+            corners_list = Calibrate(__dict__).complete_missing_points(corners_list, im)
+            
         build = 0
         while build < Nall :
-            if len(B) == build :
-                B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
+            if len(corners_list) == build :
+                corners_list = np.insert (corners_list, 
+                                          build, 
+                                          [np.nan, np.nan, build], 
+                                          axis = 0)
                 build += 1
             else :
-                if B[build, 2] == build :
+                if corners_list[build, 2] == build :
                     build += 1
                 else :
-                    B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
-        all_X[i] = B
+                    corners_list = np.insert (corners_list, 
+                                              build, 
+                                              [np.nan, np.nan, build], 
+                                              axis = 0)
+        all_X[i] = corners_list
 
     all_x = []
     for i in range (0, M) :
@@ -289,10 +404,9 @@ def pattern_detection (__dict__,
             all_x, all_X, nb_pts = NAN_calibration_model(Images, Xref, __dict__)
         else :
             all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
-
-        if all_X[0] == [] :
-            print('Not any point detected in all images/cameras')
         
+        if not np.any(all_X[0]):
+            print('Not any point detected in all images/cameras')
         else :
             np.save(Save_Ucam_Xref[0], all_X)
             np.save(Save_Ucam_Xref[1], all_x)
@@ -722,94 +836,11 @@ if __name__ == '__main__' :
         P = pathlib.Path(saving_folder)
         pathlib.Path.mkdir(P, parents = True)    
     
-    __dict__ = __calibration_dict__
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
-    ncx = __dict__['ncx']
-    ncy = __dict__['ncy']
-    sqr = __dict__['sqr']
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
-    Images = Images_left
-    for i in range (len(Images_right)) :
-        Images.append(Images_right[i])
     
-    Save_Ucam_Xref = [str(saving_folder) + "/all_X_" + name + ".npy", 
-                      str(saving_folder) + "/all_x_" + name + ".npy", 
-                      str(saving_folder) + "/nb_pts_" + name + ".npy"]
-    
-    # Corners detection
-    print('    - Detection of the pattern in progress ...')
-    # Creation of the theoretical pattern + detection of camera's pattern
-    Xref = calibration_model(ncx, ncy, sqr)
-    List_images = Images
-    
-    
-    
-    
+    all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
+                                            detection = True,
+                                            NAN = True,
+                                            saving_folder = saving_folder)    
 
-
-
-    
-    M = len(List_images)
-    
-    # First, detect the holes = missing points
-    Nall = len(Xref)
-    nb_pts = np.zeros(M)
-    all_X = np.zeros((M, Nall, 3))
-    for i in range (0, 1) :
-        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i])))
-        nb_pts[i] = pts
-        B = np.asarray(B)
-        build = 0
-        while build < Nall :
-            if len(B) == build :
-                B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
-                build += 1
-            else :
-                if B[build, 2] == build :
-                    build += 1
-                else :
-                    B = np.insert (B, build, [np.nan, np.nan, build], axis = 0)
-        all_X[i] = B
-
-    all_x = []
-    for i in range (0, M) :
-        all_x.append(Xref)        
-    # Use it as array
-    all_x = np.asarray(all_x)
-    all_x = all_x[:, :, [0, 1]]
-    all_X = all_X[:, :, [0, 1]]
-    nb_pts = np.reshape(nb_pts, (2, M//2))
-    
-    
-    
-    import time
-    points = []
-    def onclick(event):
-        global points
-        print('xdata=%f, ydata=%f' %
-              (event.xdata, event.ydata))
-        points.append([event.xdata, event.ydata])
-        plt.close()
-        
-        
-    for i in range (3) :
-        a = len(points)
-        fig, ax = plt.subplots()
-        img = cv2.imread(List_images[i], 0)
-        plt.imshow(img[300:500,300:500])
-        ax.plot(np.random.rand(10))    
-        cid = fig.canvas.mpl_connect('button_press_event', onclick)
-        plt.show()
-        b = a
-        while b == a :
-            # time.sleep(1)
-            b = len(points)
-             
-
-
-
-    
-    
+    sys.exit()
+            
