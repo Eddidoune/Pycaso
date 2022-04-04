@@ -231,10 +231,10 @@ def full_direct_calibration (__calibration_dict__,
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__, detection = detection, saving_folder = saving_folder)        
 
     # Creation of the reference matrix Xref and the real position Ucam for each camera i
-    x, Xc1, Xc2, mask = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
+    x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
 
     # Plot the references plans
-    solvel.refplans(x, x3_list, mask = mask)
+    solvel.refplans(x, x3_list)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -355,8 +355,8 @@ if __name__ == '__main__' :
     # 'window' : [[500, 1500], [500, 1500]]}  #in mm
     
     __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_03_25/left_101_x5_identification',
-    'right_folder' : main_path + '/Images_example/2022_03_25/right_101_x5_identification',
+    'left_folder' : main_path + '/Images_example/2022_03_28/left_101_x5_identification',
+    'right_folder' : main_path + '/Images_example/2022_03_28/right_101_x5_identification',
     'name' : 'micro_identification',
     'window' : [[500, 1500], [500, 1500]]}  #in mm
     
@@ -386,7 +386,7 @@ if __name__ == '__main__' :
     print('#####       ')
 
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                        detection = True,
+                                                        detection = False,
                                                         NAN = True,
                                                         saving_folder = saving_folder)
     pts_left, pts_right = nb_pts
@@ -482,9 +482,9 @@ if __name__ == '__main__' :
     print('')
 
     X3D_identified = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
-                                                             detection = True,
-                                                             saving_folder = saving_folder,
-                                                             flip = True)
+                                                        detection = False,
+                                                        saving_folder = saving_folder,
+                                                        flip = True)
 
     # Identify all the cinematic fields
     # all_U_left, all_V_left, all_U_right, all_V_right = data.DIC_fields(__DIC_dict__, 
@@ -604,7 +604,28 @@ if __name__ == '__main__' :
         
         
         
-        # Creating figure
+        # # Creating figure
+        # fig = plt.figure(figsize = (16, 9))
+        # ax = plt.axes(projection ="3d")
+        # recal_data = np.reshape(zS_recal, (1000,1000))
+        # f1 = plt.figure(figsize=(12,7.3))
+        # ax = f1.gca(projection='3d')
+        # X1 = np.arange(0,1000,1)
+        # Y1 = np.arange(0,1000,1)
+        # X, Y = np.meshgrid(X1, Y1)
+        # surf = ax.plot_surface(X, Y, recal_data[X,Y], cmap='hot',
+        #                         linewidth=0, antialiased=False); f1.colorbar(surf)
+        # # Customize the z axis.
+        # plt.title("Soloff all pts" + str(image))
+        # ax.set_zlim(-0.02,0.05)
+        # ax.set_xlabel('x (mm)', fontweight ='bold')
+        # ax.set_ylabel('y (mm)', fontweight ='bold')
+        # ax.set_zlabel('z (mm)', fontweight ='bold')
+        # plt.show()
+        
+        
+        
+        
         fig = plt.figure(figsize = (16, 9))
         ax = plt.axes(projection ="3d")
         ax.grid(visible = True, color ='grey',
