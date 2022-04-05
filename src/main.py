@@ -358,7 +358,7 @@ if __name__ == '__main__' :
     'left_folder' : main_path + '/Images_example/2022_03_28/left_101_x5_identification',
     'right_folder' : main_path + '/Images_example/2022_03_28/right_101_x5_identification',
     'name' : 'micro_identification',
-    'window' : [[500, 1500], [500, 1500]]}  #in mm
+    'window' : [[500, 600], [500, 600]]}  #in mm
     
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
@@ -578,7 +578,7 @@ if __name__ == '__main__' :
         # Soloff identification
         t0 = time.time()
         soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
-        if os.path.exists(soloff_file) :
+        if os.path.exists(soloff_file) and False :
             xSoloff_solution = np.load(soloff_file)
         else :
             xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
@@ -602,26 +602,43 @@ if __name__ == '__main__' :
         df.insert(df.shape[1], 'zSoloff', zS_recal, True)        
         
         
+        # Creating figure        
+        win = __DIC_dict__['window']
+        x, y = win
+        xi, xf = x
+        yi, yf = y
+        
+        from scipy import interpolate
+        X1 = np.reshape (xS, (xf-xi, yf-yi))
+        Y1 = np.reshape (yS, (xf-xi, yf-yi))
+        Z1 = np.reshape (zS_recal, (xf-xi, yf-yi))
+        f1 = interpolate.interp2d(X1, Y1, Z1, kind='cubic')
+        xnew = np.arange(-5.01, 5.01, 1e-2)
+        ynew = np.arange(-5.01, 5.01, 1e-2)
+        Xmesh = np.arange(xi, xf, 1)
+        Ymesh = np.arange(yi, yf, 1)
+        Zmesh = f1(Xmesh, Xmesh)
+        plt.plot(X1, Z1[0, :], 'ro-', Xmesh, Zmesh[0, :], 'b-')
+        plt.show()
         
         
-        # # Creating figure
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # recal_data = np.reshape(zS_recal, (1000,1000))
-        # f1 = plt.figure(figsize=(12,7.3))
-        # ax = f1.gca(projection='3d')
-        # X1 = np.arange(0,1000,1)
-        # Y1 = np.arange(0,1000,1)
-        # X, Y = np.meshgrid(X1, Y1)
-        # surf = ax.plot_surface(X, Y, recal_data[X,Y], cmap='hot',
-        #                         linewidth=0, antialiased=False); f1.colorbar(surf)
-        # # Customize the z axis.
-        # plt.title("Soloff all pts" + str(image))
-        # ax.set_zlim(-0.02,0.05)
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # plt.show()
+        fig = plt.figure(figsize = (16, 9))
+        ax = plt.axes(projection ="3d")
+        recal_data = np.reshape(zS_recal, (1000,1000))
+        f1 = plt.figure(figsize=(12,7.3))
+        ax = f1.gca(projection='3d')
+        X1 = np.arange(0,1000,1)
+        Y1 = np.arange(0,1000,1)
+        X, Y = np.meshgrid(X1, Y1)
+        surf = ax.plot_surface(X, Y, recal_data[X,Y], cmap='hot',
+                                linewidth=0, antialiased=False); f1.colorbar(surf)
+        # Customize the z axis.
+        plt.title("Soloff all pts" + str(image))
+        ax.set_zlim(-0.02,0.05)
+        ax.set_xlabel('x (mm)', fontweight ='bold')
+        ax.set_ylabel('y (mm)', fontweight ='bold')
+        ax.set_zlabel('z (mm)', fontweight ='bold')
+        plt.show()
         
         
         

@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import sys
 import pathlib
 import os
+from skimage.feature import structure_tensor, hessian_matrix
+from skimage.filters import difference_of_gaussians, threshold_otsu
+from skimage.measure import label, regionprops
+from skimage.segmentation import clear_border
 
 try : 
     import cupy as np
@@ -48,7 +52,7 @@ class Calibrate(dict):
                 List of the detected corners 
         """
         print("=> Calculation of the image {0}".format(im))
-        img = cv2.imread(im, 0)
+        img = cv2.imread(im, 0)        
         corners, ids, rejectedImgPts = aruco.detectMarkers(img, self.dictionary, parameters=self.parameters)
         print(len(corners), " marks detected")
         if len(corners) != 0 :
@@ -84,21 +88,32 @@ class Calibrate(dict):
             corners_list : list (Dim = N * 3)
                 List of the detected (automatically + manually) corners 
         """        
-        def onclick(event):
-            global missing_points
-            missing_points = [event.xdata, event.ydata]
-            plt.close()
+
+        # Find the all corners with Hessian filter                
+        img_hess= plt.imread(im)
+        H11, H22, H12 = hessian_matrix(img_hess, 9)
+        H22 = abs(H22)
+        thresh = threshold_otsu(H22)
+        bin_im = H22 > thresh
         
+        corners_list = np.asarray(corners_list)
         x, y, ids = np.transpose(corners_list)
         img = cv2.imread(im, 0)
-        
+
         fig, ax = plt.subplots()
         plt.imshow(img, cmap='gray')
         plt.scatter(x,y, c='r')
         for name, txt in enumerate(ids):
             ax.annotate(txt, (x[name], y[name]))
-        
-        nx, ny = (self.ncx-1), (self.ncy-1)
+            # bbox=dict(boxstyle="round", alpha=0.7, color='w')
+            # ax.annotate(str(int(txt)), 
+            #              xy=(x[name], y[name]),
+            #              xytext=(1, 15), 
+            #              textcoords='offset points',
+            #              size=10,
+            #              bbox=bbox)
+
+        nx, ny = self.ncx-1, self.ncy-1
         n_corners = nx*ny
         pts_list = np.arange(n_corners)
         pts_list = np.reshape(pts_list, (ny,nx))
@@ -117,11 +132,7 @@ class Calibrate(dict):
                 pt2 = corners_list[line]
                 x2, y2, id2 = pt2[0]
                 break
-        plt.scatter(x1, y1, c='c')
-        print(x1, y1)
-        plt.scatter(x2, y2, c='m')
-        print(x2, y2)
-
+            
         if np.any(pt2) :
             # Define the referencial coordiantes of the pattern grid
             nx = line2 - line1
@@ -130,22 +141,24 @@ class Calibrate(dict):
             dy = y2 - y1
             dP = math.sqrt(dx**2 + dy**2)
             l = dP / math.sqrt(nx**2 + ny**2)
-            alpha = math.atan(dy/dx)
-            alpha2 = math.atan(ny/nx)
+            alpha = math.atan(dx/dy)
+            if dy < 0 :
+                alpha += math.pi
+            alpha2 = math.atan(nx/ny)
             alpha1 = alpha - alpha2
             xx = l * math.sin(alpha1)
             xy = l * math.cos(alpha1)
             yx = - l * math.cos(alpha1)
             yy = l * math.sin(alpha1)
-            
+
             # Define the origine point
             d0x = column1 * xx + line1 * yx
             d0y = column1 * xy + line1 * yy
             x0 = x1 - d0x
             y0 = y1 - d0y
             plt.scatter(x0,y0, c='g')
-            plt.scatter(x0 + xx, y0 + yx, c='b')
-            plt.scatter(x0 + xy, y0 - yy, c='b')
+            plt.scatter(x0 + xx, y0 + xy, c='c')
+            plt.scatter(x0 - yx, y0 - yy, c='c')
 
             # Find the holes
             for id_ in np.ravel(pts_list) :
@@ -154,28 +167,68 @@ class Calibrate(dict):
                 else : 
                     # Find the missing point
                     line2, column2 = np.where(pts_list == id_)
-                    dix = column2 * xx + line2 * yx
-                    diy = - column2 * xy - line2 * yy
-                    xi = x0 + dix
-                    yi = y0 + diy
-                    d = l/4
+                    dix = column2 * xx + line2 * xy
+                    diy = - column2 * yx - line2 * yy
+                    xi = int(x0 + dix)
+                    yi = int(y0 + diy)
+                    d = int(l//2)
 
                     # Pick the missing point, if on the image
                     xm, ym = img.shape
                     if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
                         out_of_range_points += 1
                     else :
-                        fig, ax = plt.subplots()
-                        plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)], cmap='gray')
-                        ax.plot(np.random.rand(10))    
-                        cid = fig.canvas.mpl_connect('button_press_event', onclick)
-                        plt.title('Hybrid detection : Click on the missing corner')
-                        plt.show()
-                        plt.waitforbuttonpress()
-                        xi = xi+missing_points[0]-d
-                        yi = yi+missing_points[1]-d
-                        arr = np.array([xi[0], yi[0], id_])
+                        # Try Hessian detection and pick the biggest binary area
+                        bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
+                        im_focus = img_hess[yi-d:yi+d, xi-d:xi+d]
+                        label_img=label(clear_border(bin_im_win))
+                        regions = regionprops(label_img)
+                        areas = []
+                        for region in (regions):
+                            areas.append(region.area)
+                        max_area = max(areas)
+                        max_i = areas.index(max_area)
+                        region = regions[max_i]
+                        bary, barx = region.centroid
+                        y_dot = bary + yi - d
+                        x_dot = barx + xi - d
+
+                        
+                        
+                        arr = np.array([x_dot, y_dot, id_])
+                        plt.annotate(id_, (x_dot, y_dot))
+                        plt.scatter(x_dot, y_dot, c='b')
+
                         corners_list = np.insert(corners_list, id_, arr, axis=0)
+                        
+                        # sys.exit()
+
+                        # # If the Hessian detection is bad, manualy detection
+                        # missing_points = [0, 0]
+                        # def onclick(event):
+                        #     global missing_points
+                        #     missing_points = [event.xdata, event.ydata]
+                        #     plt.close()
+                        
+                        # fig, ax = plt.subplots()
+                        # plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)], cmap='gray')
+                        # cid = fig.canvas.mpl_connect('button_press_event', onclick)
+                        # plt.title('Click on the missing corner')
+                        # plt.show()
+                        # plt.waitforbuttonpress()
+                        # xi = xi+missing_points[0]-d
+                        # yi = yi+missing_points[1]-d
+                        # fig, ax = plt.subplots()
+                        # plt.imshow(img[int(yi-10):int(yi+10), int(xi-10):int(xi+10)], cmap='gray')
+                        # cid = fig.canvas.mpl_connect('button_press_event', onclick)
+                        # plt.title('Click again')
+                        # plt.show()
+                        # plt.waitforbuttonpress()
+                        # xi = xi+missing_points[0]-d
+                        # yi = yi+missing_points[1]-d
+                        # arr = np.array([xi, yi, id_])
+                        # corners_list = np.insert(corners_list, id_, arr, axis=0)
+                        
         else :
             print('Impossible to detect manualy corners of image : ', im)
             corners_list = False
@@ -304,7 +357,7 @@ def cut_calibration_model (List_images,
 def NAN_calibration_model (List_images, 
                            Xref, 
                            __dict__,
-                           hybrid_detection = False) :
+                           hybrid_detection = True) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, replace the points with NAN. 
     
@@ -849,193 +902,7 @@ if __name__ == '__main__' :
         pathlib.Path.mkdir(P, parents = True)    
     
     
-    # all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
-    #                                         detection = True,
-    #                                         NAN = True,
-    #                                         saving_folder = saving_folder)    
-
-    
-    __dict__ = __calibration_dict__
-    detection = True
-    NAN = True
-
-    # Taking the main parameters from bibliotheque_data_eddy.
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
-    ncx = __dict__['ncx']
-    ncy = __dict__['ncy']
-    sqr = __dict__['sqr']
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
-    Images = Images_left
-    for i in range (len(Images_right)) :
-        Images.append(Images_right[i])
-
-    Save_Ucam_Xref = [str(saving_folder) + "/all_X_" + name + ".npy", 
-                      str(saving_folder) + "/all_x_" + name + ".npy", 
-                      str(saving_folder) + "/nb_pts_" + name + ".npy"]
-
-    # Corners detection
-    if detection :
-        print('    - Detection of the pattern in progress ...')
-        # Creation of the theoretical pattern + detection of camera's pattern
-        Xref = calibration_model(ncx, ncy, sqr)
-        if NAN :
-            List_images = Images
-            hybrid_detection = True
-            
-            M = len(List_images)
-
-            # First, detect the holes = missing points
-            Nall = len(Xref)
-            nb_pts = np.zeros(M)
-            all_X = np.zeros((M, Nall, 3))
-            for i in range (0, M) :
-                im = sorted(glob(List_images[i]))[0]
-                corners_list, pts = Calibrate(__dict__).calibrate(im)
-                nb_pts[i] = pts
-                corners_list = np.asarray(corners_list)
-
-                missing_points = [0, 0]
-                def onclick(event):
-                    global missing_points
-                    missing_points = [event.xdata, event.ydata]
-                    plt.close()
-                
-                import tkinter as tk
-                from tkinter import *
-                from tkinter import messagebox as mb
-                def call():
-                    res=mb.askquestion('Exit Application', 'Do you really want to exit')
-                    if res == 'yes' :
-                        root.destroy()
-                    else :
-                        mb.showinfo('Return', 'Returning to main application')
-                def onclick2(event):
-                    global missing_points
-                    xt, yt = 20, 20
-                    plt.scatter(xt, yt)
-                    root=tk.Tk()
-                    canvas=tk.Canvas(root, width=200, height=200)
-                    canvas.pack()
-
-                    b=Button(root, text='Quit Application', command=call)
-                    canvas.create_window(100, 100, window=b)
-
-                    # root.mainloop()
-                    
-
-                    # if button :
-                    #     missing_points = [xt, yt]
-                    # else : 
-                    missing_points = [event.xdata, event.ydata]
-                    plt.close()
-
-                x, y, ids = np.transpose(corners_list)
-                img = cv2.imread(im, 0)
-
-                fig, ax = plt.subplots()
-                plt.imshow(img, cmap='gray')
-                plt.scatter(x,y, c='r')
-                for name, txt in enumerate(ids):
-                    ax.annotate(txt, (x[name], y[name]))
-
-                nx, ny = (__dict__['ncx']-1), (__dict__['ncy']-1)
-                n_corners = nx*ny
-                pts_list = np.arange(n_corners)
-                pts_list = np.reshape(pts_list, (ny,nx))
-                pt1 = corners_list[0]
-                x1, y1, id1 = pt1
-                line1, column1 = np.where(pts_list==id1)
-                pts_list_cut = np.delete(pts_list, line1, 0)
-                pts_list_cut = np.delete(pts_list_cut, column1, 1)
-                pts_list_cut = np.ravel(pts_list_cut)
-                pt2 = []
-                out_of_range_points = 0
-                for pt in pts_list_cut :
-                    if np.any(corners_list[:,2] == pt) :
-                        line2, column2 = np.where(pts_list == pt)
-                        line, column = np.where(corners_list == pt)
-                        pt2 = corners_list[line]
-                        x2, y2, id2 = pt2[0]
-                        break
-                plt.scatter(x1, y1, c='c')
-                print(x1, y1)
-                plt.scatter(x2, y2, c='m')
-                print(x2, y2)
-
-                if np.any(pt2) :
-                    # Define the referencial coordiantes of the pattern grid
-                    nx = line2 - line1
-                    ny = column2 - column1
-                    dx = x2 - x1
-                    dy = y2 - y1
-                    dP = math.sqrt(dx**2 + dy**2)
-                    l = dP / math.sqrt(nx**2 + ny**2)
-                    alpha = math.atan(dx/dy)
-                    if dy < 0 :
-                        alpha += math.pi
-                    alpha2 = math.atan(nx/ny)
-                    alpha1 = alpha - alpha2
-                    xx = l * math.sin(alpha1)
-                    xy = l * math.cos(alpha1)
-                    yx = - l * math.cos(alpha1)
-                    yy = l * math.sin(alpha1)
-
-                    # Define the origine point
-                    d0x = column1 * xx + line1 * yx
-                    d0y = column1 * xy + line1 * yy
-                    x0 = x1 - d0x
-                    y0 = y1 - d0y
-                    plt.scatter(x0,y0, c='g')
-                    plt.scatter(x0 + xx, y0 + xy, c='c')
-                    plt.scatter(x0 - yx, y0 - yy, c='b')
-
-                    # Find the holes
-                    for id_ in np.ravel(pts_list) :
-                        if np.any(corners_list[:,2] == id_) :
-                            ()
-                        else : 
-                            # Find the missing point
-                            line2, column2 = np.where(pts_list == id_)
-                            dix = column2 * xx + line2 * xy
-                            diy = - column2 * yx - line2 * yy
-                            xi = x0 + dix
-                            yi = y0 + diy
-                            d = l/4
-
-                            # Pick the missing point, if on the image
-                            xm, ym = img.shape
-                            if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
-                                out_of_range_points += 1
-                            else :
-                                fig, ax = plt.subplots()
-                                plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)], cmap='gray')
-                                cid = fig.canvas.mpl_connect('button_press_event', onclick2)
-                                plt.title('Click on the missing corner')
-                                plt.show()
-                                plt.waitforbuttonpress()
-                                xi = xi+missing_points[0]-d
-                                yi = yi+missing_points[1]-d
-                                
-                                fig, ax = plt.subplots()
-                                plt.imshow(img[int(yi-10):int(yi+10), int(xi-10):int(xi+10)], cmap='gray')
-                                cid = fig.canvas.mpl_connect('button_press_event', onclick2)
-                                plt.title('Click again')
-                                plt.show()
-                                plt.waitforbuttonpress()
-                                xi = xi+missing_points[0]-d
-                                yi = yi+missing_points[1]-d
-                                
-                                arr = np.array([xi[0], yi[0], id_])
-                                corners_list = np.insert(corners_list, id_, arr, axis=0)
-                                print('arr ', arr)
-                else :
-                    print('Impossible to detect manualy corners of image : ', im)
-                    corners_list = False
-                print (out_of_range_points, ' points out of the image or to close to the border')
-    
-    
-    sys.exit()
-            
+    all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
+                                            detection = True,
+                                            NAN = True,
+                                            saving_folder = saving_folder)    
