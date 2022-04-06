@@ -386,7 +386,7 @@ if __name__ == '__main__' :
     print('#####       ')
 
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                        detection = False,
+                                                        detection = True,
                                                         NAN = True,
                                                         saving_folder = saving_folder)
     pts_left, pts_right = nb_pts
