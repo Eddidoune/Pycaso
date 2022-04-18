@@ -128,4 +128,3 @@ zS = np.reshape(zS,(1400,1400))
 plt.imshow(zS)
 ```
 
-
