@@ -3,7 +3,7 @@
 """
 Created on Fri Nov 26 09:19:07 2021
 
-@author: caroneddy
+@author: Eddidoune
 """
 try : 
     import cupy as np
@@ -14,13 +14,16 @@ import pathlib
 import os
 import time
 from glob import glob
-# import DIC
+import pandas as pd
 import cv2
 import solve_library as solvel
 import data_library as data
 import matplotlib.pyplot as plt
+import scipy.ndimage as nd
 # from mpl_toolkits import mplot3d
 import csv
+import math
+
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
@@ -37,6 +40,7 @@ def magnification (X1, X2, x1, x2) :
     Returns:
        Magnification : int
            Magnification between detected and real positions
+           [Mag x, Mag y]
     """
     Delta_X1 = np.nanmean(abs(X1-np.nanmean(X1)))
     Delta_X2 = np.nanmean(abs(X2-np.nanmean(X2)))
@@ -49,7 +53,8 @@ def full_Soloff_calibration (__calibration_dict__,
              x3_list,
              saving_folder,
              polynomial_form = 332,
-             detection = True) :
+             detection = True,
+             hybrid_verification = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = A111 (Resp A_pol):--> X = A.M(x)
     
@@ -67,6 +72,12 @@ def full_Soloff_calibration (__calibration_dict__,
        detection : bool, optional
            If True, all the analysis will be done. If False, the code will 
            take the informations in 'saving_folder'
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
 
     Returns:
        A111 : numpy.ndarray
@@ -74,7 +85,8 @@ def full_Soloff_calibration (__calibration_dict__,
        A_pol : numpy.ndarray
            Constants of Soloff polynomial form chose (polynomial_form)
        Magnification : int
-           Magnification between reals and detected positions
+           Magnification between reals and detected positions 
+           [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
     
     A111 = np.zeros((2, 2, 4))
@@ -107,16 +119,18 @@ def full_Soloff_calibration (__calibration_dict__,
     # Detect points from folders
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
                                    detection = detection,
-                                   saving_folder = saving_folder)        
+                                   saving_folder = saving_folder,
+                                   hybrid_verification = hybrid_verification)        
 
-    # Creation of the reference matrix Xref and the real position Ucam for each camera
+    # Creation of the reference matrix Xref and the real position Ucam for 
+    # each camera
     x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, 
                                              all_Xref, 
                                              x3_list)
-    
+
     # Plot the references plans
     solvel.refplans(x, x3_list)
-    
+
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
     for camera in [1, 2] :
@@ -131,7 +145,9 @@ def full_Soloff_calibration (__calibration_dict__,
         Magnification[camera-1] = magnification (X1, X2, x1, x2)
         
         for pol in range (len (A_0)) :
-            # Do the system X = Ai*M, where M is the monomial of the real coordinates of crosses and X the image coordinates, and M the unknow (polynomial form aab)
+            # Do the system X = Ai*M, where M is the monomial of the real 
+            # coordinates of crosses and X the image coordinates, and M the 
+            # unknow (polynomial form aab)
             polynomial_form = polynomial_forms[pol]
             M = solvel.Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)
             Ai = np.matmul(X, np.linalg.pinv(M))
@@ -151,7 +167,8 @@ def full_Soloff_identification (Xc1_identified,
                         A_pol,
                         polynomial_form = 332,
                         method = 'curve_fit') :
-    """Identification of the points detected on both cameras left and right into the global 3D-space
+    """Identification of the points detected on both cameras left and right 
+    into the global 3D-space
     
     Args:
        Xc1_identified : numpy.ndarray
@@ -170,23 +187,21 @@ def full_Soloff_identification (Xc1_identified,
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
-       Xcalculated : numpy.ndarray
-           Calculated points from the equation Xcalculated = A . M(x_solution)
-       Xdetected : numpy.ndarray
-           Detected points Xc1_identified and Xc2_identified
     """
     
-    # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
+    # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
+    # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
     x0 = solvel.least_square_method (Xc1_identified, Xc2_identified, A111)
     
-    # Solve the polynomials constants ai with curve-fit method (Levenberg Marcquardt)
+    # Solve the polynomials constants ai with curve-fit method (Levenberg 
+    # Marcquardt)
     x_solution, Xcalculated, Xdetected = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
                                                                             Xc2_identified, 
                                                                             A_pol, 
                                                                             x0, 
                                                                             polynomial_form = polynomial_form, 
                                                                             method = 'curve_fit')
-    return (x_solution, Xcalculated, Xdetected)
+    return (x_solution)
 
 
 def full_direct_calibration (__calibration_dict__,
@@ -194,19 +209,23 @@ def full_direct_calibration (__calibration_dict__,
              saving_folder,
              direct_polynome_degree,
              detection = True) :
-    """Calculation of the magnification between reals and detected positions and the calibration parameters A:--> x = A.M(X)
+    """Calculation of the magnification between reals and detected positions 
+    and the calibration parameters A:--> x = A.M(X)
     
     Args:
        __calibration_dict__ : dict
-           Calibration properties define in a dict. Including 'left_folder', 'right_folder', 'name', 'ncx', 'ncy', 'sqr'
+           Calibration properties define in a dict. Including 'left_folder', 
+           'right_folder', 'name', 'ncx', 'ncy', 'sqr'
        x3_list : numpy.ndarray
-           List of the different z position. (WARNING : Should be order the same way in the target folder)
+           List of the different z position. (WARNING : Should be order the 
+                                              same way in the target folder)
        saving_folder : str
            Folder to save datas
        direct_polynome_degree : int, optional
            Polynomial degree
        detection : bool, optional
-           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+           If True, all the analysis will be done. If False, the code will 
+           take the informations in 'saving_folder'
 
     Returns:
        A : numpy.ndarray
@@ -227,9 +246,12 @@ def full_direct_calibration (__calibration_dict__,
         print ('Only define for polynomial degrees (1, 2, 3 or 4')
         sys.exit()
     # Detect points from folders
-    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__, detection = detection, saving_folder = saving_folder)        
+    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__, 
+                                                        detection = detection, 
+                                                        saving_folder = saving_folder)        
 
-    # Creation of the reference matrix Xref and the real position Ucam for each camera i
+    # Creation of the reference matrix Xref and the real position Ucam for 
+    # each camera i
     x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
 
     # Plot the references plans
@@ -249,7 +271,8 @@ def full_direct_calibration (__calibration_dict__,
         # Compute the magnification (same for each cam as set up is symetric)
         Magnification[camera-1] = magnification (X1, X2, x1, x2)
         
-        # Do the system x = Ap*M, where M is the monomial of the real coordinates of crosses and x the image coordinates, and M the unknow
+        # Do the system x = Ap*M, where M is the monomial of the real 
+        # coordinates of crosses and x the image coordinates, and M the unknow
         M = solvel.Direct_Polynome({'polynomial_form' : direct_polynome_degree}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
         direct_A = Ap
@@ -264,7 +287,8 @@ def full_direct_identification (Xc1_identified,
                                 Xc2_identified,
                                 direct_A,
                                 direct_polynomial_form = 3) :
-    """Identification of the points detected on both cameras left and right into the global 3D-space
+    """Identification of the points detected on both cameras left and right 
+    into the global 3D-space
     
     Args:
        Xc1_identified : numpy.ndarray
@@ -362,7 +386,7 @@ if __name__ == '__main__' :
     direct_polynomial_form = 4
 
     # Create the result folder if not exist
-    saving_folder = main_path + '/results/2022_02_28_results/100_NAN'
+    saving_folder = main_path + '/results/2022_02_28_results/main_expl_300_1700'
     if os.path.exists(saving_folder) :
         ()
     else :
@@ -377,12 +401,11 @@ if __name__ == '__main__' :
     print('#####       ')
     print('Start calibration')
     print('#####       ')
-
+ 
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                       detection = False,
-                                                       saving_folder = saving_folder)   
-    
-    sys.exit()
+                                                        detection = False,
+                                                        saving_folder = saving_folder,
+                                                        hybrid_verification = False)    
     
     A111, A_pol, Magnification = full_Soloff_calibration (__calibration_dict__,
                                                          x3_list,
@@ -408,25 +431,24 @@ if __name__ == '__main__' :
     print('#####       ')
     print('')
         
-    X3D_identified = data.DIC_3D_detection(__DIC_dict__, 
-                                                  detection = False,
-                                                  saving_folder = saving_folder)
+    Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
+                                                           detection = False,
+                                                           saving_folder = saving_folder)
     
-    Nimages, Npoints, Naxes = X3D_identified.shape
-    Np_img = Nimages//2    
-    all_U, all_V, all_W = np.zeros((3,Nimages, Npoints))
+    Np_img, Npoints, Naxes = Xleft_id.shape
+    all_U, all_V, all_W = np.zeros((3,2*Np_img, Npoints))
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (Np_img) :
+    for image in range (2) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
         print('...')
         print('...')
         
-        X_c1 = X3D_identified[image]
-        X_c2 = X3D_identified[image+Np_img]
+        X_c1 = Xleft_id[image]
+        X_c2 = Xright_id[image]
         
         # Direct identification
         t0 = time.time()
@@ -439,7 +461,7 @@ if __name__ == '__main__' :
         t1 = time.time()
         print('time direct = ',t1 - t0)
         print('end direct')
-
+ 
         # Soloff identification
         t0 = time.time()
         soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
@@ -447,12 +469,12 @@ if __name__ == '__main__' :
         if os.path.exists(soloff_file) and True :
             xSoloff_solution = np.load(soloff_file)
         else :
-            xSoloff_solution, Xcal, Xdet = full_Soloff_identification (X_c1,
-                                                                        X_c2,
-                                                                        A111, 
-                                                                        A_pol,
-                                                                        polynomial_form = polynomial_form,
-                                                                        method = 'curve_fit')       
+            xSoloff_solution = full_Soloff_identification (X_c1,
+                                                           X_c2,
+                                                           A111, 
+                                                           A_pol,
+                                                           polynomial_form = polynomial_form,
+                                                           method = 'curve_fit')       
             np.save(soloff_file, xSoloff_solution)
         xSoloff_solution = np.load(saving_folder + '/xsolution_soloff' + str(image) + '.npy')
         t1 = time.time()
@@ -482,64 +504,68 @@ if __name__ == '__main__' :
         ax.set_zlabel('z (mm)', fontweight ='bold')
         fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
         plt.show()        
-        sys.exit()
         
-        # Chose the Number of Datas for Artificial Intelligence Learning
-        NDIALs = [500, 1000, 5000, 20000, 100000]
-        for NDIAL in NDIALs :
-            # Create the .csv to make an IA identification
-            t0 = time.time()
-            file = saving_folder +'/Soloff_IA_' + str(image) + '_' + str(NDIAL) + '_points.csv'      
-            xIA_solution = full_IA_identification (X_c1,
-                                                    X_c2,
-                                                    xSoloff_solution,
-                                                    NDIAL = NDIAL,
-                                                    file = file)
-            xIA, yIA, zIA = xIA_solution
-            xIA_solutions[image] = xIA_solution
-            t1 = time.time()
-            print('time IA ', NDIAL, ' = ',t1 - t0)
-            print('end IA')
+        # # Chose the Number of Datas for Artificial Intelligence Learning
+        # NDIALs = [500, 1000, 5000, 20000, 100000]
+        # for NDIAL in NDIALs :
+        #     # Create the .csv to make an IA identification
+        #     t0 = time.time()
+        #     file = saving_folder +'/Soloff_IA_' + str(image) + '_' + str(NDIAL) + '_points.csv'      
+        #     xIA_solution = full_IA_identification (X_c1,
+        #                                             X_c2,
+        #                                             xSoloff_solution,
+        #                                             NDIAL = NDIAL,
+        #                                             file = file)
+        #     xIA, yIA, zIA = xIA_solution
+        #     xIA_solutions[image] = xIA_solution
+        #     t1 = time.time()
+        #     print('time IA ', NDIAL, ' = ',t1 - t0)
+        #     print('end IA')
             
-            # Creating figure
-            fig = plt.figure(figsize = (16, 9))
-            ax = plt.axes(projection ="3d")
-            ax.grid(visible = True, color ='grey',
-                    linestyle ='-.', linewidth = 0.3,
-                    alpha = 0.2)
-            my_cmap = plt.get_cmap('hsv')
-            sctt = ax.scatter3D(xIA, yIA, zIA,
-                                alpha = 0.8,
-                                c = zIA,
-                                cmap = my_cmap)
-            plt.title("IA all pts" + str(image) + '_' + str(NDIAL) + '_points')
-            ax.set_xlabel('x (mm)', fontweight ='bold')
-            ax.set_ylabel('y (mm)', fontweight ='bold')
-            ax.set_zlabel('z (mm)', fontweight ='bold')
-            fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-            plt.show()
+        #     # Creating figure
+        #     fig = plt.figure(figsize = (16, 9))
+        #     ax = plt.axes(projection ="3d")
+        #     ax.grid(visible = True, color ='grey',
+        #             linestyle ='-.', linewidth = 0.3,
+        #             alpha = 0.2)
+        #     my_cmap = plt.get_cmap('hsv')
+        #     sctt = ax.scatter3D(xIA, yIA, zIA,
+        #                         alpha = 0.8,
+        #                         c = zIA,
+        #                         cmap = my_cmap)
+        #     plt.title("IA all pts" + str(image) + '_' + str(NDIAL) + '_points')
+        #     ax.set_xlabel('x (mm)', fontweight ='bold')
+        #     ax.set_ylabel('y (mm)', fontweight ='bold')
+        #     ax.set_zlabel('z (mm)', fontweight ='bold')
+        #     fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
+        #     plt.show()
         
             
-            # Difference IA and Soloff
-            xIA_Soloff = xIA_solution-xSoloff_solution
-            xdiff, ydiff, zdiff = xIA_Soloff
-            r = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
-            # Creating figure
-            fig = plt.figure(figsize = (16, 9))
-            ax = plt.axes(projection ="3d")
-            sctt = ax.scatter3D(xdiff, ydiff, zdiff,
-                                alpha = 0.8,
-                                c = r)
-            plt.title("Soloff/IA diff" + str(image) + '_' + str(NDIAL) + '_points')
-            ax.set_xlabel('x (mm)', fontweight ='bold')
-            ax.set_ylabel('y (mm)', fontweight ='bold')
-            ax.set_zlabel('z (mm)', fontweight ='bold')
-            fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-            plt.show()
-            print('max Soloff/IA diff ', NDIAL, ' points x, y, z, r : ', np.around(np.max(xdiff), 4), np.around(np.max(ydiff), 4), np.around(np.max(zdiff), 4), np.around(np.max(r), 4))
-            print('mean Soloff/IA diff ', NDIAL, ' points x, y, z, r : ', np.around(np.mean(np.abs(xdiff)), 4), np.around(np.mean(np.abs(ydiff)), 4), np.around(np.mean(np.abs(zdiff)), 4), np.around(np.mean(np.abs(r)), 4))
-            print('std Soloff/IA diff ', NDIAL, ' points x, y, z, r : ', np.around(np.std(xdiff), 4), np.around(np.std(ydiff), 4), np.around(np.std(zdiff), 4), np.around(np.std(r), 4))
+        #     # Difference IA and Soloff
+        #     xIA_Soloff = xIA_solution-xSoloff_solution
+        #     xdiff, ydiff, zdiff = xIA_Soloff
+        #     r = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
+        #     # Creating figure
+        #     fig = plt.figure(figsize = (16, 9))
+        #     ax = plt.axes(projection ="3d")
+        #     sctt = ax.scatter3D(xdiff, ydiff, zdiff,
+        #                         alpha = 0.8,
+        #                         c = r)
+        #     plt.title("Soloff/IA diff" + str(image) + '_' + str(NDIAL) + '_points')
+        #     ax.set_xlabel('x (mm)', fontweight ='bold')
+        #     ax.set_ylabel('y (mm)', fontweight ='bold')
+        #     ax.set_zlabel('z (mm)', fontweight ='bold')
+        #     fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
+        #     plt.show()
+        #     print('max Soloff/IA diff ', NDIAL, ' points x, y, z, r : ', np.around(np.max(xdiff), 4), np.around(np.max(ydiff), 4), np.around(np.max(zdiff), 4), np.around(np.max(r), 4))
+        #     print('mean Soloff/IA diff ', NDIAL, ' points x, y, z, r : ', np.around(np.mean(np.abs(xdiff)), 4), np.around(np.mean(np.abs(ydiff)), 4), np.around(np.mean(np.abs(zdiff)), 4), np.around(np.mean(np.abs(r)), 4))
+        #     print('std Soloff/IA diff ', NDIAL, ' points x, y, z, r : ', np.around(np.std(xdiff), 4), np.around(np.std(ydiff), 4), np.around(np.std(zdiff), 4), np.around(np.std(r), 4))
          
+        
+        
+        
+        
+        
         
 
         # # Difference IA and direct

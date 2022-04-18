@@ -11,14 +11,16 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import RandomizedSearchCV
-
+import sys
+ 
 class Direct_Polynome(dict) :
     def __init__(self, _dict_):
         self._dict_ = _dict_
         self.polynomial_form = _dict_['polynomial_form']
 
     def pol_form (self, Xl, Xr) :
-        """Create the matrix M = f(Xl,Xr) with f the polynomial function of degree n
+        """Create the matrix M = f(Xl,Xr) with f the polynomial function of 
+        degree n
         
         Args:
            Xl : numpy.ndarray
@@ -101,7 +103,8 @@ class Soloff_Polynome(dict) :
         self.polynomial_form = _dict_['polynomial_form']
 
     def pol_form (self, x) :
-        """Create the matrix M = f(x) with f the polynomial function of degree (aab : a for x1, x2 and b for x3)
+        """Create the matrix M = f(x) with f the polynomial function of degree 
+        (aab : a for x1, x2 and b for x3)
         
         Args:
            x : numpy.ndarray
@@ -278,7 +281,8 @@ class Soloff_Polynome(dict) :
         return (F)
     
     def polynomial_system (self, x, a) :
-        """Create the matrix M = f(x) with f the polynomial function of degree (aab : a for x1, x2 and b for x3)
+        """Create the matrix M = f(x) with f the polynomial function of degree 
+        (aab : a for x1, x2 and b for x3)
         
         Args:
            x : numpy.ndarray
@@ -298,7 +302,7 @@ class Soloff_Polynome(dict) :
 
 
 def fit_plan_to_points(point,
-                        title = 'no title'):
+                       title = 'no title'):
     """Plot the median plan from a serie of points
     
     Args:
@@ -349,7 +353,7 @@ def fit_plan_to_points(point,
     return (fit, errors, mean_error, residual)
 
 def fit_plans_to_points(points, 
-                         title = 'no title'):
+                        title = 'no title'):
     """Plot the medians plans from series of points
     
     Args:
@@ -370,16 +374,16 @@ def fit_plans_to_points(points,
     maxerror = []
     for i in range (len(points)) :
         point = points[i]
-        fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, title = title)
+        fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
+                                                                        title = title)
         maxerror.append(np.max(abs(errori)))
         errors.append(errori)
     plt.figure()
-        
+    plt.show()    
     print('Plan square max error = ', (max(maxerror)), ' mm')
     print('Plan square mean error = ', (np.mean(mean_error**2))**(1/2), ' mm')
     print('Plan square mean residual = ', (np.mean(residual**2))**(1/2))
 
-    plt.show()
     return (fit, errors, mean_error, residual)
 
 def refplans(xc1, x3_list) :
@@ -413,7 +417,8 @@ def refplans(xc1, x3_list) :
 def least_square_method (Xc1_identified, 
                          Xc2_identified, 
                          A111) :
-    """Resolve by least square method the system A . x = X for each points detected and both cameras
+    """Resolve by least square method the system A . x = X for each points 
+    detected and both cameras
     
     Args:
        Xc1_identified : numpy.ndarray
@@ -455,7 +460,8 @@ def Levenberg_Marquardt_solving (Xc1_identified,
                                  x0, 
                                  polynomial_form, 
                                  method = 'curve_fit') :
-    """Resolve by Levenberg-Marcquardt method the system A . x = X for each points detected and both cameras
+    """Resolve by Levenberg-Marcquardt method the system A . x = X for each 
+    points detected and both cameras
     
     Args:
         Xc1_identified : numpy.ndarray
@@ -490,7 +496,10 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         pass  
 
     N = len(x0[0])    
-    Xdetected = np.array([Xc1_identified[:,0], Xc1_identified[:,1], Xc2_identified[:,0], Xc2_identified[:,1]])
+    Xdetected = np.array([Xc1_identified[:,0], 
+                          Xc1_identified[:,1], 
+                          Xc2_identified[:,0], 
+                          Xc2_identified[:,1]])
     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
     xopt = np.zeros((3,N))
     data_filename_memmap = os.path.join(folder, 'data_memmap')
@@ -547,7 +556,8 @@ def AI_solve (file,
     
     dat=pd.read_csv(file, sep=" " )
     dat=np.array(dat)
-    # The model learn on 4/5 of all datas. Then the accuracy is estimated on the last 1/5 datas.
+    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
+    # the last 1/5 datas.
     N = int(len(dat)*4/5)
     
     # 1st meta-model
@@ -573,7 +583,9 @@ def AI_solve (file,
     # hyperparameter tuning 
     if hyperparameters_tuning :
         # Number of trees in random forest
-        n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+        n_estimators = [int(x) for x in np.linspace(start = 200, 
+                                                    stop = 2000, 
+                                                    num = 10)]
         # Number of features to consider at every split
         max_features = ['auto', 'sqrt']
         # Maximum number of levels in tree
@@ -592,7 +604,13 @@ def AI_solve (file,
                         'min_samples_leaf': min_samples_leaf,
                         'bootstrap': bootstrap}
         
-        rf_random = RandomizedSearchCV(estimator = model, param_distributions = random_grid, n_iter = 100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+        rf_random = RandomizedSearchCV(estimator = model, 
+                                       param_distributions = random_grid, 
+                                       n_iter = 100, 
+                                       cv = 3, 
+                                       verbose=2, 
+                                       random_state=42, 
+                                       n_jobs = -1)
         rf_random.fit(X, Y)
         
         best_random = rf_random.best_estimator_

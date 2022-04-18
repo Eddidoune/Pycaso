@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import sys
 import pathlib
 import os
-import skimage.feature as sf
-from skimage.filters import difference_of_gaussians, threshold_otsu
+import skimage.feature as sfe
+import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 
@@ -22,8 +22,10 @@ import cv2.aruco as aruco
 
 
 class Calibrate(dict):
-    """Identification class of the corners of a chessboard by Charuco's method"""
-    def __init__(self, _dict_):
+    """Identification class of the corners of a chessboard by 
+        Charuco's method"""
+    def __init__(self, 
+                 _dict_):
         self._dict_ = _dict_
         # ncx, ncy, sqr, mrk = pattern_cst(pattern)
         self.ncx = _dict_['ncx']
@@ -40,7 +42,8 @@ class Calibrate(dict):
             self.mrk,
             self.dictionary)
     
-    def calibrate(self, im):
+    def calibrate(self, 
+                  im):
         """ Detection of the corners
         
         Args:
@@ -53,7 +56,9 @@ class Calibrate(dict):
         """
         print("=> Calculation of the image {0}".format(im))
         img = cv2.imread(im, 0)        
-        corners, ids, rejectedImgPts = aruco.detectMarkers(img, self.dictionary, parameters=self.parameters)
+        corners, ids, rip = aruco.detectMarkers(img, 
+                                                self.dictionary, 
+                                                parameters=self.parameters)
         print(len(corners), " marks detected")
         if len(corners) != 0 :
             if len(corners) < len(self.board.ids):
@@ -75,42 +80,51 @@ class Calibrate(dict):
             corners_list = False
         return (corners_list, ret) 
     
-    def complete_missing_points (self, corners_list, im) :  
-        """ Detection of the corners
+    def complete_missing_points (self, 
+                                 corners_list, 
+                                 im, 
+                                 hybrid_verification = False) :  
+        """ Detection of the corners with Hessian invariants filtering
         
         Args:
             corners_list : numpy.array
-                Array of the detected (automatically) points 
+                Array of the detected points (automatically with ChAruco) 
             im : str
                 Image path to detect
+            hybrid_verification : bool, optional
+                If True, verify each pattern detection and propose to pick 
+                manually the bad detected corners. The image with all detected
+                corners is show and you can decide to change any point using
+                it ID (ID indicated on the image) as an input. If there is no
+                bad detected corner, press ENTER to go to the next image.
             
         Returns:
             corners_list_opt : list (Dim = N * 3)
-                List of the detected (automatically + manually) corners 
-        """        
-
-        # Filter the image with the Hessian matrix parameters to detect the corners (points)
-        img_hess= plt.imread(im)
-        H11, H12, H22 = sf.hessian_matrix(img_hess, 9)
-        HE0, HE1 = sf.hessian_matrix_eigvals(sf.hessian_matrix(img_hess, 9))
-        HE = abs(HE0 * HE1)
-        H12 = abs(H12)
-        thresh = threshold_otsu(HE)
-        bin_im = HE > thresh
-        
-        
+                List of the detected corners (automatically with ChAruco and 
+                                              Hessian invariants + manually)
+        """                        
         corners_list_opt = np.asarray(corners_list)
         x, y, ids = np.transpose(corners_list_opt)
         img = cv2.imread(im, 0)
+
+        # Filter the image with the Hessian matrix parameters to detect the 
+        # corners (points)
+        img_hess= plt.imread(im)
+        HE0, HE1 = sfe.hessian_matrix_eigvals(sfe.hessian_matrix(img_hess, 9))
+        HE = abs(HE0 * HE1)
+        thresh = sfi.threshold_otsu(HE)
+        bin_im = HE > thresh
         
         # Plot the already detected points
-        fig, ax = plt.subplots()
-        plt.imshow(img, cmap='gray')
-        plt.scatter(x,y, c='r')
-        for name, txt in enumerate(ids):
-            ax.annotate(txt, (x[name], y[name]))
+        if hybrid_verification :
+            fig0, ax = plt.subplots()
+            plt.imshow(img_hess, cmap='gray')
+            plt.scatter(x,y, c='r')
+            for name, txt in enumerate(ids):
+                ax.annotate(txt, (x[name], y[name]))
         
-        # Choose 2 points A and B already detected that could create the referential
+        # Choose 2 points A and B already detected that could create 
+        # the referential
         nx, ny = self.ncx-1, self.ncy-1
         n_corners = nx*ny
         pts_list = np.arange(n_corners)
@@ -156,15 +170,11 @@ class Calibrate(dict):
             d0y = columnA * xy + lineA * yy
             x0 = xA - d0x
             y0 = yA - d0y
-            plt.scatter(x0,y0, c='g')
-            plt.scatter(x0 + xx, y0 + xy, c='c')
-            plt.scatter(x0 + yx, y0 + yy, c='c')
-            plt.scatter(xA, yA, c='m')
-            plt.scatter(xB, yB, c='y')
         
             # Find the holes
             for id_ in np.ravel(pts_list) :
                 if np.any(corners_list_opt[:,2] == id_) :
+                    # Point already detected
                     ()
                 else : 
                     # Find the missing point
@@ -175,15 +185,16 @@ class Calibrate(dict):
                     yi = int(y0 + diy)
                     d = int(l//2)
                     
-                    # Pick the missing point, if on the image
+                    # Find the missing point, if on the screen
                     xm, ym = img.shape
                     if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
                         out_of_range_points += 1
                         bary, barx = np.nan, np.nan
                     else :
-                        # Try Hessian detection and pick the biggest binary area
+                        # Try Hessian detection and pick the biggest binary 
+                        # area
                         bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
-                        im_focus = img_hess[yi-d:yi+d, xi-d:xi+d]
+                        # im_focus = img_hess[yi-d:yi+d, xi-d:xi+d]
                         label_img=label(clear_border(bin_im_win))
                         regions = regionprops(label_img)
                         areas = []
@@ -200,19 +211,84 @@ class Calibrate(dict):
                     x_dot = barx + xi - d
     
                     arr = np.array([x_dot, y_dot, id_])
-                    plt.annotate(id_, (x_dot, y_dot))
-                    plt.scatter(x_dot, y_dot, c='b')
+                    if hybrid_verification :
+                        plt.annotate(id_, (x_dot, y_dot))
+                        plt.scatter(x_dot, y_dot, c='b', label = 'Hessian')
     
-                    corners_list_opt = np.insert(corners_list_opt, id_, arr, axis=0)
-                        
+                    corners_list_opt = np.insert(corners_list_opt, 
+                                                 id_, 
+                                                 arr, 
+                                                 axis=0)
+                         
+            # Plot the points of interest
+            # if hybrid_verification :
+            #     plt.scatter(x0,y0, c='g')
+            #     plt.scatter(x0 + xx, y0 + xy, c='c')
+            #     plt.scatter(x0 + yx, y0 + yy, c='c')
+            #     plt.scatter(xA, yA, c='m')
+            #     plt.scatter(xB, yB, c='y')           
+            #     plt.imsave('Temp_plot.png', corners_list_opt)
+            #     plt.ion()
+            #     plt.show()
+            while hybrid_verification :
+                plt.pause(0.001)
+                print('')
+                print('Choose a bad detected corner if any. If None is, press Enter')
+                txt = input()
+                if txt =='' :
+                    print('End correction')
+                    plt.close()
+                    break
+                else :
+                    if any (txt) in corners_list_opt[:,2] :
+                        # If the Hessian detection is bad, manualy detection
+                        # missing_points = [0, 0]
+                        def onclick(event):
+                            global missing_points
+                            missing_points = [event.xdata, event.ydata]
+                            plt.close()
+                        id_ = int(txt)
+                        line2, column2 = np.where(pts_list == id_)
+                        dix = column2 * xx + line2 * yx
+                        diy = column2 * xy + line2 * yy
+                        xi = int(x0 + dix)
+                        yi = int(y0 + diy)
+                        fig, ax = plt.subplots()
+                        plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)], cmap='gray')
+                        fig.canvas.mpl_connect('button_press_event', onclick)
+                        plt.title('Click on the missing corner')
+                        plt.show()
+                        plt.waitforbuttonpress()
+                        plt.pause(0.001)
+                        xi = xi+missing_points[0]-d
+                        yi = yi+missing_points[1]-d
+                        fig, ax = plt.subplots()
+                        plt.imshow(img[int(yi-10):int(yi+10), int(xi-10):int(xi+10)], cmap='gray')
+                        fig.canvas.mpl_connect('button_press_event', onclick)
+                        plt.title('Click again')
+                        plt.show()
+                        plt.waitforbuttonpress()
+                        xi = xi+missing_points[0]-10
+                        yi = yi+missing_points[1]-10
+                        arr = np.array([xi, yi, id_])
+                        print('arr ', arr)
+                        # print(corners_list)
+                        corners_list_opt[id_] = arr
+                        fig0
+                        plt.scatter(xi,yi,c='g')
+                    else :
+                        print('No corner with the id ', txt, ' chose another one')
+
+                    
         else :
             print('Impossible to detect manualy corners of image : ', im)
             corners_list_opt = False
         print (out_of_range_points, ' points out of the image or to close to the border')
-        print(corners_list_opt.shape)
         return (corners_list_opt)
    
-def calibration_model(nx, ny, l) : 
+def calibration_model(nx, 
+                      ny, 
+                      l) : 
     """ Creation of the model of the calibration pattern
     
     Args:
@@ -238,7 +314,8 @@ def cut_calibration_model (List_images,
                            Xref, 
                            __dict__) :
     """ Group all of the images detected and filter the points not detected. 
-        For each corners not detected on an image, delete it on all the others images. 
+        For each corners not detected on an image, delete it on all the others 
+        images. 
         Delete also on the real positions of the corners.
     
     Args:
@@ -333,7 +410,7 @@ def cut_calibration_model (List_images,
 def NAN_calibration_model (Images, 
                            Xref, 
                            __dict__,
-                           hybrid_detection = True) :
+                           hybrid_verification = False) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, replace the points with NAN. 
     
@@ -344,9 +421,12 @@ def NAN_calibration_model (Images,
             List of the real corners
         pattern : str
             Name of the pattern used ('macro' or 'micro')
-        hybrid_detection : bool, optional
-            If True, then the missing points are filled with manual/visual 
-            detection
+        hybrid_verification : bool, optional
+            If True, verify each pattern detection and propose to pick 
+            manually the bad detected corners. The image with all detected
+            corners is show and you can decide to change any point using
+            it ID (ID indicated on the image) as an input. If there is no
+            bad detected corner, press ENTER to go to the next image.
         
     Returns:
         all_x : np.array (Dim = Nimages * N * 3)
@@ -366,25 +446,9 @@ def NAN_calibration_model (Images,
         corners_list, pts = Calibrate(__dict__).calibrate(im)
         nb_pts[i] = pts
         corners_list = np.asarray(corners_list)
-        if hybrid_detection :
-            corners_list = Calibrate(__dict__).complete_missing_points(corners_list, im)
-        else :    
-            build = 0
-            while build < Nall :
-                if len(corners_list) == build :
-                    corners_list = np.insert (corners_list, 
-                                              build, 
-                                              [np.nan, np.nan, build], 
-                                              axis = 0)
-                    build += 1
-                else :
-                    if corners_list[build, 2] == build :
-                        build += 1
-                    else :
-                        corners_list = np.insert (corners_list, 
-                                                  build, 
-                                                  [np.nan, np.nan, build], 
-                                                  axis = 0)
+        corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
+                                                                   im,
+                                                                   hybrid_verification = hybrid_verification)
         all_X[i] = corners_list
 
     all_x = []
@@ -405,22 +469,31 @@ def NAN_calibration_model (Images,
 
 def pattern_detection (__dict__,
                        detection = True,
-                       NAN = False,
-                       saving_folder = 'Folders_npy') :
+                       saving_folder = 'Folders_npy',
+                       hybrid_verification = False) :
     """Detect the corners of Charucco's pattern.
     
     Args:
        __dict__ : dict
            Pattern properties define in a dict.
        detection : bool, optional
-           If True, all the analysis will be done. If False, the code will take the informations in 'saving_folder'
+           If True, all the analysis will be done. If False, the code will take 
+           the informations in 'saving_folder'
        saving_folder : str, optional
            Folder to save datas
-           
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
+
     Returns:
        all_X : numpy.ndarray
-           The corners of the pattern detect by the camera ranged in an array arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, right_picture_2]
+           The corners of the pattern detect by the camera ranged in an array 
+           arrange with all left pictures followed by all right pictures. 
+           Expl : [left_picture_1, left_picture_2, right_picture_1, 
+                   right_picture_2]
        all_x : numpy.ndarray
            The theorical corners of the pattern
     """
@@ -434,23 +507,25 @@ def pattern_detection (__dict__,
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
     Images = Images_left
+    print('Images_left ', Images_left)
+    print('Images_right ', Images_right)
     for i in range (len(Images_right)) :
         Images.append(Images_right[i])
     
     Save_Ucam_Xref = [str(saving_folder) + "/all_X_" + name + ".npy", 
                       str(saving_folder) + "/all_x_" + name + ".npy", 
                       str(saving_folder) + "/nb_pts_" + name + ".npy"]
-    
+
     # Corners detection
     if detection :
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
-        if NAN :
-            all_x, all_X, nb_pts = NAN_calibration_model(Images, Xref, __dict__)
-        else :
-            all_x, all_X, nb_pts = cut_calibration_model(Images, Xref, __dict__)
-        
+        all_x, all_X, nb_pts = NAN_calibration_model(Images, 
+                                                     Xref, 
+                                                     __dict__,
+                                                     hybrid_verification = hybrid_verification)
+
         if not np.any(all_X[0]):
             print('Not any point detected in all images/cameras')
         else :
@@ -492,13 +567,11 @@ def DIC_3D_detection (__DIC_dict__,
            you're using a mirror)
            
     Returns:
-       all_X : numpy.ndarray
+       Xleft_id : numpy.ndarray
            All the points of the left pictures (1 point per pixel) in an array 
-           arrange with their positions in their right twin picture. 
-           Expl : all_X = [left_picture_1, 
-                           left_picture_2, 
-                           right_picture_1 (Compared with left_picture_1), 
-                           right_picture_2 (Compared with left_picture_2)]
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
     """
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
@@ -515,8 +588,8 @@ def DIC_3D_detection (__DIC_dict__,
     for i in range (N) :
         Images.append(Images_right[i]) 
     [lx1, lx2], [ly1, ly2] = window
-    all_left = []
-    all_right = []
+    Xleft_id = []
+    Xright_id = []
 
     # Corners detection
     print('    - DIC in progress ...')
@@ -555,25 +628,26 @@ def DIC_3D_detection (__DIC_dict__,
 
         if detection :
             # Generate the mapping
-            X_map = np.transpose(np.array([np.ravel(X1matrix), np.ravel(X2matrix)]))
+            X_map = np.transpose(np.array([np.ravel(X1matrix), 
+                                           np.ravel(X2matrix)]))
             X_map = X_map.reshape((X1matrix.shape[0],X1matrix.shape[1],2))
             np.save(Save_X_map, X_map)
 
         # Left camera --> position = each px
-        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), np.ravel(V[ly1:ly2, lx1:lx2])]))
+        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
+                                      np.ravel(X2matrix_w)]))
+        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
+                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
 
         # Right camera --> position = each px + displacement
         X_c2 = X_c1 + UV
 
-        all_left.append(X_c1)
-        all_right.append(X_c2)
-    all_X = all_left
-    for i in range (N) :
-        all_X.append(all_right[i])
-    all_X = np.asarray(all_X)
+        Xleft_id.append(X_c1)
+        Xright_id.append(X_c2)
     
-    return(all_X)
+    Xleft_id = np.array(Xleft_id)
+    Xright_id = np.array(Xright_id)     
+    return(Xleft_id, Xright_id)
 
 
 
@@ -601,14 +675,11 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
            Name of the reference image for the DIC calculation
            
     Returns:
-       all_X : numpy.ndarray
-           All the points of the first picture (1 point per pixel) in an array 
-           arrange with their positions in all left pictures followed by all 
-           right pictures. 
-           Expl : all_X = [left_picture_1 = ref picture, 
-                           left_picture_2, 
-                           right_picture_1, 
-                           right_picture_2]
+       Xleft_id : numpy.ndarray
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
     """
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
@@ -637,7 +708,8 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
             image_ref = Images[0]
     print('Image reference = ', image_ref)
 
-    all_X = []
+    Xleft_id = []
+    Xright_id = []
     for i in range (N) :
         if detection :
             image_def = Images[i]
@@ -672,19 +744,27 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
 
         if detection :
             # Generate the mapping
-            X_map = np.transpose(np.array([np.ravel(X1matrix), np.ravel(X2matrix)]))
+            X_map = np.transpose(np.array([np.ravel(X1matrix), 
+                                           np.ravel(X2matrix)]))
             X_map = X_map.reshape((X1matrix.shape[0],X1matrix.shape[1],2))
             np.save(Save_X_map, X_map)
 
         # Left camera --> position = each px
-        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), np.ravel(V[ly1:ly2, lx1:lx2])]))
+        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
+                                      np.ravel(X2matrix_w)]))
+        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
+                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
 
         # Right camera --> position = each px + displacement
         X_c2 = X_c1 + UV
-        all_X.append(X_c2)
-    all_X = np.array(all_X)
-    return(all_X)
+        if i < N//2 :
+            Xleft_id.append(X_c2)
+        else : 
+            Xright_id.append(X_c2)
+    
+    Xleft_id = np.array(Xleft_id)
+    Xright_id = np.array(Xright_id)
+    return(Xleft_id, Xright_id)
 
 
 
@@ -775,7 +855,8 @@ def camera_np_coordinates (all_X,
        all_x : numpy.ndarray
            The theorical corners of the pattern
        x3_list : numpy.ndarray
-           List of the different z position. (Ordered the same way in the target folder)
+           List of the different z position. (Ordered the same way in the 
+           target folder)
        saving_folder : str, optional
            Where to save datas
     Returns:
@@ -819,7 +900,8 @@ def camera_np_coordinates (all_X,
             Xc1 = X
         if i == 2 :
             Xc2 = X
-    # If there is some NAN value, then delete all 2D and 3D corresponding points
+    # If there is some NAN value, then delete all 2D and 3D corresponding 
+    # points
     if np.isnan(Xc1).any() or np.isnan(Xc2).any() :
         mask1 = np.ma.masked_invalid(Xc1)
         mask2 = np.ma.masked_invalid(Xc2)
@@ -851,12 +933,6 @@ if __name__ == '__main__' :
     'ncy' : 12,
     'sqr' : 0.3}
     
-    # __DIC_dict__ = {
-    # 'left_folder' : main_path + '/Images_example/2022_02_28/left_coin_identification',
-    # 'right_folder' : main_path + '/Images_example/2022_02_28/right_coin_identification',
-    # 'name' : 'micro_identification',
-    # 'window' : [[300, 1700], [300, 1700]]}
-    
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
@@ -881,6 +957,6 @@ if __name__ == '__main__' :
     
     all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
                                             detection = True,
-                                            NAN = True,
-                                            saving_folder = saving_folder)    
+                                            saving_folder = saving_folder,
+                                            hybrid_verification = True)    
     
