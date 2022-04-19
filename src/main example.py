@@ -412,7 +412,7 @@ if __name__ == '__main__' :
                                                          saving_folder,
                                                          polynomial_form = polynomial_form,
                                                          detection = False)
-
+    
     print('')
     print('#####       ')
     print('Direct method - Start calibration')
@@ -425,6 +425,8 @@ if __name__ == '__main__' :
                                                        direct_polynomial_form,
                                                        detection = False)
     
+    
+    sys.exit()
     print('')
     print('#####       ')
     print('Identification by DIC')

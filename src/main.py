@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Bonjour
 Created on Fri Nov 26 09:19:07 2021
 
 @author: Eddidoune
@@ -361,8 +362,8 @@ if __name__ == '__main__' :
     
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15/left_101_x2',
-    'right_folder' : main_path + '/Images_example/2022_04_15/right_101_x2',
+    'left_folder' : main_path + '/Images_example/2022_04_15/left_501_x2',
+    'right_folder' : main_path + '/Images_example/2022_04_15/right_501_x2',
     'name' : 'micro_calibration',
     'ncx' : 16,
     'ncy' : 12,
@@ -378,8 +379,8 @@ if __name__ == '__main__' :
     # 'window' : [[500, 1500], [500, 1500]]}  #in mm
     
     __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15/left_coin_identification',
-    'right_folder' : main_path + '/Images_example/2022_04_15/right_coin_identification',
+    'left_folder' : main_path + '/Images_example/2022_04_15/left_sample_identification',
+    'right_folder' : main_path + '/Images_example/2022_04_15/right_sample_identification',
     'name' : 'micro_identification',
     'window' : [[200, 1800], [200, 1800]]}  #in mm
     
@@ -390,7 +391,7 @@ if __name__ == '__main__' :
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
         
-    saving_folder = main_path + '/results/2022_04_15_results/101_NAN'
+    saving_folder = main_path + '/results/2022_04_15_results/501_NAN'
     
     # Chose the polynomial degree for the calibration fitting
     polynomial_form = 332
@@ -456,7 +457,7 @@ if __name__ == '__main__' :
     print('')
 
     Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
-                                                           detection = False,
+                                                           detection = True,
                                                            saving_folder = saving_folder,
                                                            flip = False)
     
@@ -465,7 +466,7 @@ if __name__ == '__main__' :
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (1) :
+    for image in range (Np_img) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -541,10 +542,10 @@ if __name__ == '__main__' :
         plt.figure()        
         plt.show()
 
-        zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]       
-        df.insert(df.shape[1], 'xSoloff', xS, True)
-        df.insert(df.shape[1], 'ySoloff', yS, True)
-        df.insert(df.shape[1], 'zSoloff', zS_recal, True)        
+        # zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]       
+        # df.insert(df.shape[1], 'xSoloff', xS, True)
+        # df.insert(df.shape[1], 'ySoloff', yS, True)
+        # df.insert(df.shape[1], 'zSoloff', zS_recal, True)        
         
         # Lagrangian projection on left image 
         win = __DIC_dict__['window']
@@ -579,6 +580,9 @@ if __name__ == '__main__' :
         cb = plt.colorbar()
         cb.set_label('z in mm')
         plt.show()    
+        
+        '''
+        
         
         plt.figure()
         plt.imshow(Z-nd.median_filter(Z,5))
@@ -697,7 +701,7 @@ if __name__ == '__main__' :
 
             
         
-        
+        '''
         '''
         # Chose the Number of Datas for Artificial Intelligence Learning
         NDIAL = 1000
