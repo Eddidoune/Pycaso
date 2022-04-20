@@ -77,19 +77,19 @@ saving_folder = '/saving_folder_name'
 ```
 Lauch the Soloff calibration function in the main.py :
 ```
-A111, A_pol, Mag= full_Soloff_calibration (__calibration_dict__,
-                                           x3_list,
-                                           saving_folder,
-                                           polynomial_form = polynomial_form,
-                                           detection = False)
+A111, A_pol, Mag= Soloff_calibration (__calibration_dict__,
+                          	       x3_list,
+                 	  	       saving_folder,
+                                      polynomial_form = polynomial_form,
+                                      detection = False)
 ``` 
 And/Or the direct calibration function in the main.py :
 ```
-direct_A, Mag= full_direct_calibration (__calibration_dict__,
-                                        x3_list,
-                                        saving_folder,
-                                        direct_polynomial_form,
-                                        detection = False)
+direct_A, Mag= direct_calibration (__calibration_dict__,
+                        	    x3_list,
+                                   saving_folder,
+                                   direct_polynomial_form,
+                                   detection = False)
 ``` 
 The calibration parameters are identified and calibration part is done. For more information about the resolution, see the Hessian detection explaination.
 
@@ -108,17 +108,17 @@ The identification can start :
 First, use the a correlation process (Here disflow) from left to right images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the left and the right cameras.
 ```
 Xleft_id, Xright_id = data.DIC_3D_detection(__DIC_dict__, 
-	                                        detection = True,
-	                                        saving_folder = saving_folder)
+	                                    detection = True,
+	                                    saving_folder = saving_folder)
 ```
 Then use one of the pairs (0) to create the points on the global referential (x,y,z) :
 ```
-xSoloff_solution = full_Soloff_identification(Xleft_id[0],
-                                              Xright_id[0],
-                                              A111, 
-                                              A_pol,
-                                              polynomial_form = polynomial_form,
-                                              method = 'curve_fit')       
+xSoloff_solution = Soloff_identification(Xleft_id[0],
+                                         Xright_id[0],
+                                         A111, 
+                                         A_pol,
+                                         polynomial_form = polynomial_form,
+                                         method = 'curve_fit')       
 xS, yS, zS = xSoloff_solution
 ```
 Now all of the spacial points i are detected (xS[i], yS[i], zS[i]). 

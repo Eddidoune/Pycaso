@@ -581,8 +581,8 @@ def DIC_3D_detection (__DIC_dict__,
     Save_all_V = str(saving_folder) +"/all_V_" + name + ".npy"
     Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
     
-    Images_left = sorted(glob(str(left_folder) + '/*.tif'))
-    Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+    Images_left = sorted(glob(str(left_folder) + '/*'))
+    Images_right = sorted(glob(str(right_folder) + '/*'))
     Images = Images_left
     N = len(Images)
     for i in range (N) :
@@ -675,7 +675,7 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
            Name of the reference image for the DIC calculation
            
     Returns:
-       Xleft_id : numpy.ndarray
+       Xleft_id : numpy.ndarrayleft_sample_identification
            All the points of the left pictures (1 point per pixel) in an array 
            arrange with their positions. 
        Xright_id : numpy.ndarray
@@ -689,8 +689,8 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
     Save_all_V = str(saving_folder) +"/Lagrangian_all_V_" + name + ".npy"
     Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
     
-    Images_left = sorted(glob(str(left_folder) + '/*.tif'))
-    Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+    Images_left = sorted(glob(str(left_folder) + '/*'))
+    Images_right = sorted(glob(str(right_folder) + '/*'))
     Images = Images_left
     N = len(Images)
     for i in range (N) :
@@ -803,8 +803,8 @@ def DIC_fields (__DIC_dict__,
     name = __DIC_dict__['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
     if detection :
-        Images_left = sorted(glob(str(left_folder) + '/*.tif'))
-        Images_right = sorted(glob(str(right_folder) + '/*.tif'))
+        Images_left = sorted(glob(str(left_folder) + '/*'))
+        Images_right = sorted(glob(str(right_folder) + '/*'))
         Images = Images_left
         N = len(Images)
         for i in range (N) :

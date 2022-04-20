@@ -489,11 +489,11 @@ def Levenberg_Marquardt_solving (Xc1_identified,
     from joblib import Parallel, delayed, dump, load
     import os
     core_number = os.cpu_count()
-    folder = './joblib_memmap'
-    try:
-        os.mkdir(folder)
-    except FileExistsError:
-        pass  
+    # folder = './joblib_memmap'
+    # try:
+    #     os.mkdir(folder)
+    # except FileExistsError:
+    #     pass  
 
     N = len(x0[0])    
     Xdetected = np.array([Xc1_identified[:,0], 
@@ -502,9 +502,9 @@ def Levenberg_Marquardt_solving (Xc1_identified,
                           Xc2_identified[:,1]])
     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
     xopt = np.zeros((3,N))
-    data_filename_memmap = os.path.join(folder, 'data_memmap')
-    dump(Xdetected, data_filename_memmap)
-    Xdetected = load(data_filename_memmap, mmap_mode='r')
+    # data_filename_memmap = os.path.join(folder, 'data_memmap')
+    # dump(Xdetected, data_filename_memmap)
+    # Xdetected = load(data_filename_memmap, mmap_mode='r')
     
     win_size = Xdetected.shape[1]/core_number
     slices = []
@@ -553,7 +553,31 @@ def AI_solve (file,
               max_depth=100,
               bootstrap='true',
               hyperparameters_tuning = False) :  
+    """Calculation of the magnification between reals and detected positions 
+    and the calibration parameters A:--> x = A.M(X)
     
+    Args:
+       file : str
+           Name of saving file for training
+       n_estimators, 
+       min_samples_leaf, 
+       min_samples_split, 
+       random_state, 
+       max_features, 
+       max_depth, 
+       bootstrap,
+       hyperparameters_tuning : 
+          More information on the link :
+          https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
+           
+           
+    Returns:
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           IA metamodel
+       accuracy : int
+           Accuracy of the IA metamodel compared with the training datas.
+           
+    """
     dat=pd.read_csv(file, sep=" " )
     dat=np.array(dat)
     # The model learn on 4/5 of all datas. Then the accuracy is estimated on 

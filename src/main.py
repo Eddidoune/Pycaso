@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bonjour
 Created on Fri Nov 26 09:19:07 2021
 
 @author: Eddidoune
@@ -50,7 +49,7 @@ def magnification (X1, X2, x1, x2) :
     Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
     return (Magnification)
 
-def full_Soloff_calibration (__calibration_dict__,
+def Soloff_calibration (__calibration_dict__,
              x3_list,
              saving_folder,
              polynomial_form = 332,
@@ -162,7 +161,7 @@ def full_Soloff_calibration (__calibration_dict__,
     A111, A_pol = A_0
     return(A111, A_pol, Magnification)
 
-def full_Soloff_identification (Xc1_identified,
+def Soloff_identification (Xc1_identified,
                         Xc2_identified,
                         A111, 
                         A_pol,
@@ -205,7 +204,7 @@ def full_Soloff_identification (Xc1_identified,
     return (x_solution)
 
 
-def full_direct_calibration (__calibration_dict__,
+def direct_calibration (__calibration_dict__,
              x3_list,
              saving_folder,
              direct_polynome_degree,
@@ -284,7 +283,7 @@ def full_direct_calibration (__calibration_dict__,
         print('Max ; min projection error (polynomial form ' + str(direct_polynome_degree) + ') for camera ' + str(camera) + ' = ' + str(np.amax(proj_error))+ ' ; ' + str(np.amin(proj_error)) + ' px')
     return(direct_A, Magnification)    
 
-def full_direct_identification (Xc1_identified,
+def direct_identification (Xc1_identified,
                                 Xc2_identified,
                                 direct_A,
                                 direct_polynomial_form = 3) :
@@ -318,11 +317,30 @@ def full_direct_identification (Xc1_identified,
     xsolution = np.matmul(direct_A,M)
     return(xsolution)
 
-def full_IA_identification (X_c1,
+def IA_identification (X_c1,
                             X_c2,
                             xSoloff_solution,
                             NDIAL = 1000,
                             file = 'Soloff_IA_.csv') :
+    """Calculation of the magnification between reals and detected positions 
+    and the calibration parameters A:--> x = A.M(X)
+    
+    Args:
+       X_c1 : numpy.ndarray
+           Left coordinates of points.
+       X_c2 : numpy.ndarray
+           Right coordinates of points.
+       xSoloff_solution : numpy.ndarray
+           3D space coordinates identified with Soloff method.
+       NDIAL : int
+           Number of datas (points) used to train the IA metamodel.
+       file : str
+           Name of saving file for training
+
+    Returns:
+       xIA_solution : numpy.ndarray
+           3D space coordinates identified with IA method.
+    """
     # Organise the list of parameters
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
     Xr0, Yr0 = X_c2[:,0], X_c2[:,1]
@@ -424,11 +442,11 @@ if __name__ == '__main__' :
     # plt.show()
     # sys.exit()    
     
-    A111, A_pol, Magnification = full_Soloff_calibration (__calibration_dict__,
-                                                          x3_list,
-                                                          saving_folder,
-                                                          polynomial_form = polynomial_form,
-                                                          detection = False)
+    A111, A_pol, Magnification = Soloff_calibration (__calibration_dict__,
+                                                     x3_list,
+                                                     saving_folder,
+                                                     polynomial_form = polynomial_form,
+                                                     detection = False)
 
     print('')
     print('#####       ')
@@ -442,11 +460,11 @@ if __name__ == '__main__' :
     print('#####       ')
     print('')
 
-    direct_A, Magnification = full_direct_calibration (__calibration_dict__,
-                                                       x3_list,
-                                                       saving_folder,
-                                                       direct_polynomial_form,
-                                                       detection = False)
+    direct_A, Magnification = direct_calibration (__calibration_dict__,
+                                                  x3_list,
+                                                  saving_folder,
+                                                  direct_polynomial_form,
+                                                  detection = False)
 
     Magnification_z = np.mean (Magnification, axis = 0)
     
@@ -457,7 +475,7 @@ if __name__ == '__main__' :
     print('')
 
     Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
-                                                           detection = True,
+                                                           detection = False,
                                                            saving_folder = saving_folder,
                                                            flip = False)
     
@@ -482,10 +500,10 @@ if __name__ == '__main__' :
         
         # Direct identification
         t0 = time.time()
-        xDirect_solution = full_direct_identification (X_c1,
-                                                       X_c2,
-                                                       direct_A,
-                                                       direct_polynomial_form = direct_polynomial_form)
+        xDirect_solution = direct_identification (X_c1,
+                                                  X_c2,
+                                                  direct_A,
+                                                  direct_polynomial_form = direct_polynomial_form)
         xD, yD, zD = xDirect_solution
         df.insert(df.shape[1], 'xDirect', xD, True)
         df.insert(df.shape[1], 'yDirect', yD, True)
@@ -524,12 +542,12 @@ if __name__ == '__main__' :
         if os.path.exists(soloff_file) and True :
             xSoloff_solution = np.load(soloff_file)
         else :
-            xSoloff_solution = full_Soloff_identification (X_c1,
-                                                           X_c2,
-                                                           A111, 
-                                                           A_pol,
-                                                           polynomial_form = polynomial_form,
-                                                           method = 'curve_fit')       
+            xSoloff_solution = Soloff_identification (X_c1,
+                                                      X_c2,
+                                                      A111, 
+                                                      A_pol,
+                                                      polynomial_form = polynomial_form,
+                                                      method = 'curve_fit')       
             np.save(soloff_file, xSoloff_solution)
 
         t1 = time.time()
@@ -580,7 +598,7 @@ if __name__ == '__main__' :
         cb = plt.colorbar()
         cb.set_label('z in mm')
         plt.show()    
-        
+
         '''
         
         
@@ -592,68 +610,6 @@ if __name__ == '__main__' :
         cb.set_label('z in mm')
         plt.clim(-0.0005,0.0005)
         plt.show()               
-        
-        sys.exit()
-        # # Creating figure        
-        # win = __DIC_dict__['window']
-        # x, y = win
-        # xi, xf = x
-        # yi, yf = y
-        
-        # from scipy import interpolate
-        # X1 = np.reshape (xS, (xf-xi, yf-yi))
-        # Y1 = np.reshape (yS, (xf-xi, yf-yi))
-        # Z1 = np.reshape (zS_recal, (xf-xi, yf-yi))
-        # f1 = interpolate.interp2d(X1, Y1, Z1, kind='cubic')
-        # xnew = np.arange(-5.01, 5.01, 1e-2)
-        # ynew = np.arange(-5.01, 5.01, 1e-2)
-        # Xmesh = np.arange(xi, xf, 1)
-        # Ymesh = np.arange(yi, yf, 1)
-        # Zmesh = f1(Xmesh, Xmesh)
-        # plt.plot(X1, Z1[0, :], 'ro-', Xmesh, Zmesh[0, :], 'b-')
-        # plt.show()
-        
-        
-        
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # recal_data = np.reshape(zS_recal, (1000,1000))
-        # f1 = plt.figure(figsize=(12,7.3))
-        # ax = f1.gca(projection='3d')
-        # X1 = np.arange(0,1000,1)
-        # Y1 = np.arange(0,1000,1)
-        # X, Y = np.meshgrid(X1, Y1)
-        # surf = ax.plot_surface(X, Y, recal_data[X,Y], cmap='hot',
-        #                         linewidth=0, antialiased=False); f1.colorbar(surf)
-        # # Customize the z axis.
-        # plt.title("Soloff all pts" + str(image))
-        # ax.set_zlim(-0.02,0.05)
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # plt.show()
-        
-        
-        
-        
-        fig = plt.figure(figsize = (16, 9))
-        ax = plt.axes(projection ="3d")
-        ax.grid(visible = True, color ='grey',
-                linestyle ='-.', linewidth = 0.3,
-                alpha = 0.2)
-        my_cmap = plt.get_cmap('hsv')
-        sctt = ax.scatter3D(xS, yS, zS_recal,
-                            alpha = 0.8,
-                            c = zS_recal,
-                            cmap = my_cmap)
-        plt.title("Soloff all pts" + str(image))
-        ax.set_xlabel('x (mm)', fontweight ='bold')
-        ax.set_ylabel('y (mm)', fontweight ='bold')
-        ax.set_zlabel('z (mm)', fontweight ='bold')
-        # ax.set_zlim(-0.02, 0.05)
-        fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        plt.figure()
-        plt.show()
         
         # sys.exit()
         
@@ -707,11 +663,11 @@ if __name__ == '__main__' :
         NDIAL = 1000
         # Create the .csv to make an IA identification
         file = saving_folder +'/15_Soloff_IA_' + str(image) + '.csv'      
-        xIA_solution = full_IA_identification (X_c1,
-                                               X_c2,
-                                               xSoloff_solution,
-                                               NDIAL = NDIAL,
-                                               file = file)
+        xIA_solution = IA_identification (X_c1,
+                                          X_c2,
+                                          xSoloff_solution,
+                                          NDIAL = NDIAL,
+                                          file = file)
         xIA, yIA, zIA = xIA_solution
         df.insert(df.shape[1], 'xIA', xIA, True)
         df.insert(df.shape[1], 'yIA', yIA, True)
