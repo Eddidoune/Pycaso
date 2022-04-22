@@ -25,6 +25,7 @@ import scipy.ndimage as nd
 import csv
 import math
 
+
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
     
@@ -397,27 +398,27 @@ if __name__ == '__main__' :
     
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15/left_501_x2',
-    'right_folder' : main_path + '/Images_example/2022_04_15/right_501_x2',
+    'left_folder' : main_path + '/Images_example/2022_02_02/left-calib',
+    'right_folder' : main_path + '/Images_example/2022_02_02/right-calib',
     'name' : 'micro_calibration',
     'ncx' : 16,
     'ncy' : 12,
     'sqr' : 0.3}  #in mm
     
-    # __pattern_dict__ = {
-    # 'left_folder' : main_path + '/Images_example/test_left',
-    # 'right_folder' : main_path + '/Images_example/test_right',
-    # 'name' : 'micro_identification',
-    # 'ncx' : 16,
-    # 'ncy' : 12,
-    # 'sqr' : 0.3,
-    # 'window' : [[500, 1500], [500, 1500]]}  #in mm
-    
-    __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15/left_sample_identification',
-    'right_folder' : main_path + '/Images_example/2022_04_15/right_sample_identification',
+    __pattern_dict__ = {
+    'left_folder' : main_path + '/Images_example/2022_02_02/test_left',
+    'right_folder' : main_path + '/Images_example/2022_02_02/test_right',
     'name' : 'micro_identification',
-    'window' : [[200, 1800], [200, 1800]]}  #in mm
+    'ncx' : 16,
+    'ncy' : 12,
+    'sqr' : 0.3,
+    'window' : [[500, 1500], [500, 1500]]}  #in mm
+    
+    # __DIC_dict__ = {
+    # 'left_folder' : main_path + '/Images_example/2022_04_15/left_sample_identification',
+    # 'right_folder' : main_path + '/Images_example/2022_04_15/right_sample_identification',
+    # 'name' : 'micro_identification',
+    # 'window' : [[200, 1800], [200, 1800]]}  #in mm
     
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
@@ -426,7 +427,7 @@ if __name__ == '__main__' :
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
         
-    saving_folder = main_path + '/results/2022_04_15_results/501_NAN'
+    saving_folder = main_path + '/results/2022_02_02_results'
     
     # Chose the polynomial degree for the calibration fitting
     polynomial_form = 332
@@ -447,17 +448,7 @@ if __name__ == '__main__' :
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
                                                         detection = False,
                                                         saving_folder = saving_folder,
-                                                        hybrid_verification = False)
-    # pts_left, pts_right = nb_pts
-    # fig = plt.figure(figsize = (16, 9))
-    # plt.scatter(x3_list, pts_left)
-    # plt.scatter(x3_list, pts_right)
-    # plt.xlabel('z-position (mm)')
-    # plt.ylabel('Number of points detected')
-    # plt.title('Points detected in function of z-position')
-    # plt.ylim(0,165)
-    # plt.show()
-    # sys.exit()    
+                                                        hybrid_verification = False)   
     
     A111, A_pol, Magnification = Soloff_calibration (__calibration_dict__,
                                                      x3_list,
@@ -490,6 +481,43 @@ if __name__ == '__main__' :
     print('Identification by DIC')
     print('#####       ')
     print('')
+    
+    X, x, nb_pts = data.pattern_detection(__pattern_dict__,
+                                          detection = True,
+                                          saving_folder = saving_folder,
+                                          hybrid_verification = False)
+    
+    Xl, Xr = X[0], X[1]
+    xDirect_solution = direct_identification (Xl,
+                                              Xr,
+                                              direct_A,
+                                              direct_polynomial_form = direct_polynomial_form)
+    xD, yD, zD = xDirect_solution
+
+    
+    
+    xSoloff_solution = Soloff_identification (Xl,
+                                              Xr,
+                                              A111, 
+                                              A_pol,
+                                              polynomial_form = polynomial_form,
+                                              method = 'curve_fit')   
+    xS, yS, zS = xSoloff_solution
+
+    fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
+    zD_recal = zD - fit[0]*xD - fit[1]*yD - fit[2]
+    plt.title("Méthode directe : Reconstruction 3D d'une image la mire")
+    plt.figure()
+    plt.show()    
+
+    fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
+    zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]   
+    plt.title("Méthode de Soloff : Reconstruction 3D d'une image la mire")
+    plt.figure()
+    plt.show()    
+    
+    sys.exit()
+
 
     Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
                                                            detection = False,
@@ -501,7 +529,7 @@ if __name__ == '__main__' :
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (1) :
+    for image in range (Np_img) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -556,7 +584,7 @@ if __name__ == '__main__' :
         # Soloff identification
         t0 = time.time()
         soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
-        if os.path.exists(soloff_file) and False :
+        if os.path.exists(soloff_file) and True :
             xSoloff_solution = np.load(soloff_file)
         else :
             xSoloff_solution = Soloff_identification (X_c1,
@@ -572,7 +600,6 @@ if __name__ == '__main__' :
         print('end SOLOFF')
         # Points coordinates
         xS, yS, zS = xSoloff_solution
-        sys.exit()
         xSoloff_solutions[image] = xSoloff_solution
         fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
         plt.figure()        

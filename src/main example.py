@@ -5,6 +5,7 @@ Created on Fri Nov 26 09:19:07 2021
 
 @author: Eddidoune
 """
+import sigfig as sgf
 try : 
     import cupy as np
 except ImportError:
@@ -151,15 +152,14 @@ def Soloff_calibration (__calibration_dict__,
             # Error of projection
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
-            print(Xd)
             print('Max ; min projection error (polynomial form ', 
                   str(polynomial_form),
                   ') for camera ', 
                   str(camera),
                   ' = ',
-                  str(np.nanmax(proj_error)),
+                  str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
                   ' ; ',
-                  str(np.nanmin(proj_error)),
+                  str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
                   ' px')
     A111, A_pol = A_0
     return(A111, A_pol, Magnification)
@@ -288,16 +288,16 @@ def direct_calibration (__calibration_dict__,
               ') for camera ',
               str(camera),
               ' = ',
-              str(np.amax(proj_error)),
+              str(sgf.round(np.amax(proj_error), sigfigs = 3)),
               ' ; ',
-              str(np.amin(proj_error)),
+              str(sgf.round(np.amin(proj_error), sigfigs = 3)),
               ' px')
     return(direct_A, Magnification)    
 
 def direct_identification (Xc1_identified,
-                                Xc2_identified,
-                                direct_A,
-                                direct_polynomial_form = 3) :
+                           Xc2_identified,
+                           direct_A,
+                           direct_polynomial_form = 3) :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -387,6 +387,8 @@ def IA_identification (X_c1,
     xIA_solution = np.transpose(xIA_solution)
     return (xIA_solution)
 
+
+
 if __name__ == '__main__' :    
     # Define the inputs
     __calibration_dict__ = {
@@ -422,7 +424,7 @@ if __name__ == '__main__' :
         P = pathlib.Path(saving_folder)
         pathlib.Path.mkdir(P, parents = True)
 
-
+    
     print('')
     print('#####       ')
     print('Start calibration')

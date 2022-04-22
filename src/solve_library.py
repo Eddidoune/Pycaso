@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sigfig as sgf
 import pandas as pd
 try : 
     import cupy as np
@@ -380,9 +381,9 @@ def fit_plans_to_points(points,
         errors.append(errori)
     plt.figure()
     plt.show()    
-    print('Plan square max error = ', (max(maxerror)), ' mm')
-    print('Plan square mean error = ', (np.mean(mean_error**2))**(1/2), ' mm')
-    print('Plan square mean residual = ', (np.mean(residual**2))**(1/2))
+    print('Plan square max error = ', sgf.round((max(maxerror)), sigfigs =3), ' mm')
+    print('Plan square mean error = ', sgf.round((np.mean(mean_error**2))**(1/2), sigfigs = 3), ' mm')
+    print('Plan square mean residual = ', sgf.round((np.mean(residual**2))**(1/2), sigfigs = 3))
 
     return (fit, errors, mean_error, residual)
 

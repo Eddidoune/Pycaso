@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from sigfig import round
 from glob import glob
 from copy import deepcopy
 import DIC
@@ -54,12 +55,15 @@ class Calibrate(dict):
             corners_list : list (Dim = N * 3)
                 List of the detected corners 
         """
-        print("=> Calculation of the image {0}".format(im))
+        if len (im) < 20 :
+            print("=> Calculation of the image ...", str(im))
+        else :
+            print("=> Calculation of the image ...", str(im[-20:]))
         img = cv2.imread(im, 0)        
         corners, ids, rip = aruco.detectMarkers(img, 
                                                 self.dictionary, 
                                                 parameters=self.parameters)
-        print(len(corners), " marks detected")
+        
         if len(corners) != 0 :
             if len(corners) < len(self.board.ids):
                 for idd in self.board.ids:
@@ -69,7 +73,7 @@ class Calibrate(dict):
             if ids is not None and len(ids) > 0:
                 ret, chcorners, chids = aruco.interpolateCornersCharuco(
                     corners, ids, img, self.board)
-                print("{} point(s) detected".format(ret))
+                print(len(corners), ' marks detected. ', ret, ' points detected')
                 print('---')
                 corners_list = []
                 BU = []
@@ -458,7 +462,6 @@ def NAN_calibration_model (Images,
     all_x = np.asarray(all_x)
     all_x = all_x[:, :, [0, 1]]
     all_X = all_X[:, :, [0, 1]]
-    print('nb_pts ', nb_pts)
     nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_x, all_X, nb_pts)
 
@@ -507,8 +510,6 @@ def pattern_detection (__dict__,
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
     Images = Images_left
-    print('Images_left ', Images_left)
-    print('Images_right ', Images_right)
     for i in range (len(Images_right)) :
         Images.append(Images_right[i])
     
@@ -540,7 +541,6 @@ def pattern_detection (__dict__,
         all_X = np.load(Save_Ucam_Xref[0])
         all_x = np.load(Save_Ucam_Xref[1])
         nb_pts = np.load(Save_Ucam_Xref[2])
-        print(Save_Ucam_Xref[2])
         
     return(all_X, all_x, nb_pts)
 
