@@ -424,7 +424,6 @@ if __name__ == '__main__' :
         P = pathlib.Path(saving_folder)
         pathlib.Path.mkdir(P, parents = True)
 
-    
     print('')
     print('#####       ')
     print('Start calibration')

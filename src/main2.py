@@ -395,7 +395,7 @@ def IA_identification (X_c1,
 
 if __name__ == '__main__' :
     main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
-    
+
     # Define the inputs
     __calibration_dict__ = {
     'left_folder' : main_path + '/Images_example/2022_02_02/left-calib',
@@ -439,6 +439,8 @@ if __name__ == '__main__' :
     else :
         P = pathlib.Path(saving_folder)
         pathlib.Path.mkdir(P, parents = True)
+
+    sys.exit()
 
     print('')
     print('#####       ')
