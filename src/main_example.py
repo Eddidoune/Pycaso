@@ -476,6 +476,8 @@ if __name__ == '__main__' :
                                                   direct_A,
                                                   direct_polynomial_form = direct_polynomial_form)
         xD, yD, zD = xDirect_solution
+        zD = zD.reshape((__DIC_dict__['window'][0][1] - __DIC_dict__['window'][0][0],
+                     __DIC_dict__['window'][1][1] - __DIC_dict__['window'][1][0]))
         xDirect_solutions[image] = xDirect_solution
         t1 = time.time()
         print('time direct = ',t1 - t0)
@@ -504,7 +506,8 @@ if __name__ == '__main__' :
         # Points coordinates
         xS, yS, zS = xSoloff_solution
         xSoloff_solutions[image] = xSoloff_solution  
-
+        zS = zS.reshape((__DIC_dict__['window'][0][1] - __DIC_dict__['window'][0][0],
+                     __DIC_dict__['window'][1][1] - __DIC_dict__['window'][1][0]))
   
         
         # Chose the Number of Datas for Artificial Intelligence Learning
@@ -513,7 +516,7 @@ if __name__ == '__main__' :
         t0 = time.time()
         model_file = saving_folder +'/Soloff_IA_' + str(image) + '_' + str(NDIAL) + '_points.csv'      
         IA_file = saving_folder + '/xsolution_IA' + str(image) + '.npy'
-        if os.path.exists(soloff_file) :
+        if os.path.exists(IA_file) :
             xIA_solution = np.load(IA_file)
         else :
             xIA_solution = IA_identification (X_c1,

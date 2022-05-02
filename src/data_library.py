@@ -107,8 +107,8 @@ class Calibrate(dict):
                 List of the detected corners (automatically with ChAruco and 
                                               Hessian invariants + manually)
         """                        
-        corners_list_opt = np.asarray(corners_list)
-        x, y, ids = np.transpose(corners_list_opt)
+        corners_list = np.asarray(corners_list)
+        x, y, ids = np.transpose(corners_list)
         img = cv2.imread(im, 0)
 
         # Filter the image with the Hessian matrix parameters to detect the 
@@ -131,9 +131,10 @@ class Calibrate(dict):
         # the referential
         nx, ny = self.ncx-1, self.ncy-1
         n_corners = nx*ny
+        corners_list_opt = np.zeros((n_corners, 3))
         pts_list = np.arange(n_corners)
         pts_list = np.reshape(pts_list, (ny,nx))
-        ptA = corners_list_opt[0]
+        ptA = corners_list[0]
         xA, yA, idA = ptA
         lineA, columnA = np.where(pts_list==idA)
         pts_list_cut = np.delete(pts_list, lineA, 0)
@@ -142,10 +143,10 @@ class Calibrate(dict):
         ptB = []
         out_of_range_points = 0
         for pt in pts_list_cut :
-            if np.any(corners_list_opt[:,2] == pt) :
+            if np.any(corners_list[:,2] == pt) :
                 lineB, columnB = np.where(pts_list == pt)
-                line, column = np.where(corners_list_opt == pt)
-                ptB = corners_list_opt[line]
+                line, column = np.where(corners_list == pt)
+                ptB = corners_list[line]
                 xB, yB, idB = ptB[0]
                 break
             
@@ -177,52 +178,54 @@ class Calibrate(dict):
         
             # Find the holes
             for id_ in np.ravel(pts_list) :
-                if np.any(corners_list_opt[:,2] == id_) :
-                    # Point already detected
-                    ()
-                else : 
-                    # Find the missing point
-                    line2, column2 = np.where(pts_list == id_)
-                    dix = column2 * xx + line2 * yx
-                    diy = column2 * xy + line2 * yy
-                    xi = int(x0 + dix)
-                    yi = int(y0 + diy)
-                    d = int(l//2)
-                    
-                    # Find the missing point, if on the screen
-                    xm, ym = img.shape
-                    if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
-                        out_of_range_points += 1
-                        bary, barx = np.nan, np.nan
+                # Find the missing point
+                line2, column2 = np.where(pts_list == id_)
+                dix = column2 * xx + line2 * yx
+                diy = column2 * xy + line2 * yy
+                xi = int(x0 + dix)
+                yi = int(y0 + diy)
+                d = int(l//2)
+                
+                # Find the missing point, if on the screen
+                xm, ym = img.shape
+                if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
+                    out_of_range_points += 1
+                    bary, barx = np.nan, np.nan
+                else :
+                    # Try Hessian detection and pick the biggest binary 
+                    # area
+                    bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
+                    # im_focus = img_hess[yi-d:yi+d, xi-d:xi+d]
+                    label_img=label(clear_border(bin_im_win))
+                    regions = regionprops(label_img)
+                    areas = []
+                    for region in (regions):
+                        areas.append(region.area)
+                    if any (areas) :
+                        max_area = max(areas)
+                        max_i = areas.index(max_area)
+                        region = regions[max_i]
+                        bary, barx = region.centroid
                     else :
-                        # Try Hessian detection and pick the biggest binary 
-                        # area
-                        bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
-                        # im_focus = img_hess[yi-d:yi+d, xi-d:xi+d]
-                        label_img=label(clear_border(bin_im_win))
-                        regions = regionprops(label_img)
-                        areas = []
-                        for region in (regions):
-                            areas.append(region.area)
-                        if any (areas) :
-                            max_area = max(areas)
-                            max_i = areas.index(max_area)
-                            region = regions[max_i]
-                            bary, barx = region.centroid
-                        else :
-                            bary, barx = np.nan, np.nan
-                    y_dot = bary + yi - d
-                    x_dot = barx + xi - d
-    
-                    arr = np.array([x_dot, y_dot, id_])
-                    if hybrid_verification :
-                        plt.annotate(id_, (x_dot, y_dot))
-                        plt.scatter(x_dot, y_dot, c='b', label = 'Hessian')
-    
-                    corners_list_opt = np.insert(corners_list_opt, 
-                                                 id_, 
-                                                 arr, 
-                                                 axis=0)
+                        bary, barx = np.nan, np.nan
+                y_dot = bary + yi - d
+                x_dot = barx + xi - d
+
+                arr = np.array([x_dot, y_dot, id_])
+                if hybrid_verification :
+                    plt.annotate(id_, (x_dot, y_dot))
+                    plt.scatter(x_dot, y_dot, c='b', label = 'Hessian')
+
+                corners_list_opt[id_] = arr
+
+                # if np.any(corners_list[:,2] == id_) :
+                #     print('Diff ChAruco - Hessian : ', corners_list[id_] - corners_list_opt[id_])
+                # else : 
+                #     corners_list = np.insert(corners_list, 
+                #                             id_, 
+                #                             arr, 
+                #                             axis=0)
+
                          
             # Plot the points of interest
             # if hybrid_verification :
@@ -449,7 +452,6 @@ def NAN_calibration_model (Images,
         im = sorted(glob(Images[i]))[0]
         corners_list, pts = Calibrate(__dict__).calibrate(im)
         nb_pts[i] = pts
-        corners_list = np.asarray(corners_list)
         corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
                                                                    im,
                                                                    hybrid_verification = hybrid_verification)
@@ -958,5 +960,5 @@ if __name__ == '__main__' :
     all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
                                             detection = True,
                                             saving_folder = saving_folder,
-                                            hybrid_verification = True)    
+                                            hybrid_verification = False)    
     
