@@ -328,13 +328,12 @@ def direct_identification (Xc1_identified,
     xsolution = np.matmul(direct_A,M)
     return(xsolution)
 
-def IA_identification (X_c1,
-                       X_c2,
-                       xSoloff_solution,
-                       NDIAL = 1000,
-                       file = 'Soloff_IA_.csv') :
-    """Calculation of the magnification between reals and detected positions 
-    and the calibration parameters A:--> x = A.M(X)
+def AI_training (X_c1,
+                 X_c2,
+                 xSoloff_solution,
+                 AI_training_size = 1000,
+                 file = 'Soloff_AI_training.csv') :
+    """Training the AI metamodel with already known datas.
     
     Args:
        X_c1 : numpy.ndarray
@@ -343,14 +342,14 @@ def IA_identification (X_c1,
            Right coordinates of points.
        xSoloff_solution : numpy.ndarray
            3D space coordinates identified with Soloff method.
-       NDIAL : int
-           Number of datas (points) used to train the IA metamodel.
+       AI_training_size : int
+           Number of datas (points) used to train the AI metamodel.
        file : str
            Name of saving file for training
 
     Returns:
-       xIA_solution : numpy.ndarray
-           3D space coordinates identified with IA method.
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           AI model
     """
     # Organise the list of parameters
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
@@ -358,7 +357,7 @@ def IA_identification (X_c1,
     xS, yS, zS = xSoloff_solution
     
     # List of random points (To minimize the size of calculation)
-    rd_list = np.ndarray.astype((np.random.rand(NDIAL)*X_c1.shape[0]),int)    
+    rd_list = np.ndarray.astype((np.random.rand(AI_training_size)*X_c1.shape[0]),int)    
     with open(file, 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, 
                                 delimiter=' ',
@@ -366,7 +365,7 @@ def IA_identification (X_c1,
                                 quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(['Xl'] + ['Yl'] + ['Xr'] + ['Yr'] + 
                             ['x'] + ['y'] + ['z'])
-        for i in range (NDIAL) :
+        for i in range (AI_training_size) :
             spamwriter.writerow([str(Xl0[rd_list[i]]), 
                                  str(Yl0[rd_list[i]]), 
                                  str(Xr0[rd_list[i]]), 
@@ -374,18 +373,33 @@ def IA_identification (X_c1,
                                  str(xS[rd_list[i]]), 
                                  str(yS[rd_list[i]]), 
                                  str(zS[rd_list[i]])])
-    # Build the IA model with the NDIAL.
+    # Build the AI model with the AI_training_size.
     model, accuracy = solvel.AI_solve (file)
+    return(model)
+
+def AI_identification (X_c1,
+                       X_c2,
+                       model) :
+    """Calculation of the 3D points with AI model.
+    
+    Args:
+       X_c1 : numpy.ndarray
+           Left coordinates of points.
+       X_c2 : numpy.ndarray
+           Right coordinates of points.
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           AI model
+
+    Returns:
+       xAI_solution : numpy.ndarray
+           3D space coordinates identified with AI method.
+    """
     # Solve on all pts
     X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
                                X_c2[:,0], X_c2[:,1]]))        
-    t0 = time.time()
-    xIA_solution = model.predict(X)
-    t1 = time.time()
-    print('time IA = ',t1 - t0)
-    print('end IA')
-    xIA_solution = np.transpose(xIA_solution)
-    return (xIA_solution)
+    xAI_solution = model.predict(X)
+    xAI_solution = np.transpose(xAI_solution)
+    return (xAI_solution)
 
 
 
@@ -458,7 +472,7 @@ if __name__ == '__main__' :
     all_U, all_V, all_W = np.zeros((3,2*Np_img, Npoints))
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
-    xIA_solutions = np.zeros((Np_img, 3, Npoints))
+    xAI_solutions = np.zeros((Np_img, 3, Npoints))
     for image in range (Np_img) :
         print('')
         print('')
@@ -511,33 +525,38 @@ if __name__ == '__main__' :
   
         
         # Chose the Number of Datas for Artificial Intelligence Learning
-        NDIAL = 50000
-        # Create the .csv to make an IA identification
+        AI_training_size = 50000
+        # Create the .csv to make an AI identification
         t0 = time.time()
-        model_file = saving_folder +'/Soloff_IA_' + str(image) + '_' + str(NDIAL) + '_points.csv'      
-        IA_file = saving_folder + '/xsolution_IA' + str(image) + '.npy'
-        if os.path.exists(IA_file) :
-            xIA_solution = np.load(IA_file)
+        model_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+        AI_file = saving_folder + '/xsolution_AI' + str(image) + '.npy'
+        if os.path.exists(AI_file) :
+            xAI_solution = np.load(AI_file)
         else :
-            xIA_solution = IA_identification (X_c1,
+            # Train the AI with already known points
+            model = AI_training (X_c1,
+                                 X_c2,
+                                 xSoloff_solution,
+                                 AI_training_size = AI_training_size,
+                                 file = model_file)
+            # Use the AI model to solve every points
+            xAI_solution = AI_identification (X_c1,
                                               X_c2,
-                                              xSoloff_solution,
-                                              NDIAL = NDIAL,
-                                              file = model_file)
-            np.save(IA_file, xIA_solution)
+                                              model)
+            np.save(AI_file, xAI_solution)
 
-        xIA, yIA, zIA = xIA_solution
-        zIA = zIA.reshape((__DIC_dict__['window'][0][1] - __DIC_dict__['window'][0][0],
+        xAI, yAI, zAI = xAI_solution
+        zAI = zAI.reshape((__DIC_dict__['window'][0][1] - __DIC_dict__['window'][0][0],
                      __DIC_dict__['window'][1][1] - __DIC_dict__['window'][1][0]))
-        xIA_solutions[image] = xIA_solution
+        xAI_solutions[image] = xAI_solution
         t1 = time.time()
-        print('time IA ', NDIAL, ' = ',t1 - t0)
-        print('end IA')
+        print('time AI ', AI_training_size, ' = ',t1 - t0)
+        print('end AI')
         
         # Plot figure
         plt.figure()
-        plt.imshow(zIA)
-        plt.title('Z projected on left camera with IA calculation')
+        plt.imshow(zAI)
+        plt.title('Z projected on left camera with AI calculation')
         cb = plt.colorbar()
         cb.set_label('z in mm')
         plt.show()  

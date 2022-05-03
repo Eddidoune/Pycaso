@@ -332,13 +332,12 @@ def direct_identification (Xc1_identified,
     xsolution = np.matmul(direct_A,M)
     return(xsolution)
 
-def IA_identification (X_c1,
-                       X_c2,
-                       xSoloff_solution,
-                       NDIAL = 1000,
-                       file = 'Soloff_IA_.csv') :
-    """Calculation of the magnification between reals and detected positions 
-    and the calibration parameters A:--> x = A.M(X)
+def AI_training (X_c1,
+                 X_c2,
+                 xSoloff_solution,
+                 AI_training_size = 1000,
+                 file = 'Soloff_AI_training.csv') :
+    """Training the AI metamodel with already known datas.
     
     Args:
        X_c1 : numpy.ndarray
@@ -347,14 +346,14 @@ def IA_identification (X_c1,
            Right coordinates of points.
        xSoloff_solution : numpy.ndarray
            3D space coordinates identified with Soloff method.
-       NDIAL : int
-           Number of datas (points) used to train the IA metamodel.
+       AI_training_size : int
+           Number of datas (points) used to train the AI metamodel.
        file : str
            Name of saving file for training
 
     Returns:
-       xIA_solution : numpy.ndarray
-           3D space coordinates identified with IA method.
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           AI model
     """
     # Organise the list of parameters
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
@@ -362,7 +361,7 @@ def IA_identification (X_c1,
     xS, yS, zS = xSoloff_solution
     
     # List of random points (To minimize the size of calculation)
-    rd_list = np.ndarray.astype((np.random.rand(NDIAL)*X_c1.shape[0]),int)    
+    rd_list = np.ndarray.astype((np.random.rand(AI_training_size)*X_c1.shape[0]),int)    
     with open(file, 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, 
                                 delimiter=' ',
@@ -370,7 +369,7 @@ def IA_identification (X_c1,
                                 quoting=csv.QUOTE_MINIMAL)
         spamwriter.writerow(['Xl'] + ['Yl'] + ['Xr'] + ['Yr'] + 
                             ['x'] + ['y'] + ['z'])
-        for i in range (NDIAL) :
+        for i in range (AI_training_size) :
             spamwriter.writerow([str(Xl0[rd_list[i]]), 
                                  str(Yl0[rd_list[i]]), 
                                  str(Xr0[rd_list[i]]), 
@@ -378,18 +377,33 @@ def IA_identification (X_c1,
                                  str(xS[rd_list[i]]), 
                                  str(yS[rd_list[i]]), 
                                  str(zS[rd_list[i]])])
-    # Build the IA model with the NDIAL.
+    # Build the AI model with the AI_training_size.
     model, accuracy = solvel.AI_solve (file)
+    return(model)
+
+def AI_identification (X_c1,
+                       X_c2,
+                       model) :
+    """Calculation of the 3D points with AI model.
+    
+    Args:
+       X_c1 : numpy.ndarray
+           Left coordinates of points.
+       X_c2 : numpy.ndarray
+           Right coordinates of points.
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           AI model
+
+    Returns:
+       xAI_solution : numpy.ndarray
+           3D space coordinates identified with AI method.
+    """
     # Solve on all pts
     X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
                                X_c2[:,0], X_c2[:,1]]))        
-    t0 = time.time()
-    xIA_solution = model.predict(X)
-    t1 = time.time()
-    print('time IA = ',t1 - t0)
-    print('end IA')
-    xIA_solution = np.transpose(xIA_solution)
-    return (xIA_solution)
+    xAI_solution = model.predict(X)
+    xAI_solution = np.transpose(xAI_solution)
+    return (xAI_solution)
 
 
 if __name__ == '__main__' :
@@ -426,7 +440,7 @@ if __name__ == '__main__' :
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
         
-    saving_folder = main_path + '/results/2022_04_15_results/501_NAN'
+    saving_folder = main_path + '/results/2022_04_15_results_adrien_micromachine/501_NANsample'
     
     # Chose the polynomial degree for the calibration fitting
     polynomial_form = 332
@@ -500,8 +514,8 @@ if __name__ == '__main__' :
     all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
-    xIA_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (1) :
+    xAI_solutions = np.zeros((Np_img, 3, Npoints))
+    for image in range (2) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -556,7 +570,7 @@ if __name__ == '__main__' :
         # Soloff identification
         t0 = time.time()
         soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
-        if os.path.exists(soloff_file) and False :
+        if os.path.exists(soloff_file) and True :
             xSoloff_solution = np.load(soloff_file)
         else :
             xSoloff_solution = Soloff_identification (X_c1,
@@ -572,11 +586,10 @@ if __name__ == '__main__' :
         print('end SOLOFF')
         # Points coordinates
         xS, yS, zS = xSoloff_solution
-        sys.exit()
         xSoloff_solutions[image] = xSoloff_solution
-        fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
-        plt.figure()        
-        plt.show()
+        # fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
+        # plt.figure()        
+        # plt.show()
 
         # zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]       
         # df.insert(df.shape[1], 'xSoloff', xS, True)
@@ -610,12 +623,53 @@ if __name__ == '__main__' :
         # plt.colorbar()
         # plt.show()        
         
-        plt.figure()
-        plt.imshow(Z)
-        plt.title('Z projected on left camera')
-        cb = plt.colorbar()
-        cb.set_label('z in mm')
-        plt.show()    
+        # plt.figure()
+        # plt.imshow(Z)
+        # plt.title('Z projected on left camera')
+        # cb = plt.colorbar()
+        # cb.set_label('z in mm')
+        # plt.show()    
+
+        # Chose the Number of Datas for Artificial Intelligence Learning
+        AI_training_size = 50000
+        # Create the .csv to make an AI identification
+        AI_file = saving_folder + '/xsolution_AI' + str(image) + '.npy'
+        
+        x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
+                                                 all_Xref, 
+                                                 x3_list)
+        
+        t0 = time.time()
+        if os.path.exists(AI_file) :
+            xAI_solution = np.load(AI_file)
+        else :
+            # Train the AI with already known points
+            if image == 0 :
+                # model_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+                # model = AI_training (X_c1,
+                #                       X_c2,
+                #                       xSoloff_solution,
+                #                       AI_training_size = AI_training_size,
+                #                       file = model_file)
+                model_file2 = saving_folder +'/Soloff_AI_' + str(image) + '_ChAruco.csv'      
+                model = AI_training (Xc1_,
+                                     Xc2_,
+                                     x_,
+                                     AI_training_size = AI_training_size,
+                                     file = model_file2)
+            t1 = time.time()
+            print('time training = ',t1 - t0)
+
+            # Use the AI model to solve every points
+            xAI_solution = AI_identification (X_c1,
+                                              X_c2,
+                                              model)
+            np.save(AI_file, xAI_solution)
+        t2 = time.time()
+        print('time AI = ',t2 - t1)
+        print('end AI')
+        xAI, yAI, zAI = xAI_solution
+        
 
         '''
         
@@ -676,94 +730,3 @@ if __name__ == '__main__' :
             
         
         '''
-        '''
-        # Chose the Number of Datas for Artificial Intelligence Learning
-        NDIAL = 1000
-        # Create the .csv to make an IA identification
-        file = saving_folder +'/15_Soloff_IA_' + str(image) + '.csv'      
-        xIA_solution = IA_identification (X_c1,
-                                          X_c2,
-                                          xSoloff_solution,
-                                          NDIAL = NDIAL,
-                                          file = file)
-        xIA, yIA, zIA = xIA_solution
-        df.insert(df.shape[1], 'xIA', xIA, True)
-        df.insert(df.shape[1], 'yIA', yIA, True)
-        df.insert(df.shape[1], 'zIA', zIA, True)   
-        xIA_solutions[image] = xIA_solution
-        
-        # Creating figure
-        fig = plt.figure(figsize = (16, 9))
-        ax = plt.axes(projection ="3d")
-        ax.grid(visible = True, color ='grey',
-                linestyle ='-.', linewidth = 0.3,
-                alpha = 0.2)
-        my_cmap = plt.get_cmap('hsv')
-        sctt = ax.scatter3D(xIA, yIA, zIA,
-                            alpha = 0.8,
-                            c = zIA,
-                            cmap = my_cmap)
-        plt.title("IA all pts" + str(image))
-        ax.set_xlabel('x (mm)', fontweight ='bold')
-        ax.set_ylabel('y (mm)', fontweight ='bold')
-        ax.set_zlabel('z (mm)', fontweight ='bold')
-        fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        plt.show()
-        '''
-        
-        
-        
-        
-        
-        # # Solve on 1000 pts to compare with Soloff
-        # X_compare = np.transpose(np.array([Xl[:,0], Xl[:,1], Xr[:,0], Xr[:,1]]))
-        # IA_compare = model.predict(X_compare)
-        # xIA_compare, yIA_compare, zIA_compare = np.transpose(IA_compare)
-        
-        
-        
-        # # Difference IA and Soloff
-        # xdiff, ydiff, zdiff = xs - xIA_compare, ys - yIA_compare, zs - zIA_compare
-        # r = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
-        # # Creating figure
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # sctt = ax.scatter3D(xdiff, ydiff, zdiff,
-        #                     alpha = 0.8,
-        #                     c = r)
-        # plt.title("Soloff/IA diff" + str(image))
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        # plt.show()
-        # print('max Soloff/IA diff x, y, z, r : ', np.around(np.max(xdiff), 4), np.around(np.max(ydiff), 4), np.around(np.max(zdiff), 4), np.around(np.max(r), 4))
-        # print('mean Soloff/IA diff x, y, z, r : ', np.around(np.mean(np.abs(xdiff)), 4), np.around(np.mean(np.abs(ydiff)), 4), np.around(np.mean(np.abs(zdiff)), 4), np.around(np.mean(np.abs(r)), 4))
-        # print('std Soloff/IA diff x, y, z, r : ', np.around(np.std(xdiff), 4), np.around(np.std(ydiff), 4), np.around(np.std(zdiff), 4), np.around(np.std(r), 4))
-         
-        
-
-        # # Difference IA and direct
-        # xdiff, ydiff, zdiff = xD - xIA, yD - yIA, zD - zIA
-        # r = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
-        # # Creating figure
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # sctt = ax.scatter3D(xdiff, ydiff, zdiff,
-        #                     alpha = 0.8,
-        #                     c = r)
-        # plt.title("direct/IA diff" + str(image))
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        # plt.show()
-        # print('max direct/IA diff x, y, z, r : ', np.around(np.max(xdiff), 4), np.around(np.max(ydiff), 4), np.around(np.max(zdiff), 4), np.around(np.max(r), 4))
-        # print('mean direct/IA diff x, y, z, r : ', np.around(np.mean(np.abs(xdiff)), 4), np.around(np.mean(np.abs(ydiff)), 4), np.around(np.mean(np.abs(zdiff)), 4), np.around(np.mean(np.abs(r)), 4))
-        # print('std direct/IA diff x, y, z, r : ', np.around(np.std(xdiff), 4), np.around(np.std(ydiff), 4), np.around(np.std(zdiff), 4), np.around(np.std(r), 4))
-
-        # print('')
-        # print('#####       ')
-        # print('End coin test identification')
-        # print('#####       ')
-        # print('')
