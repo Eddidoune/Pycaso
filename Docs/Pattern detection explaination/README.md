@@ -25,6 +25,6 @@ Use the Hessian determinant as filter parameter (eigenvalues product)
 - Look around the likely position of a missing point. Then look at the local hessian filter and find the baricenter of the biggest shape
 ![](https://github.com/Eddidoune/Pycaso/blob/main/Docs/Pattern%20detection%20explaination/Hessian5.png)
 
-- Iterate and define all the missing points (Blue)
+- Iterate and define all the points  : missing ones (Blue) and ChAruco's detected ones (Red)
 ![](https://github.com/Eddidoune/Pycaso/blob/main/Docs/Pattern%20detection%20explaination/Hessian6.png)
 
