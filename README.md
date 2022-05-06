@@ -10,9 +10,9 @@ The file main.py propose a typical protocol of resolution using few Pycaso funct
 
 # Requirements
 To install Pycaso, you will need [Python 3](https://www.python.org/downloads/) (3.6 or higher) with the following modules :
-- [numpy](https://pypi.org/project/opencv-python/)
-- [Open CV](https://matplotlib.org/) for image acquisition and identification, 
-- matplotlib for graph plotting and scipy for Levenberg  Marcquardt  functions. 
+- [numpy](https://numpy.org/install/)
+- [Open CV](https://pypi.org/project/opencv-python/) for image acquisition and identification, 
+- [matplotlib](https://matplotlib.org/) for graph plotting and scipy for Levenberg  Marcquardt  functions. 
 - Others modules as [glob](https://docs.python.org/3/library/glob.html) , [deepcopy](https://docs.python.org/3/library/copy.html), [os](https://docs.python.org/3/library/os.html), [sigfig](https://pypi.org/project/sigfig/), [scikit-image](https://scikit-image.org/docs/dev/install.html) and [sys](https://docs.python.org/3/library/sys.html). 
 
 # Installation
