@@ -943,8 +943,8 @@ if __name__ == '__main__' :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
 
     # Chose the degrees for Soloff and direct polynomial fitting
-    polynomial_form = 332
-    direct_polynomial_form = 4
+    Soloff_pform = 332
+    direct_pform = 4
 
     # Create the result folder if not exist
     saving_folder = main_path + '/results/2022_02_28_results/Test'

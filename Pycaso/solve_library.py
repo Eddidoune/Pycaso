@@ -459,7 +459,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
                                  Xc2_identified, 
                                  A, 
                                  x0, 
-                                 polynomial_form, 
+                                 Soloff_pform, 
                                  method = 'curve_fit') :
     """Resolve by Levenberg-Marcquardt method the system A . x = X for each 
     points detected and both cameras
@@ -473,7 +473,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
             Constants of the calibration polynome
         x0 : numpy.ndarray
             Initial guess
-        polynomial_form : int
+        Soloff_pform : int
             Polynomial form
         method : str
             Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
@@ -521,7 +521,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         for i in range (Xdetected_part.shape[1]) :
             X0i = Xdetected_part[:,i]
             x0i = x0_part[:,i]
-            xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_LM_CF, 
+            xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
                                         A0, 
                                         X0i, 
                                         p0 = x0i, 
@@ -537,9 +537,9 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         xopt[:,sl] = xopt_part.reshape((3,sl.stop - sl.start))
         
     
-    Xcalculated = Soloff_Polynome({'polynomial_form' : polynomial_form}).polynomial_system(xopt, A0)
+    Xcalculated = Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_system(xopt, A0)
     Xdiff = np.absolute(Xcalculated - Xdetected)
-    print(str(polynomial_form), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
+    print(str(Soloff_pform), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
     
     return (xopt, Xcalculated, Xdetected)
 

@@ -52,7 +52,7 @@ def magnification (X1, X2, x1, x2) :
 def Soloff_calibration (__calibration_dict__,
              x3_list,
              saving_folder,
-             polynomial_form = 332,
+             Soloff_pform,
              detection = True,
              hybrid_verification = False) :
     """Calculation of the magnification between reals and detected positions 
@@ -67,7 +67,7 @@ def Soloff_calibration (__calibration_dict__,
                                               same way in the target folder)
        saving_folder : str
            Folder to save datas
-       polynomial_form : int, optional
+       Soloff_pform : int
            Polynomial form
        detection : bool, optional
            If True, all the analysis will be done. If False, the code will 
@@ -83,37 +83,37 @@ def Soloff_calibration (__calibration_dict__,
        A111 : numpy.ndarray
            Constants of Soloff polynomial form '111'
        A_pol : numpy.ndarray
-           Constants of Soloff polynomial form chose (polynomial_form)
+           Constants of Soloff polynomial form chose (Soloff_pform)
        Magnification : int
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
     
     A111 = np.zeros((2, 2, 4))
-    if polynomial_form == 111 :
+    if Soloff_pform == 111 :
         A_pol = np.zeros((2, 2, 4))
-    elif polynomial_form == 221 :
+    elif Soloff_pform == 221 :
         A_pol = np.zeros((2, 2, 9))
-    elif polynomial_form == 222 :
+    elif Soloff_pform == 222 :
         A_pol = np.zeros((2, 2, 10))
-    elif polynomial_form == 332 :
+    elif Soloff_pform == 332 :
         A_pol = np.zeros((2, 2, 19))
-    elif polynomial_form == 333 :
+    elif Soloff_pform == 333 :
         A_pol = np.zeros((2, 2, 20))
-    elif polynomial_form == 443 :
+    elif Soloff_pform == 443 :
         A_pol = np.zeros((2, 2, 34))
-    elif polynomial_form == 444 :
+    elif Soloff_pform == 444 :
         A_pol = np.zeros((2, 2, 35))
-    elif polynomial_form == 554 :
+    elif Soloff_pform == 554 :
         A_pol = np.zeros((2, 2, 55))
-    elif polynomial_form == 555 :
+    elif Soloff_pform == 555 :
         A_pol = np.zeros((2, 2, 56))    
     else :
         print ('Only define for polynomial forms (111, 221, 222, 332, 333, 443, 444, 554 or 555')
         sys.exit()
     
     A_0 = [A111, A_pol]
-    polynomial_forms = [111, polynomial_form]
+    Soloff_pforms = [111, Soloff_pform]
 
     
     # Detect points from folders
@@ -148,8 +148,8 @@ def Soloff_calibration (__calibration_dict__,
             # Do the system X = Ai*M, where M is the monomial of the real 
             # coordinates of crosses and X the image coordinates, and M the 
             # unknow (polynomial form aab)
-            polynomial_form = polynomial_forms[pol]
-            M = solvel.Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)
+            Soloff_pform = Soloff_pforms[pol]
+            M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
             Ai = np.matmul(X, np.linalg.pinv(M))
             A_0[pol][camera-1] = Ai
     
@@ -157,7 +157,7 @@ def Soloff_calibration (__calibration_dict__,
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
             print('Max ; min projection error (polynomial form ', 
-                  str(polynomial_form),
+                  str(Soloff_pform),
                   ') for camera ', 
                   str(camera),
                   ' = ',
@@ -169,11 +169,11 @@ def Soloff_calibration (__calibration_dict__,
     return(A111, A_pol, Magnification)
 
 def Soloff_identification (Xc1_identified,
-                        Xc2_identified,
-                        A111, 
-                        A_pol,
-                        polynomial_form = 332,
-                        method = 'curve_fit') :
+                           Xc2_identified,
+                           A111, 
+                           A_pol,
+                           Soloff_pform,
+                           method = 'curve_fit') :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -186,7 +186,7 @@ def Soloff_identification (Xc1_identified,
            Constants of Soloff polynomial form '111'
        A_pol : numpy.ndarray
            Constants of Soloff polynomial form chose (polynomial_form)
-       polynomial_form : int, optional
+       Soloff_pform : int
            Polynomial form
        method : str, optional
            Python method used to solve it ('Least-squares' or 'curve-fit')
@@ -206,7 +206,7 @@ def Soloff_identification (Xc1_identified,
                                                             Xc2_identified, 
                                                             A_pol, 
                                                             x0, 
-                                                            polynomial_form = polynomial_form, 
+                                                            Soloff_pform = Soloff_pform, 
                                                             method = 'curve_fit')
     return (x_solution)
 
@@ -214,7 +214,7 @@ def Soloff_identification (Xc1_identified,
 def direct_calibration (__calibration_dict__,
              x3_list,
              saving_folder,
-             direct_polynome_degree,
+             direct_pform,
              detection = True) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
@@ -228,7 +228,7 @@ def direct_calibration (__calibration_dict__,
                                               same way in the target folder)
        saving_folder : str
            Folder to save datas
-       direct_polynome_degree : int, optional
+       direct_pform : int
            Polynomial degree
        detection : bool, optional
            If True, all the analysis will be done. If False, the code will 
@@ -241,13 +241,13 @@ def direct_calibration (__calibration_dict__,
            Magnification between reals and detected positions
     """
     
-    if direct_polynome_degree == 1 :
+    if direct_pform == 1 :
         direct_A = np.zeros((3, 5))
-    elif direct_polynome_degree == 2 :
+    elif direct_pform == 2 :
         direct_A = np.zeros((3, 15))
-    elif direct_polynome_degree == 3 :
+    elif direct_pform == 3 :
         direct_A = np.zeros((3, 35))
-    elif direct_polynome_degree == 4 :
+    elif direct_pform == 4 :
         direct_A = np.zeros((3, 70))
     else :
         print ('Only define for polynomial degrees (1, 2, 3 or 4')
@@ -280,7 +280,7 @@ def direct_calibration (__calibration_dict__,
         
         # Do the system x = Ap*M, where M is the monomial of the real 
         # coordinates of crosses and x the image coordinates, and M the unknow
-        M = solvel.Direct_Polynome({'polynomial_form' : direct_polynome_degree}).pol_form(Xc1, Xc2)
+        M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
         direct_A = Ap
 
@@ -288,7 +288,7 @@ def direct_calibration (__calibration_dict__,
         xd = np.matmul(Ap,M)
         proj_error = x - xd
         print('Max ; min projection error (polynomial form ',
-              str(direct_polynome_degree),
+              str(direct_pform),
               ') for camera ',
               str(camera),
               ' = ',
@@ -301,7 +301,7 @@ def direct_calibration (__calibration_dict__,
 def direct_identification (Xc1_identified,
                            Xc2_identified,
                            direct_A,
-                           direct_polynomial_form = 3) :
+                           direct_pform) :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -312,7 +312,7 @@ def direct_identification (Xc1_identified,
            Points identified on the right camera
        direct_A : numpy.ndarray
            Constants of direct polynomial
-       direct_polynomial_form : int, optional
+       direct_pform : int
            Polynomial form
 
 
@@ -328,7 +328,7 @@ def direct_identification (Xc1_identified,
     Xl = Xl1, Xl2
     Xr = Xr1, Xr2
     
-    M = solvel.Direct_Polynome({'polynomial_form' : direct_polynomial_form}).pol_form(Xl, Xr)
+    M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xl, Xr)
     xsolution = np.matmul(direct_A,M)
     return(xsolution)
 
@@ -411,27 +411,26 @@ if __name__ == '__main__' :
     
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15/left_501_x2',
-    'right_folder' : main_path + '/Images_example/2022_04_15/right_501_x2',
+    'left_folder' : main_path + '/Images_example/2022_04_28_Pierre/left_12x12',
+    'right_folder' : main_path + '/Images_example/2022_04_28_Pierre/right_12x12',
     'name' : 'micro_calibration',
-    'ncx' : 16,
+    'ncx' : 12,
     'ncy' : 12,
     'sqr' : 0.3}  #in mm
     
-    # __pattern_dict__ = {
-    # 'left_folder' : main_path + '/Images_example/test_left',
-    # 'right_folder' : main_path + '/Images_example/test_right',
-    # 'name' : 'micro_identification',
-    # 'ncx' : 16,
-    # 'ncy' : 12,
-    # 'sqr' : 0.3,
-    # 'window' : [[500, 1500], [500, 1500]]}  #in mm
-    
-    __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15/left_sample_identification',
-    'right_folder' : main_path + '/Images_example/2022_04_15/right_sample_identification',
+    __pattern_dict__ = {
+    'left_folder' : main_path + '/Images_example/2022_04_28_Pierre/left_test',
+    'right_folder' : main_path + '/Images_example/2022_04_28_Pierre/right_test',
     'name' : 'micro_identification',
-    'window' : [[200, 1800], [200, 1800]]}  #in mm
+    'ncx' : 12,
+    'ncy' : 12,
+    'sqr' : 0.3}  #in mm
+    
+    # __DIC_dict__ = {
+    # 'left_folder' : main_path + '/Images_example/2022_04_15/left_sample_identification',
+    # 'right_folder' : main_path + '/Images_example/2022_04_15/right_sample_identification',
+    # 'name' : 'micro_identification',
+    # 'window' : [[200, 1800], [200, 1800]]}  #in mm
     
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
@@ -439,12 +438,13 @@ if __name__ == '__main__' :
     x3_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
+    # x3_list = np.array(sorted(x3_list))
         
     saving_folder = main_path + '/results/2022_04_15_results_adrien_micromachine/501_NANsample'
     
     # Chose the polynomial degree for the calibration fitting
-    polynomial_form = 332
-    direct_polynomial_form = 4
+    Soloff_pform = 332
+    direct_pform = 4
 
     # Create the result folder if not exist
     if os.path.exists(saving_folder) :
@@ -460,23 +460,14 @@ if __name__ == '__main__' :
 
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
                                                         detection = False,
-                                                        saving_folder = saving_folder,
-                                                        hybrid_verification = False)
-    # pts_left, pts_right = nb_pts
-    # fig = plt.figure(figsize = (16, 9))
-    # plt.scatter(x3_list, pts_left)
-    # plt.scatter(x3_list, pts_right)
-    # plt.xlabel('z-position (mm)')
-    # plt.ylabel('Number of points detected')
-    # plt.title('Points detected in function of z-position')
-    # plt.ylim(0,165)
-    # plt.show()
-    # sys.exit()    
+                                                        saving_folder = saving_folder)
+
+
     
     A111, A_pol, Magnification = Soloff_calibration (__calibration_dict__,
                                                      x3_list,
                                                      saving_folder,
-                                                     polynomial_form = polynomial_form,
+                                                     Soloff_pform = Soloff_pform,
                                                      detection = False)
 
     print('')
@@ -494,7 +485,7 @@ if __name__ == '__main__' :
     direct_A, Magnification = direct_calibration (__calibration_dict__,
                                                   x3_list,
                                                   saving_folder,
-                                                  direct_polynomial_form,
+                                                  direct_pform,
                                                   detection = False)
 
     Magnification_z = np.mean (Magnification, axis = 0)
@@ -505,10 +496,24 @@ if __name__ == '__main__' :
     print('#####       ')
     print('')
 
-    Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
-                                                           detection = False,
-                                                           saving_folder = saving_folder,
-                                                           flip = False)
+    all_Uc, all_Xr, nb_pts = data.pattern_detection(__pattern_dict__,
+                                                        detection = False,
+                                                        saving_folder = saving_folder)
+
+    Xleft_id, Xright_id = all_Uc
+    Xleft_id = Xleft_id.reshape((11,11,2))
+    Xright_id = Xright_id.reshape((11,11,2))
+    
+    Xleft_id = Xleft_id[:7,:7,:]
+    Xright_id = Xright_id[:7,:7,:]
+    
+    Xleft_id = Xleft_id.reshape((1,49,2))
+    Xright_id = Xright_id.reshape((1,49,2))
+    
+    # Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
+    #                                                        detection = False,
+    #                                                        saving_folder = saving_folder,
+    #                                                        flip = False)
     
     Np_img, Npoints, Naxes = Xleft_id.shape
     all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
@@ -534,7 +539,7 @@ if __name__ == '__main__' :
         xDirect_solution = direct_identification (X_c1,
                                                   X_c2,
                                                   direct_A,
-                                                  direct_polynomial_form = direct_polynomial_form)
+                                                  direct_pform = direct_pform)
         xD, yD, zD = xDirect_solution
         df.insert(df.shape[1], 'xDirect', xD, True)
         df.insert(df.shape[1], 'yDirect', yD, True)
@@ -543,41 +548,47 @@ if __name__ == '__main__' :
         t1 = time.time()
         print('time direct = ',t1 - t0)
         print('end direct')
+
+        fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
+        plt.figure()
+        plt.show()
+
+        zD = zD - fit[0]*xD - fit[1]*yD - fit[2]  
         
-        # # Creating figure
-        # fig = plt.figure(figsize = (16, 9))
-        # ax = plt.axes(projection ="3d")
-        # # Add x, y gridlines
-        # ax.grid(visible = True, color ='grey',
-        #         linestyle ='-.', linewidth = 0.3,
-        #         alpha = 0.2)
-        # # Creating color map
-        # my_cmap = plt.get_cmap('hsv')
-        # # Creating plot
-        # sctt = ax.scatter3D(xD, yD, zD,
-        #                     alpha = 0.8,
-        #                     c = zD,
-        #                     cmap = my_cmap)
-        # plt.title("Direct all pts" + str(image))
-        # ax.set_xlabel('x (mm)', fontweight ='bold')
-        # ax.set_ylabel('y (mm)', fontweight ='bold')
-        # ax.set_zlabel('z (mm)', fontweight ='bold')
-        # fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
-        # # show plot
-        # plt.show()            
+        # Creating figure
+        fig = plt.figure(figsize = (16, 9))
+        ax = plt.axes(projection ="3d")
+        # Add x, y gridlines
+        ax.grid(visible = True, color ='grey',
+                linestyle ='-.', linewidth = 0.3,
+                alpha = 0.2)
+        # Creating color map
+        my_cmap = plt.get_cmap('hsv')
+        # Creating plot
+        sctt = ax.scatter3D(xD, yD, zD,
+                            alpha = 0.8,
+                            c = zD,
+                            cmap = my_cmap)
+        plt.title("Direct all pts" + str(image))
+        ax.set_xlabel('x (mm)', fontweight ='bold')
+        ax.set_ylabel('y (mm)', fontweight ='bold')
+        ax.set_zlabel('z (mm)', fontweight ='bold')
+        fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
+        # show plot
+        plt.show()            
             
 
         # Soloff identification
         t0 = time.time()
         soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
-        if os.path.exists(soloff_file) and True :
+        if os.path.exists(soloff_file) and False :
             xSoloff_solution = np.load(soloff_file)
         else :
             xSoloff_solution = Soloff_identification (X_c1,
                                                       X_c2,
                                                       A111, 
                                                       A_pol,
-                                                      polynomial_form = polynomial_form,
+                                                      Soloff_pform = Soloff_pform,
                                                       method = 'curve_fit')       
             np.save(soloff_file, xSoloff_solution)
 
@@ -587,14 +598,39 @@ if __name__ == '__main__' :
         # Points coordinates
         xS, yS, zS = xSoloff_solution
         xSoloff_solutions[image] = xSoloff_solution
-        # fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
-        # plt.figure()        
-        # plt.show()
+        fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
+        plt.figure()        
+        plt.show()
 
-        # zS_recal = zS - fit[0]*xS - fit[1]*yS - fit[2]       
+        zS = zS - fit[0]*xS - fit[1]*yS - fit[2]       
         # df.insert(df.shape[1], 'xSoloff', xS, True)
         # df.insert(df.shape[1], 'ySoloff', yS, True)
         # df.insert(df.shape[1], 'zSoloff', zS_recal, True)        
+
+        # Creating figure
+        fig = plt.figure(figsize = (16, 9))
+        ax = plt.axes(projection ="3d")
+        # Add x, y gridlines
+        ax.grid(visible = True, color ='grey',
+                linestyle ='-.', linewidth = 0.3,
+                alpha = 0.2)
+        # Creating color map
+        my_cmap = plt.get_cmap('hsv')
+        # Creating plot
+        sctt = ax.scatter3D(xS, yS, zS,
+                            alpha = 0.8,
+                            c = zD,
+                            cmap = my_cmap)
+        plt.title("Soloff all pts" + str(image))
+        ax.set_xlabel('x (mm)', fontweight ='bold')
+        ax.set_ylabel('y (mm)', fontweight ='bold')
+        ax.set_zlabel('z (mm)', fontweight ='bold')
+        fig.colorbar(sctt, ax = ax, shrink = 0.5, aspect = 5)
+        # show plot
+        plt.show() 
+
+        
+        sys.exit()
         
         # Lagrangian projection on left image 
         win = __DIC_dict__['window']
