@@ -589,13 +589,15 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
         all_U = np.load(Save_all_U)
         all_V = np.load(Save_all_V)
     else:
-        all_U = np.zeros((N, Images[0].shape[0], Images[0].shape[1]))
-        all_V = np.zeros((N, Images[0].shape[0], Images[0].shape[1]))
+        im0 = cv2.imread(Images[0], 0)
+        all_U = np.zeros((N, im0.shape[0], im0.shape[1]))
+        all_V = np.zeros((N, im0.shape[0], im0.shape[1]))
         for i in range(1, N):
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], Images[i]))
-            all_U[i+1], all_V[i+1] = DIC.strain_field(Images[0], Images[i], 
-                                                      flip = False,
-                                                      vr_kwargs=vr_kwargs)
+            all_U[i], all_V[i] = DIC.strain_field(Images[0], 
+                                                  Images[i], 
+                                                  flip = flip,
+                                                  vr_kwargs=vr_kwargs)
 
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)

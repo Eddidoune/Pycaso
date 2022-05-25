@@ -213,7 +213,6 @@ def strain_field (image_1,
     delta = vr_kwargs['delta'] if 'delta' in vr_kwargs else 1
     gamma = vr_kwargs['gamma'] if 'gamma' in vr_kwargs else 0
     iterations = vr_kwargs['iterations'] if 'iterations' in vr_kwargs else 10
-    print(alpha, delta, gamma, iterations)
     flow = cv2.DISOpticalFlow_create()
     flow.setFinestScale(0)
     # cf https://www.mia.uni-saarland.de/Publications/brox-eccv04-of.pdf
