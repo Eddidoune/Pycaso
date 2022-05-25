@@ -9,10 +9,16 @@ import matplotlib.pyplot as plt
 import sys
 import pathlib
 import os
+import time
 import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
+
+sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
+from compute_flow import compute_flow
+sys.path.append('/home/aberger/Documents/phd_thesis/03_Essais')
+# from dicRelated import get_sensor_sized_field, load_yadics_nc
 
 try : 
     import cupy as np
@@ -413,7 +419,6 @@ def cut_calibration_model (List_images,
     return (all_x, all_X, nb_pts)
 
 
-
 def NAN_calibration_model (Images, 
                            Xref, 
                            __dict__,
@@ -468,24 +473,13 @@ def NAN_calibration_model (Images,
     return (all_x, all_X, nb_pts)
 
 
-
-
-
-
 def pattern_detection (__dict__,
-                       detection = True,
-                       saving_folder = 'Folders_npy',
                        hybrid_verification = False) :
     """Detect the corners of Charucco's pattern.
     
     Args:
        __dict__ : dict
            Pattern properties define in a dict.
-       detection : bool, optional
-           If True, all the analysis will be done. If False, the code will take 
-           the informations in 'saving_folder'
-       saving_folder : str, optional
-           Folder to save datas
        hybrid_verification : bool, optional
            If True, verify each pattern detection and propose to pick 
            manually the bad detected corners. The image with all detected
@@ -503,6 +497,7 @@ def pattern_detection (__dict__,
            The theorical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
+    saving_folder = __dict__['saving_folder']
     left_folder = __dict__['left_folder']
     right_folder = __dict__['right_folder']
     name = __dict__['name']
@@ -515,12 +510,19 @@ def pattern_detection (__dict__,
     for i in range (len(Images_right)) :
         Images.append(Images_right[i])
     
-    Save_Ucam_Xref = [str(saving_folder) + "/all_X_" + name + ".npy", 
-                      str(saving_folder) + "/all_x_" + name + ".npy", 
-                      str(saving_folder) + "/nb_pts_" + name + ".npy"]
+    Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
+    Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
+    Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
 
     # Corners detection
-    if detection :
+    if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
+        # Taking pre-calculated datas from the saving_folder
+        print('    - Taking datas from ', saving_folder)        
+        all_X = np.load(Save_all_X)
+        all_x = np.load(Save_all_x)
+        nb_pts = np.load(Save_nb_pts)
+    
+    else : # Corners detection
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
@@ -532,132 +534,17 @@ def pattern_detection (__dict__,
         if not np.any(all_X[0]):
             print('Not any point detected in all images/cameras')
         else :
-            np.save(Save_Ucam_Xref[0], all_X)
-            np.save(Save_Ucam_Xref[1], all_x)
-            np.save(Save_Ucam_Xref[2], nb_pts)
+            np.save(Save_all_X, all_X)
+            np.save(Save_all_x, all_x)
+            np.save(Save_nb_pts, nb_pts)
     
             print('    - Saving datas in ', saving_folder)
-    # Taking pre-calculated datas from the saving_folder
-    else :
-        print('    - Taking datas from ', saving_folder)        
-        all_X = np.load(Save_Ucam_Xref[0])
-        all_x = np.load(Save_Ucam_Xref[1])
-        nb_pts = np.load(Save_Ucam_Xref[2])
+
         
     return(all_X, all_x, nb_pts)
 
-
-
-def DIC_3D_detection (__DIC_dict__,
-                      detection = True,
-                      saving_folder = 'Folders_npy',
-                      flip = False) :
-    """Use the DIC to locate all the points from the left picture in the right
-    twin picture.
-    
-    Args:
-       __DIC_dict__ : dict
-           DIC dictionnary including the picture folders, the saving name and 
-           the window (in px) to study.
-       detection : bool, optional
-           If True, all the analysis will be done. If False, the code will 
-           take the informations in 'saving_folder'
-       saving_folder : str, optional
-           Folder to save or take datas
-       flip : bool, optional
-           If True, all the pictures are flipped before the DIC (useful when 
-           you're using a mirror)
-           
-    Returns:
-       Xleft_id : numpy.ndarray
-           All the points of the left pictures (1 point per pixel) in an array 
-           arrange with their positions. 
-       Xright_id : numpy.ndarray
-           All the left pixels (points) localised on the right pictures.
-    """
-    left_folder = __DIC_dict__['left_folder']
-    right_folder = __DIC_dict__['right_folder']
-    name = __DIC_dict__['name']
-    window = __DIC_dict__['window']
-    Save_all_U = str(saving_folder) +"/all_U_" + name + ".npy"
-    Save_all_V = str(saving_folder) +"/all_V_" + name + ".npy"
-    Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
-    
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
-    Images = Images_left
-    N = len(Images)
-    for i in range (N) :
-        Images.append(Images_right[i]) 
-    [lx1, lx2], [ly1, ly2] = window
-    Xleft_id = []
-    Xright_id = []
-
-    # Corners detection
-    print('    - DIC in progress ...')
-    # DIC detection of the points from each camera
-    for i in range (N) :
-        if detection :
-            image_1, image_2 = Images[i], Images[i+N]
-            U, V = DIC.strain_field(image_1, 
-                                    image_2, 
-                                    flip = flip)
-            if i == 0 :
-                all_U = np.empty((N, U.shape[0], U.shape[1]))
-                all_V = np.empty((N, V.shape[0], V.shape[1]))
-            all_U[i] = U
-            all_V[i] = V
-            np.save(Save_all_U, all_U)
-            np.save(Save_all_V, all_V)
-            print('    - Saving datas in ', saving_folder)
-        else :
-            # Taking pre-calculated datas from the saving_folder
-            print('    - Taking datas from ', saving_folder)        
-            all_U = np.load(Save_all_U)
-            all_V = np.load(Save_all_V)
-            X_map = np.load(Save_X_map)
-        
-    for i in range (N) :
-        U, V = all_U[i], all_V[i]
-        nX1, nX2 = U.shape
-        # ntot = (lx2 - lx1) * (ly2 - ly1)
-        linsp = np.arange(nX1)+1
-        linsp = np.reshape (linsp, (1,nX1))
-        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
-        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
-        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
-        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
-
-        if detection :
-            # Generate the mapping
-            X_map = np.transpose(np.array([np.ravel(X1matrix), 
-                                           np.ravel(X2matrix)]))
-            X_map = X_map.reshape((X1matrix.shape[0],X1matrix.shape[1],2))
-            np.save(Save_X_map, X_map)
-
-        # Left camera --> position = each px
-        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
-                                      np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
-                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
-
-        # Right camera --> position = each px + displacement
-        X_c2 = X_c1 + UV
-
-        Xleft_id.append(X_c1)
-        Xright_id.append(X_c2)
-    
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)     
-    return(Xleft_id, Xright_id)
-
-
-
 def DIC_3D_detection_lagrangian (__DIC_dict__,
-                      detection = True,
-                      saving_folder = 'Folders_npy',
-                      flip = False,
-                      img_ref = '') :
+                                flip = False) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the deformed ones (other left and right pictures).
     
@@ -665,16 +552,9 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
        __DIC_dict__ : dict
            DIC dictionnary including the picture folders, the saving name and 
            the window (in px) to study.
-       detection : bool, optional
-           If True, all the analysis will be done. If False, the code will 
-           take the informations in 'saving_folder'
-       saving_folder : str, optional
-           Folder to save or take datas
        flip : bool, optional
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
-       img_ref : str, optional
-           Name of the reference image for the DIC calculation
            
     Returns:
        Xleft_id : numpy.ndarrayleft_sample_identification
@@ -683,13 +563,15 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
     """
+    saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     window = __DIC_dict__['window']
+    vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
+
     Save_all_U = str(saving_folder) +"/Lagrangian_all_U_" + name + ".npy"
     Save_all_V = str(saving_folder) +"/Lagrangian_all_V_" + name + ".npy"
-    Save_X_map = str(saving_folder) +"/X_map_" + name + ".npy"
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
@@ -702,37 +584,24 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
 
     # Corners detection
     print('    - DIC in progress ...')
-    # DIC detection of the points from each camera
-    for img in Images :
-        if img == img_ref:
-            image_ref = img_ref
-        else :
-            image_ref = Images[0]
-    print('Image reference = ', image_ref)
+    if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
+        print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
+        all_U = np.load(Save_all_U)
+        all_V = np.load(Save_all_V)
+    else:
+        all_U = np.zeros((N, Images[0].shape[0], Images[0].shape[1]))
+        all_V = np.zeros((N, Images[0].shape[0], Images[0].shape[1]))
+        for i in range(1, N):
+            print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], Images[i]))
+            all_U[i+1], all_V[i+1] = DIC.strain_field(Images[0], Images[i], 
+                                                      flip = False,
+                                                      vr_kwargs=vr_kwargs)
+
+        np.save(Save_all_U, all_U)
+        np.save(Save_all_V, all_V)
 
     Xleft_id = []
-    Xright_id = []
-    for i in range (N) :
-        if detection :
-            image_def = Images[i]
-            U, V = DIC.strain_field(image_ref, 
-                                    image_def, 
-                                    flip = flip)
-            if i == 0 :
-                all_U = np.empty((N, U.shape[0], U.shape[1]))
-                all_V = np.empty((N, V.shape[0], V.shape[1]))
-            all_U[i] = U
-            all_V[i] = V
-            np.save(Save_all_U, all_U)
-            np.save(Save_all_V, all_V)
-            print('    - Saving datas in ', saving_folder)
-        else :
-            # Taking pre-calculated datas from the saving_folder
-            print('    - Taking datas from ', saving_folder)        
-            all_U = np.load(Save_all_U)
-            all_V = np.load(Save_all_V)
-            X_map = np.load(Save_X_map)
-        
+    Xright_id = []        
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
@@ -743,13 +612,6 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
         X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
         X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
         X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
-
-        if detection :
-            # Generate the mapping
-            X_map = np.transpose(np.array([np.ravel(X1matrix), 
-                                           np.ravel(X2matrix)]))
-            X_map = X_map.reshape((X1matrix.shape[0],X1matrix.shape[1],2))
-            np.save(Save_X_map, X_map)
 
         # Left camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
@@ -768,11 +630,143 @@ def DIC_3D_detection_lagrangian (__DIC_dict__,
     Xright_id = np.array(Xright_id)
     return(Xleft_id, Xright_id)
 
+def DIC_3D_composed_detection (__DIC_dict__,
+                                flip = False):
+    """Use the DIC to locate all the points from the reference picture
+    (first left one) in the deformed ones (other left and right pictures).
+    
+    Args:
+       __DIC_dict__ : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
+           
+    Returns:
+       Xleft_id : numpy.ndarray
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
+   """
+    left_folder = __DIC_dict__['left_folder']
+    right_folder = __DIC_dict__['right_folder']
+    name = __DIC_dict__['name']
+    window = __DIC_dict__['window']
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/Compose_all_U_alternative_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/Compose_all_V_alternative_" + name + ".npy"
+    opt_flow = {"pyram_levels": 3, 
+                "factor": 1/0.5, 
+                "ordre_inter": 3, 
+                "size_median_filter": 5, 
+                "max_linear_iter": 1, 
+                "max_iter": 10, 
+                "lmbda": 1.*10**5, 
+                "lambda2": 0.001, 
+                "lambda3": 1., 
+                "Mask": None,
+                "LO_filter": 0}
+    
+    if 'dic_kwargs' in __DIC_dict__ :
+        optical_flow_parameters = __DIC_dict__['dic_kwargs']  
+    else :
+        optical_flow_parameters = opt_flow
 
+    Images_left = sorted(glob(str(left_folder) + '/*.tif*'))
+    Images_right = sorted(glob(str(right_folder) + '/*.tif*'))
+    Images = Images_left
+    N = len(Images)
+    for i in range (N) :
+        Images.append(Images_right[i]) 
+    [lx1, lx2], [ly1, ly2] = window
+    N = len(Images)
+    
+    if os.path.exists(Save_all_U) and os.path.exists(Save_all_U):
+        print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
+        all_U = np.load(Save_all_U)
+        all_V = np.load(Save_all_V)
+    else:
+        im0_left = cv2.imread(Images[0], 0)
+        im0_right = cv2.imread(Images[int(N/2)], 0)
+        all_U = np.zeros((N, im0_left.shape[0], im0_left.shape[1]), dtype=np.float32)
+        all_V = np.zeros((N, im0_left.shape[0], im0_left.shape[1]), dtype=np.float32)
+        x, y = np.meshgrid(np.arange(2048), np.arange(2048))
+        x = x.astype(np.float32)
+        y = y.astype(np.float32)
+        for i, image in enumerate(Images[1:(int(N/2)+1)]):
+            im = cv2.imread(image, 0)
+            print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
+            t1 = time.time()
+            all_U[i+1], all_V[i+1] = compute_flow(im0_left, im, optical_flow_parameters["pyram_levels"], 
+                                          optical_flow_parameters["factor"], 
+                                          optical_flow_parameters["ordre_inter"],
+                                          optical_flow_parameters["lmbda"], 
+                                          optical_flow_parameters["size_median_filter"],
+                                          optical_flow_parameters["max_linear_iter"], 
+                                          optical_flow_parameters["max_iter"], 
+                                          optical_flow_parameters["lambda2"], 
+                                          optical_flow_parameters["lambda3"], 
+                                          optical_flow_parameters["Mask"], 
+                                          optical_flow_parameters["LO_filter"])
+            t2 = time.time()
+            print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
+        for i, image in enumerate(Images[(int(N/2)+1):]):
+            im = cv2.imread(image, 0)
+            print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
+            t1 = time.time()
+            u, v = compute_flow(im0_right, im, optical_flow_parameters["pyram_levels"], 
+                                optical_flow_parameters["factor"], 
+                                optical_flow_parameters["ordre_inter"],
+                                optical_flow_parameters["lmbda"], 
+                                optical_flow_parameters["size_median_filter"],
+                                optical_flow_parameters["max_linear_iter"], 
+                                optical_flow_parameters["max_iter"], 
+                                optical_flow_parameters["lambda2"], 
+                                optical_flow_parameters["lambda3"], 
+                                optical_flow_parameters["Mask"], 
+                                optical_flow_parameters["LO_filter"])
+            t2 = time.time()
+            print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
+            u = u.astype(np.float32)
+            v = v.astype(np.float32)
+            all_U[int(N/2)+i+1] = all_U[int(N/2)] + cv2.remap(u, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
+            all_V[int(N/2)+i+1] = all_V[int(N/2)] + cv2.remap(v, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
+        print('Saving data to\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
+        np.save(Save_all_U, all_U)
+        np.save(Save_all_V, all_V)
+    
+    Xleft_id = []
+    Xright_id = []
+    for i in range (N) :
+        U, V = all_U[i], all_V[i]
+        nX1, nX2 = U.shape
+        # ntot = (lx2 - lx1) * (ly2 - ly1)
+        linsp = np.arange(nX1)+1
+        linsp = np.reshape (linsp, (1,nX1))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
+        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
+        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
+        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
+
+        # Left camera --> position = each px
+        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
+                                      np.ravel(X2matrix_w)]))
+        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
+                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
+
+        # Right camera --> position = each px + displacement
+        X_c2 = X_c1 + UV
+        if i < N//2 :
+            Xleft_id.append(X_c2)
+        else : 
+            Xright_id.append(X_c2)
+    
+    Xleft_id = np.array(Xleft_id)
+    Xright_id = np.array(Xright_id)
+    return (Xleft_id, Xright_id)
 
 def DIC_fields (__DIC_dict__,
-                detection = True,
-                saving_folder = 'Folders_npy',
                 flip = False) :
     """Use the DIC to calcul all the left deformed fields ans the right 
     deformed fields.
@@ -781,11 +775,6 @@ def DIC_fields (__DIC_dict__,
        __DIC_dict__ : dict
            DIC dictionnary including the picture folders, the saving name and 
            the window (in px) to study.
-       detection : bool, optional
-           If True, all the analysis will be done. If False, the code will 
-           take the informations in 'saving_folder'
-       saving_folder : str, optional
-           Folder to save or take datas
        flip : bool, optional
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
@@ -800,48 +789,49 @@ def DIC_fields (__DIC_dict__,
        V_right : numpy.ndarray
            All the right deformed fields in y direction.
     """
+    saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
-    if detection :
+    # Taking pre-calculated datas from the saving_folder
+    if os.path.exists(Save_UV) :
+        print('    - Taking datas from ', saving_folder)        
+        all_UV = np.load(Save_UV)
+        U_left, V_left, U_right, V_right = all_UV
+    else :
         Images_left = sorted(glob(str(left_folder) + '/*'))
         Images_right = sorted(glob(str(right_folder) + '/*'))
         Images = Images_left
         N = len(Images)
         for i in range (N) :
             Images.append(Images_right[i])    
+
         # Corners detection
-        if detection :
-            print('    - DIC in progress ...')
-            # DIC detection of the points from each camera
-            for i in range (N) :
-                image_t0_left, image_ti_left = Images[0], Images[i]
-                image_t0_right, image_ti_right = Images[N], Images[i+N]
-                Ul, Vl = DIC.strain_field(image_t0_left, 
-                                          image_ti_left,
-                                          flip = flip)
-                Ur, Vr = DIC.strain_field(image_t0_right, 
-                                          image_ti_right,
-                                          flip = flip)
-                if i == 0 :
-                    U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                    V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                    U_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                    V_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                U_left[i] = Ul
-                V_left[i] = Vl
-                U_right[i] = Ur
-                V_right[i] = Vr
+        print('    - DIC in progress ...')
+        # DIC detection of the points from each camera
+        for i in range (N) :
+            image_t0_left, image_ti_left = Images[0], Images[i]
+            image_t0_right, image_ti_right = Images[N], Images[i+N]
+            Ul, Vl = DIC.strain_field(image_t0_left, 
+                                      image_ti_left,
+                                      flip = flip)
+            Ur, Vr = DIC.strain_field(image_t0_right, 
+                                      image_ti_right,
+                                      flip = flip)
+            if i == 0 :
+                U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+            U_left[i] = Ul
+            V_left[i] = Vl
+            U_right[i] = Ur
+            V_right[i] = Vr
         all_UV = np.array([U_left, V_left, U_right, V_right])       
         np.save(Save_UV, all_UV)
         print('    - Saving datas in ', saving_folder)
-    # Taking pre-calculated datas from the saving_folder
-    else :
-        print('    - Taking datas from ', saving_folder)        
-        all_UV = np.load(Save_UV)
-        U_left, V_left, U_right, V_right = all_UV
-        
+
     return(U_left, V_left, U_right, V_right)
 
 
@@ -859,8 +849,6 @@ def camera_np_coordinates (all_X,
        x3_list : numpy.ndarray
            List of the different z position. (Ordered the same way in the 
            target folder)
-       saving_folder : str, optional
-           Where to save datas
     Returns:
        x : numpy.ndarray
            Organised real positions in 3D space
@@ -925,12 +913,14 @@ def camera_np_coordinates (all_X,
 
 if __name__ == '__main__' :
     main_path = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src'    
+    saving_folder = main_path + '/results/2022_02_28_results/Test'
     
     # Define the inputs
     __calibration_dict__ = {
     'left_folder' : main_path + '/Images_example/2022_02_28/test1',
     'right_folder' : main_path + '/Images_example/2022_02_28/test2',
     'name' : 'micro_calibration',
+    'saving_folder' : saving_folder,
     'ncx' : 16,
     'ncy' : 12,
     'sqr' : 0.3}
@@ -945,9 +935,6 @@ if __name__ == '__main__' :
     # Chose the degrees for Soloff and direct polynomial fitting
     Soloff_pform = 332
     direct_pform = 4
-
-    # Create the result folder if not exist
-    saving_folder = main_path + '/results/2022_02_28_results/Test'
     
     # Create the result folder if not exist
     if os.path.exists(saving_folder) :
@@ -958,7 +945,5 @@ if __name__ == '__main__' :
     
     
     all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
-                                            detection = True,
-                                            saving_folder = saving_folder,
-                                            hybrid_verification = False)    
+                                             hybrid_verification = False)    
     

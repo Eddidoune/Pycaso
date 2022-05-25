@@ -173,20 +173,29 @@ def getresidue(ima,imb,f):
 
 def strain_field (image_1, 
                   image_2, 
-                  window = [False], 
-                  show = False,
-                  flip = False) :
-    """Calcul the strain field betxeen two images.
+                  window = [False],
+                  flip = False,
+                  vr_kwargs=dict()) :
+    """Calcul the displacement field between two images.
 
     Args:
         image_1 : type = class 'str'
             reference image      
         image_2 : type = class 'str'
             image you want to compare with the image_2
+        window : type = list
+            The ZOI of the images
+        flip : type = Bool
+            If calibration image were flipped, those have to be flip too.
+        vr_kwargs : type = dict
+            Correlations parameters
 
     Returns:
-        Graphic :           Plot the strain_field
-        savefig :           Save the graphic in the folder 'Resultats'
+        U : type = numpy.ndarray
+            U displacement field (x coord)
+        V : type : numpy.ndarray
+            V displacement field (y coord)
+        
     """    
     img_ref_original = cv2.imread(image_1,0) 
     img_def_original = cv2.imread(image_2,0) 
@@ -200,46 +209,26 @@ def strain_field (image_1,
         img_def_original = img_def_original[ly1:ly2, lx1:lx2]
         
 
+    alpha = vr_kwargs['alpha'] if 'alpha' in vr_kwargs else 3
+    delta = vr_kwargs['delta'] if 'delta' in vr_kwargs else 1
+    gamma = vr_kwargs['gamma'] if 'gamma' in vr_kwargs else 0
+    iterations = vr_kwargs['iterations'] if 'iterations' in vr_kwargs else 10
+    print(alpha, delta, gamma, iterations)
     flow = cv2.DISOpticalFlow_create()
     flow.setFinestScale(0)
     # cf https://www.mia.uni-saarland.de/Publications/brox-eccv04-of.pdf
-    flow.setVariationalRefinementAlpha(3)
-    flow.setVariationalRefinementDelta(1)
-    flow.setVariationalRefinementGamma(0)
-    flow.setVariationalRefinementIterations(10)
+    flow.setVariationalRefinementAlpha(alpha)
+    flow.setVariationalRefinementDelta(delta)
+    flow.setVariationalRefinementGamma(gamma)
+    flow.setVariationalRefinementIterations(iterations)
     res = flow.calc(img_ref_original, img_def_original, None)
-
-
-
-    f = Vref().calc(img_ref_original, img_def_original, res.copy())
-
-    res = f
 
     U = res[:,:,0] # The X-displacement
     V = res[:,:,1] # The Y-displacement
 
-    if show :
-        # Finding all of the strains (Evm = Von Mises)
-        Exy, Exx = np.gradient(U)
-        Eyy, Eyx = np.gradient(V)
-        Eshear = 0.5*(Exy + Eyx)
-        Evm = np.sqrt((4/9)*(Exx**2+Eyy**2-Exx*Eyy)+(4/3)*(Exy**2))# Von mises
-    
-    
-        # Plot the strains fields (here Exx)
-        plt.rcParams['font.size'] = 14
-        plt.rcParams['font.family'] = 'serif'
-        fig1 = plt.figure(figsize=(12,7.3))
-        plt.imshow(Exx*100,plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(0,0.05)
-        #plt.imshow(dst_int[600:3600,1200:3900],plt.get_cmap('gray'), alpha = 0.7)
-        font = {'family' : 'serif',
-                'color'  : 'k',
-                'weight' : 'normal',
-                'size'   : 16,
-                }
-        cb.set_label(r'$\epsilon_{xx}$ (%)', fontdict = font)
-        plt.show()
     return (U,V)
+
+    
 
 if __name__ == '__main__' :
     ('#############################################################')

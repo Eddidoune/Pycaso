@@ -15,16 +15,18 @@ import os
 from glob import glob
 sys.path.append('../Pycaso')
 
-import main
+import Pycaso as pcs
 import data_library as data
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__' :    
+    saving_folder = 'results/main_expl_300_1700'
     # Define the inputs
     __calibration_dict__ = {
     'left_folder' : 'Images_example/left_calibration',
     'right_folder' : 'Images_example/right_calibration',
     'name' : 'micro_calibration',
+    'saving_folder' : saving_folder,
     'ncx' : 16,
     'ncy' : 12,
     'sqr' : 0.3}
@@ -33,6 +35,7 @@ if __name__ == '__main__' :
     'left_folder' : 'Images_example/left_coin_identification',
     'right_folder' : 'Images_example/right_coin_identification',
     'name' : 'micro_identification',
+    'saving_folder' : saving_folder,
     'window' : [[300, 1700], [300, 1700]]}
     
     # Create the list of z plans
@@ -47,7 +50,6 @@ if __name__ == '__main__' :
     direct_pform = 4
     
     # Create the result folder if not exist
-    saving_folder = 'results/main_expl_300_1700'
     if os.path.exists(saving_folder) :
         ()
     else :
@@ -59,30 +61,24 @@ if __name__ == '__main__' :
     print('Direct method - Start calibration')
     print('#####       ')
     print('')
-    direct_A, Mag = main.direct_calibration (__calibration_dict__,
-                                             x3_list,
-                                             saving_folder,
-                                             direct_pform,
-                                             detection = True)
+    direct_A, Mag = pcs.direct_calibration (__calibration_dict__,
+                                            x3_list,
+                                            direct_pform)
     
     print('')
     print('#####       ')
     print('Soloff method - Start calibration')
     print('#####       ')  
-    A111, A_pol, Mag = main.Soloff_calibration (__calibration_dict__,
-                                                x3_list,
-                                                saving_folder,
-                                                Soloff_pform = Soloff_pform,
-                                                detection = False)
+    A111, A_pol, Mag = pcs.Soloff_calibration (__calibration_dict__,
+                                               x3_list,
+                                               Soloff_pform = Soloff_pform)
     
     print('')
     print('#####       ')
     print('Identification of displacements field by DIC')
     print('#####       ')
     print('')
-    Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__, 
-                                                           detection = True,
-                                                           saving_folder = saving_folder)
+    Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__)
         
     print('')
     print('#####       ')
@@ -94,10 +90,10 @@ if __name__ == '__main__' :
     X_c2 = Xright_id[0]
     
     # Direct identification
-    xDirect_solution = main.direct_identification (X_c1,
-                                                   X_c2,
-                                                   direct_A,
-                                                   direct_pform = direct_pform)
+    xDirect_solution = pcs.direct_identification (X_c1,
+                                                  X_c2,
+                                                  direct_A,
+                                                  direct_pform = direct_pform)
     xD, yD, zD = xDirect_solution
     wnd = __DIC_dict__['window']    
     zD = zD.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
@@ -121,12 +117,12 @@ if __name__ == '__main__' :
     if os.path.exists(soloff_file) :
         xSoloff_solution = np.load(soloff_file)
     else :
-        xSoloff_solution = main.Soloff_identification (X_c1,
-                                                       X_c2,
-                                                       A111, 
-                                                       A_pol,
-                                                       Soloff_pform = Soloff_pform,
-                                                       method = 'curve_fit')       
+        xSoloff_solution = pcs.Soloff_identification (X_c1,
+                                                      X_c2,
+                                                      A111, 
+                                                      A_pol,
+                                                      Soloff_pform = Soloff_pform,
+                                                      method = 'curve_fit')       
         np.save(soloff_file, xSoloff_solution)
     
     xS, yS, zS = xSoloff_solution
@@ -154,13 +150,13 @@ if __name__ == '__main__' :
         xAI_solution = np.load(AI_file)
     else :
         # Train the AI with already known points
-        model = main.AI_training (X_c1,
+        model = pcs.AI_training (X_c1,
                                   X_c2,
                                   xSoloff_solution,
                                   AI_training_size = AI_training_size,
                                   file = model_file)
         # Use the AI model to solve every points
-        xAI_solution = main.AI_identification (X_c1,
+        xAI_solution = pcs.AI_identification (X_c1,
                                                X_c2,
                                                model)
         np.save(AI_file, xAI_solution)
