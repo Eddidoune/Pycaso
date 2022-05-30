@@ -449,7 +449,7 @@ if __name__ == '__main__' :
     
     A111, A_pol, Magnification = Soloff_calibration (__calibration_dict__,
                                                      x3_list,
-                                                     Soloff_pform = Soloff_pform)
+                                                     Soloff_pform)
 
     print('')
     print('#####       ')
@@ -478,8 +478,8 @@ if __name__ == '__main__' :
     Xleft_idc, Xright_idc = data.DIC_3D_composed_detection(__DIC_dict__,
                                                            flip = False)
     
-    Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__,
-                                                            flip = False)
+    Xleft_id, Xright_id = data.DIC_disflow(__DIC_dict__,
+                                           flip = False)
     
     Np_img, Npoints, Naxes = Xleft_id.shape
     all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))

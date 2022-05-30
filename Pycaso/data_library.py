@@ -543,8 +543,8 @@ def pattern_detection (__dict__,
         
     return(all_X, all_x, nb_pts)
 
-def DIC_3D_detection_lagrangian (__DIC_dict__,
-                                flip = False) :
+def DIC_disflow (__DIC_dict__,
+                 flip = False) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the deformed ones (other left and right pictures).
     
@@ -675,8 +675,8 @@ def DIC_3D_composed_detection (__DIC_dict__,
     else :
         optical_flow_parameters = opt_flow
 
-    Images_left = sorted(glob(str(left_folder) + '/*.tif*'))
-    Images_right = sorted(glob(str(right_folder) + '/*.tif*'))
+    Images_left = sorted(glob(str(left_folder) + '/*'))
+    Images_right = sorted(glob(str(right_folder) + '/*'))
     Images = Images_left
     N = len(Images)
     for i in range (N) :
@@ -684,40 +684,48 @@ def DIC_3D_composed_detection (__DIC_dict__,
     [lx1, lx2], [ly1, ly2] = window
     N = len(Images)
     
-    if os.path.exists(Save_all_U) and os.path.exists(Save_all_U):
+    if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         all_U = np.load(Save_all_U)
         all_V = np.load(Save_all_V)
     else:
         im0_left = cv2.imread(Images[0], 0)
         im0_right = cv2.imread(Images[int(N/2)], 0)
-        all_U = np.zeros((N, im0_left.shape[0], im0_left.shape[1]), dtype=np.float32)
-        all_V = np.zeros((N, im0_left.shape[0], im0_left.shape[1]), dtype=np.float32)
+        nx, ny = im0_left.shape
+        all_U = np.zeros((N, nx, ny), dtype=np.float32)
+        all_V = np.zeros((N, nx, ny), dtype=np.float32)
         x, y = np.meshgrid(np.arange(2048), np.arange(2048))
         x = x.astype(np.float32)
         y = y.astype(np.float32)
+        # Left0/left camera correlations + left0 / right0 correlation
         for i, image in enumerate(Images[1:(int(N/2)+1)]):
             im = cv2.imread(image, 0)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
             t1 = time.time()
-            all_U[i+1], all_V[i+1] = compute_flow(im0_left, im, optical_flow_parameters["pyram_levels"], 
-                                          optical_flow_parameters["factor"], 
-                                          optical_flow_parameters["ordre_inter"],
-                                          optical_flow_parameters["lmbda"], 
-                                          optical_flow_parameters["size_median_filter"],
-                                          optical_flow_parameters["max_linear_iter"], 
-                                          optical_flow_parameters["max_iter"], 
-                                          optical_flow_parameters["lambda2"], 
-                                          optical_flow_parameters["lambda3"], 
-                                          optical_flow_parameters["Mask"], 
-                                          optical_flow_parameters["LO_filter"])
+            all_U[i], all_V[i] = compute_flow(im0_left, 
+                                              im, 
+                                              optical_flow_parameters["pyram_levels"], 
+                                              optical_flow_parameters["factor"], 
+                                              optical_flow_parameters["ordre_inter"],
+                                              optical_flow_parameters["lmbda"], 
+                                              optical_flow_parameters["size_median_filter"],
+                                              optical_flow_parameters["max_linear_iter"], 
+                                              optical_flow_parameters["max_iter"], 
+                                              optical_flow_parameters["lambda2"], 
+                                              optical_flow_parameters["lambda3"], 
+                                              optical_flow_parameters["Mask"], 
+                                              optical_flow_parameters["LO_filter"])
             t2 = time.time()
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
+        # Left0/right camera composed correlations 
         for i, image in enumerate(Images[(int(N/2)+1):]):
             im = cv2.imread(image, 0)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
             t1 = time.time()
-            u, v = compute_flow(im0_right, im, optical_flow_parameters["pyram_levels"], 
+            # Right0/right camera correlation
+            u, v = compute_flow(im0_right, 
+                                im, 
+                                optical_flow_parameters["pyram_levels"], 
                                 optical_flow_parameters["factor"], 
                                 optical_flow_parameters["ordre_inter"],
                                 optical_flow_parameters["lmbda"], 
@@ -732,6 +740,7 @@ def DIC_3D_composed_detection (__DIC_dict__,
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
             u = u.astype(np.float32)
             v = v.astype(np.float32)
+            # Composition of transformations
             all_U[int(N/2)+i+1] = all_U[int(N/2)] + cv2.remap(u, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
             all_V[int(N/2)+i+1] = all_V[int(N/2)] + cv2.remap(v, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
         print('Saving data to\n\t%s\n\t%s' % (Save_all_U, Save_all_V))

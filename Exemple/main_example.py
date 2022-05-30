@@ -32,8 +32,8 @@ if __name__ == '__main__' :
     'sqr' : 0.3}
     
     __DIC_dict__ = {
-    'left_folder' : 'Images_example/left_coin_identification',
-    'right_folder' : 'Images_example/right_coin_identification',
+    'left_folder' : 'Images_example/left_identification',
+    'right_folder' : 'Images_example/right_identification',
     'name' : 'micro_identification',
     'saving_folder' : saving_folder,
     'window' : [[300, 1700], [300, 1700]]}
@@ -71,14 +71,14 @@ if __name__ == '__main__' :
     print('#####       ')  
     A111, A_pol, Mag = pcs.Soloff_calibration (__calibration_dict__,
                                                x3_list,
-                                               Soloff_pform = Soloff_pform)
+                                               Soloff_pform)
     
     print('')
     print('#####       ')
     print('Identification of displacements field by DIC')
     print('#####       ')
     print('')
-    Xleft_id, Xright_id = data.DIC_3D_detection_lagrangian(__DIC_dict__)
+    Xleft_id, Xright_id = data.DIC_disflow(__DIC_dict__)
         
     print('')
     print('#####       ')
@@ -93,7 +93,7 @@ if __name__ == '__main__' :
     xDirect_solution = pcs.direct_identification (X_c1,
                                                   X_c2,
                                                   direct_A,
-                                                  direct_pform = direct_pform)
+                                                  direct_pform)
     xD, yD, zD = xDirect_solution
     wnd = __DIC_dict__['window']    
     zD = zD.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
@@ -102,11 +102,9 @@ if __name__ == '__main__' :
     plt.imshow(zD)
     plt.title('Z projected on left camera with direct calculation')
     cb = plt.colorbar()
+    plt.clim(2.6, 3)
     cb.set_label('z in mm')
     plt.show() 
-    
-    
-    
     
     
     # Soloff identification
@@ -121,7 +119,7 @@ if __name__ == '__main__' :
                                                       X_c2,
                                                       A111, 
                                                       A_pol,
-                                                      Soloff_pform = Soloff_pform,
+                                                      Soloff_pform,
                                                       method = 'curve_fit')       
         np.save(soloff_file, xSoloff_solution)
     
@@ -132,12 +130,9 @@ if __name__ == '__main__' :
     plt.imshow(zS)
     plt.title('Z projected on left camera with Soloff calculation')
     cb = plt.colorbar()
+    plt.clim(2.6, 3)
     cb.set_label('z in mm')
     plt.show()  
-    
-    
-    
-    
     
     
     # AI identification
@@ -157,8 +152,8 @@ if __name__ == '__main__' :
                                   file = model_file)
         # Use the AI model to solve every points
         xAI_solution = pcs.AI_identification (X_c1,
-                                               X_c2,
-                                               model)
+                                              X_c2,
+                                              model)
         np.save(AI_file, xAI_solution)
     
     xAI, yAI, zAI = xAI_solution
@@ -169,6 +164,7 @@ if __name__ == '__main__' :
     plt.imshow(zAI)
     plt.title('Z projected on left camera with AI calculation')
     cb = plt.colorbar()
+    plt.clim(2.6, 3)
     cb.set_label('z in mm')
     plt.show()  
              
