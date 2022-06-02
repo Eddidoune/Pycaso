@@ -610,9 +610,13 @@ def DIC_disflow (__DIC_dict__,
         all_V = np.zeros((N, im0.shape[0], im0.shape[1]))
         for i in range(1, N):
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], Images[i]))
+            Im1 = cv2.imread(Images[0],0) 
+            Im2 = cv2.imread(Images[i],0) 
+            if flip :
+                Im1 = cv2.flip(Im1, 1)
+                Im2 = cv2.flip(Im2, 1)
             all_U[i], all_V[i] = DIC.strain_field(Images[0], 
-                                                  Images[i], 
-                                                  flip = flip,
+                                                  Images[i],
                                                   vr_kwargs=vr_kwargs)
 
         np.save(Save_all_U, all_U)
@@ -828,6 +832,7 @@ def DIC_fields (__DIC_dict__,
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
+    vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
     # Taking pre-calculated datas from the saving_folder
     if os.path.exists(Save_UV) :
         print('    - Taking datas from ', saving_folder)        
@@ -845,14 +850,24 @@ def DIC_fields (__DIC_dict__,
         print('    - DIC in progress ...')
         # DIC detection of the points from each camera
         for i in range (N) :
-            image_t0_left, image_ti_left = Images[0], Images[i]
-            image_t0_right, image_ti_right = Images[N], Images[i+N]
-            Ul, Vl = DIC.strain_field(image_t0_left, 
-                                      image_ti_left,
-                                      flip = flip)
-            Ur, Vr = DIC.strain_field(image_t0_right, 
-                                      image_ti_right,
-                                      flip = flip)
+            Iml1, Iml2 = Images[0], Images[i]
+            Imr1, Imr2 = Images[N], Images[i+N]
+            Iml1 = cv2.imread(Images[0],0) 
+            Iml2 = cv2.imread(Images[i],0) 
+            Imr1 = cv2.imread(Images[N],0) 
+            Imr2 = cv2.imread(Images[i+N],0) 
+            if flip :
+                Iml1 = cv2.flip(Iml1, 1)
+                Iml2 = cv2.flip(Iml2, 1)
+                Imr1 = cv2.flip(Imr1, 1)
+                Imr2 = cv2.flip(Imr2, 1)
+            
+            Ul, Vl = DIC.strain_field(Iml1, 
+                                      Iml2,
+                                      vr_kwargs=vr_kwargs)
+            Ur, Vr = DIC.strain_field(Imr1, 
+                                      Imr2,
+                                      vr_kwargs=vr_kwargs)
             if i == 0 :
                 U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
                 V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))

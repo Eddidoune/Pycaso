@@ -512,7 +512,7 @@ if __name__ == '__main__' :
         xDirect_solution = direct_identification (X_c1,
                                                   X_c2,
                                                   direct_A,
-                                                  direct_pform = direct_pform)
+                                                  direct_pform)
         xD, yD, zD = xDirect_solution
         df.insert(df.shape[1], 'xDirect', xD, True)
         df.insert(df.shape[1], 'yDirect', yD, True)
@@ -536,10 +536,10 @@ if __name__ == '__main__' :
                                                       X_c2,
                                                       A111, 
                                                       A_pol,
-                                                      Soloff_pform = Soloff_pform,
+                                                      Soloff_pform,
                                                       method = 'curve_fit')       
             np.save(soloff_file, xSoloff_solution)
-
+        sys.exit()
         t1 = time.time()
         print('time Soloff = ',t1 - t0)
         print('end SOLOFF')
