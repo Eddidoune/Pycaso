@@ -10,12 +10,10 @@ except ImportError:
     import numpy as np
 from matplotlib import pyplot as plt
 import scipy.optimize as sopt
-from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import RandomizedSearchCV
-import sys
- 
+
+  
 class Direct_Polynome(dict) :
     def __init__(self, _dict_):
         self._dict_ = _dict_
@@ -99,7 +97,7 @@ class Direct_Polynome(dict) :
 
         return (M)
     
-
+   
 class Soloff_Polynome(dict) :
     def __init__(self, _dict_):
         self._dict_ = _dict_
@@ -440,18 +438,15 @@ def least_square_method (Xc1_identified,
     a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
     a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
     A = np.array([a1c1, a2c1, a1c2, a2c2])
+    A = A[:,1:4]
+    At = np.transpose (A)  
+    J = np.matmul(At, A)
+    J_ = np.linalg.inv(J)
     
     for i in range (N) :
-    
         X1c1, X2c1 = Xc1_identified[i,0], Xc1_identified[i,1]
         X1c2, X2c2 = Xc2_identified[i,0], Xc2_identified[i,1]
-
         X = np.array([X1c1-a1c1[0], X2c1-a2c1[0], X1c2-a1c2[0], X2c2-a2c2[0]])
-        
-        A = A[:,1:4]
-        At = np.transpose (A)
-        J = np.matmul(At, A)
-        J_ = np.linalg.inv(J)
         XA = np.matmul(X, A)
         x0i = np.matmul(J_, XA)
         x0[:, i] = x0i
@@ -659,7 +654,6 @@ def AI_solve (file,
     # TEST 
     X2=dat[N:,0:4]
     Y2=dat[N:,4:7]
-    predictions = model.predict(X2)
     
     # hyperparameter tuning 
     if hyperparameters_tuning :
