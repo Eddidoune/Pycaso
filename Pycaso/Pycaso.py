@@ -102,7 +102,7 @@ def Soloff_calibration (__calibration_dict__,
     elif Soloff_pform == 555 :
         A_pol = np.zeros((2, 2, 56))    
     else :
-        print ('Only define for polynomial forms (111, 221, 222, 332, 333, 443, 444, 554 or 555')
+        print ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
         sys.exit()
     
     A_0 = [A111, A_pol]
@@ -339,9 +339,15 @@ def AI_training (X_c1,
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
     Xr0, Yr0 = X_c2[:,0], X_c2[:,1]
     xS, yS, zS = xSoloff_solution
+    N = X_c1.shape[0]
+    if AI_training_size > N :
+        print('AI_training_size reduced to size ', N)
+        AI_training_size = N
+    else :
+        ()
     
     # List of random points (To minimize the size of calculation)
-    rd_list = np.ndarray.astype((np.random.rand(AI_training_size)*X_c1.shape[0]),int)    
+    rd_list = np.ndarray.astype((np.random.rand(AI_training_size)*N),int)    
     with open(file, 'w', newline='') as csvfile:
         spamwriter = csv.writer(csvfile, 
                                 delimiter=' ',
@@ -413,7 +419,7 @@ if __name__ == '__main__' :
     'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_sample_identification',
     'name' : 'micro_identification',
     'saving_folder' : saving_folder,
-    'window' : [[0, 2048], [0, 2048]]}  #in mm
+    'window' : [[200, 1800], [200, 1800]]}  #in mm
     
     profilo = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_04_15_results_adrien_micromachine/profilo/x5_stitching5x5_tilt_cyl_removed_overlap40.npy'
     
@@ -483,11 +489,11 @@ if __name__ == '__main__' :
     
     Np_img, Npoints, Naxes = Xleft_id.shape
     all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
-    sys.exit()
     xDirect_solutions = np.zeros((Np_img, 3, Npoints))
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xAI_solutions = np.zeros((Np_img, 3, Npoints))
-    for image in range (Np_img) :
+
+    for image in range (1) :
         print('')
         print('')
         print('Calculation of the DIC ', image)
@@ -522,7 +528,7 @@ if __name__ == '__main__' :
 
         # Soloff identification
         t0 = time.time()
-        soloff_file = saving_folder + '/xsolution_soloff' + str(image) + '.npy'
+        soloff_file = saving_folder + '/xsolution_soloff200_1800' + str(image) + '.npy'
         if os.path.exists(soloff_file) and True :
             xSoloff_solution = np.load(soloff_file)
         else :
@@ -582,11 +588,14 @@ if __name__ == '__main__' :
         # Chose the Number of Datas for Artificial Intelligence Learning
         AI_training_size = 50000
         # Create the .csv to make an AI identification
-        AI_file = saving_folder + '/xsolution_AI' + str(image) + '.npy'
+        AI_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
         
         x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
-                                                 all_Xref, 
-                                                 x3_list)
+                                                    all_Xref, 
+                                                    x3_list)
+        
+        Xc1_ = np.transpose(Xc1_)
+        Xc2_ = np.transpose(Xc2_)
         
         t0 = time.time()
         if os.path.exists(AI_file) and False :
@@ -600,12 +609,13 @@ if __name__ == '__main__' :
                                      xSoloff_solution,
                                      AI_training_size = AI_training_size,
                                      file = model_file)
-                # model_file2 = saving_folder +'/Soloff_AI_' + str(image) + '_ChAruco.csv'      
-                # model = AI_training (Xc1_,
-                #                      Xc2_,
-                #                      x_,
-                #                      AI_training_size = AI_training_size,
-                #                      file = model_file2)
+                
+                model_file2 = saving_folder +'/Soloff_AI_' + str(image) + '_ChAruco.csv'      
+                model2 = AI_training (Xc1_,
+                                      Xc2_,
+                                      x_,
+                                      AI_training_size = AI_training_size,
+                                      file = model_file2)
             t1 = time.time()
             print('time training = ',t1 - t0)
 
@@ -613,69 +623,14 @@ if __name__ == '__main__' :
             xAI_solution = AI_identification (X_c1,
                                               X_c2,
                                               model)
+            xAI_solution2 = AI_identification (X_c1,
+                                               X_c2,
+                                               model2)
+            
             np.save(AI_file, xAI_solution)
+            np.save(AI_file, xAI_solution2)
         t2 = time.time()
         print('time AI = ',t2 - t1)
         print('end AI')
         xAI, yAI, zAI = xAI_solution
         
-
-        '''
-        
-        
-        plt.figure()
-        plt.imshow(Z-nd.median_filter(Z,5))
-        plt.title('Z median filter projected on left camera')
-        cb = plt.colorbar()
-        plt.clim(3.15, 3.27) 
-        cb.set_label('z in mm')
-        plt.clim(-0.0005,0.0005)
-        plt.show()               
-        
-        # sys.exit()
-        
-        # Calcul of the cinematic fields
-        if image != 0 :
-            N_xy = int(math.sqrt(len(xS)))
-            x0, y0, z0 = np.reshape(xSoloff_solutions[0],(3,N_xy,N_xy))
-            xt, yt, zt = np.reshape(xSoloff_solution,(3,N_xy,N_xy))
-            U, V, W = x0-xt, y0-yt, z0-zt
-            df.insert(df.shape[1], 'U', np.ravel(U), True)
-            df.insert(df.shape[1], 'V', np.ravel(V), True)
-            df.insert(df.shape[1], 'W', np.ravel(W), True)
-            # Plot the displacements fields (here U)
-            Exy, Exx = np.gradient(U)
-            Eyy, Eyx = np.gradient(V)
-            Ezy, Ezx = np.gradient(W)
-            Exx = 100 * Exx
-            Eyy = 100 * Eyy
-            Ezy = 100 * Ezy
-            
-            aa = 20
-            plt.imshow(Exx,plt.get_cmap('hot'))
-            cb = plt.colorbar()
-            plt.clim(np.min(Exx)/aa,np.max(Exx)/aa)
-            cb.set_label(r'Exx (%)')
-            plt.title('Exx')
-            plt.figure()
-            plt.show()
-            
-            plt.imshow(Eyy,plt.get_cmap('hot'))
-            cb = plt.colorbar()
-            plt.clim(np.min(Eyy)/aa,np.max(Eyy)/aa)
-            cb.set_label(r'Eyy (%)')
-            plt.title('Eyy')
-            plt.figure()
-            plt.show()
-            
-            plt.imshow(Ezy,plt.get_cmap('hot'))
-            cb = plt.colorbar()
-            plt.clim(np.min(Ezy)/aa,np.max(Ezy)/aa)
-            cb.set_label(r'Ezy (%)')
-            plt.title('Ezy')
-            plt.figure()
-            plt.show()
-
-            
-        
-        '''

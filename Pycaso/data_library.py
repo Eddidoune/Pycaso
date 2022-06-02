@@ -17,13 +17,12 @@ from skimage.segmentation import clear_border
 
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 from compute_flow import compute_flow
-sys.path.append('/home/aberger/Documents/phd_thesis/03_Essais')
-# from dicRelated import get_sensor_sized_field, load_yadics_nc
 
 try : 
     import cupy as np
 except ImportError:
     import numpy as np
+
 import cv2
 import cv2.aruco as aruco
 
@@ -143,8 +142,25 @@ class Calibrate(dict):
         ptA = corners_list[0]
         xA, yA, idA = ptA
         lineA, columnA = np.where(pts_list==idA)
-        pts_list_cut = np.delete(pts_list, lineA, 0)
-        pts_list_cut = np.delete(pts_list_cut, columnA, 1)
+        # Recreate the function numpy.delete for cupy
+        def delete_arr (arr0, obj, axis) :
+            nxarr, nyarr = arr0.shape
+            obj = int(obj)
+            if axis == 0 :
+                arr1 = arr0[:obj]
+                arr2 = arr0[obj+1:]
+                arrt = np.append(arr1, arr2)
+                arrt = arrt.reshape((nxarr-1,nyarr))
+            elif axis == 1 :
+                arr1 = np.transpose(arr0[:,:obj])
+                arr2 = np.transpose(arr0[:,obj+1:])
+                arrt = np.append(arr1, arr2)
+                arrt = arrt.reshape((nyarr-1,nxarr))
+                arrt = np.transpose(arrt)
+            return(arrt)
+
+        pts_list_cut = delete_arr(pts_list, lineA, 0)
+        pts_list_cut = delete_arr(pts_list_cut, columnA, 1)
         pts_list_cut = np.ravel(pts_list_cut)
         ptB = []
         out_of_range_points = 0
@@ -216,8 +232,8 @@ class Calibrate(dict):
                         bary, barx = np.nan, np.nan
                 y_dot = bary + yi - d
                 x_dot = barx + xi - d
-
-                arr = np.array([x_dot, y_dot, id_])
+                
+                arr = np.array([float(x_dot), float(y_dot), float(id_)])
                 if hybrid_verification :
                     plt.annotate(id_, (x_dot, y_dot))
                     plt.scatter(x_dot, y_dot, c='b', label = 'Hessian')
@@ -691,6 +707,9 @@ def DIC_3D_composed_detection (__DIC_dict__,
     else:
         im0_left = cv2.imread(Images[0], 0)
         im0_right = cv2.imread(Images[int(N/2)], 0)
+        if flip :
+            im0_left = cv2.flip(im0_left, 1)
+            im0_right = cv2.flip(im0_right, 1)
         nx, ny = im0_left.shape
         all_U = np.zeros((N, nx, ny), dtype=np.float32)
         all_V = np.zeros((N, nx, ny), dtype=np.float32)
@@ -700,6 +719,8 @@ def DIC_3D_composed_detection (__DIC_dict__,
         # Left0/left camera correlations + left0 / right0 correlation
         for i, image in enumerate(Images[1:(int(N/2)+1)]):
             im = cv2.imread(image, 0)
+            if flip :
+                im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
             t1 = time.time()
             all_U[i], all_V[i] = compute_flow(im0_left, 
@@ -720,6 +741,8 @@ def DIC_3D_composed_detection (__DIC_dict__,
         # Left0/right camera composed correlations 
         for i, image in enumerate(Images[(int(N/2)+1):]):
             im = cv2.imread(image, 0)
+            if flip :
+                im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
             t1 = time.time()
             # Right0/right camera correlation
@@ -924,7 +947,7 @@ def camera_np_coordinates (all_X,
 
 if __name__ == '__main__' :
     main_path = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src'    
-    saving_folder = main_path + '/results/2022_02_28_results/Test'
+    saving_folder = main_path + '/results/2022_02_28_results/Test0'
     
     # Define the inputs
     __calibration_dict__ = {

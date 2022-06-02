@@ -140,21 +140,46 @@ if __name__ == '__main__' :
     AI_training_size = 50000
     # Create the .csv to make an AI identification
     model_file = saving_folder +'/Soloff_AI_0_' + str(AI_training_size) + '_points.csv'      
+    model_file2 = saving_folder +'/Soloff_AI_2_' + str(AI_training_size) + '_points.csv'      
     AI_file = saving_folder + '/xsolution_AI0.npy'
-    if os.path.exists(AI_file) :
+    AI_file2 = saving_folder + '/xsolution_AI2.npy'
+    if os.path.exists(AI_file) and False :
         xAI_solution = np.load(AI_file)
     else :
+        # Detect points from folders
+        all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__)        
+
+        # Creation of the reference matrix Xref and the real position Ucam for 
+        # each camera
+        x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)     
+        
+        Xc1 = np.transpose(Xc1)
+        Xc2 = np.transpose(Xc2)
+        
         # Train the AI with already known points
         model = pcs.AI_training (X_c1,
-                                  X_c2,
-                                  xSoloff_solution,
+                                 X_c2,
+                                 xSoloff_solution,
+                                 AI_training_size = AI_training_size,
+                                 file = model_file)
+
+        model2 = pcs.AI_training (Xc1,
+                                  Xc2,
+                                  x,
                                   AI_training_size = AI_training_size,
-                                  file = model_file)
+                                  file = model_file2)
+        
         # Use the AI model to solve every points
         xAI_solution = pcs.AI_identification (X_c1,
                                               X_c2,
                                               model)
+        
+        xAI_solution2 = pcs.AI_identification (X_c1,
+                                               X_c2,
+                                               model2)
+                
         np.save(AI_file, xAI_solution)
+        np.save(AI_file2, xAI_solution2)
     
     xAI, yAI, zAI = xAI_solution
     zAI = zAI.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
@@ -164,7 +189,7 @@ if __name__ == '__main__' :
     plt.imshow(zAI)
     plt.title('Z projected on left camera with AI calculation')
     cb = plt.colorbar()
-    plt.clim(2.6, 3)
     cb.set_label('z in mm')
     plt.show()  
-             
+    
+    

@@ -171,10 +171,9 @@ def getresidue(ima,imb,f):
     residue=ima-remap.astype('float32') 
     return residue
 
-def strain_field (image_1, 
-                  image_2, 
+def strain_field (Im1, 
+                  Im2, 
                   window = [False],
-                  flip = False,
                   vr_kwargs=dict()) :
     """Calcul the displacement field between two images.
 
@@ -185,8 +184,6 @@ def strain_field (image_1,
             image you want to compare with the image_2
         window : type = list
             The ZOI of the images
-        flip : type = Bool
-            If calibration image were flipped, those have to be flip too.
         vr_kwargs : type = dict
             Correlations parameters
 
@@ -197,16 +194,14 @@ def strain_field (image_1,
             V displacement field (y coord)
         
     """    
-    img_ref_original = cv2.imread(image_1,0) 
-    img_def_original = cv2.imread(image_2,0) 
-    if flip :
-        img_ref_original = cv2.flip(img_ref_original, 1)
-        img_def_original = cv2.flip(img_def_original, 1)
-
+    # Check the shape of the image sequence
+    if(Im1.shape != Im2.shape):
+        raise ValueError("Images must be the same shape")
+        
     if any(window) :
         [lx1, lx2], [ly1, ly2] = window
-        img_ref_original = img_ref_original[ly1:ly2, lx1:lx2]
-        img_def_original = img_def_original[ly1:ly2, lx1:lx2]
+        Im1 = Im1[ly1:ly2, lx1:lx2]
+        Im2 = Im2[ly1:ly2, lx1:lx2]
         
 
     alpha = vr_kwargs['alpha'] if 'alpha' in vr_kwargs else 3
@@ -220,7 +215,7 @@ def strain_field (image_1,
     flow.setVariationalRefinementDelta(delta)
     flow.setVariationalRefinementGamma(gamma)
     flow.setVariationalRefinementIterations(iterations)
-    res = flow.calc(img_ref_original, img_def_original, None)
+    res = flow.calc(Im1, Im2, None)
 
     U = res[:,:,0] # The X-displacement
     V = res[:,:,1] # The Y-displacement

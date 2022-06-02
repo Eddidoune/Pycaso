@@ -603,7 +603,6 @@ def AI_solve (file,
     X2=dat[N:,0:4]
     Y2=dat[N:,4:7]
     predictions = model.predict(X2)
-    print(mean_squared_error(predictions, Y2))
     
     # hyperparameter tuning 
     if hyperparameters_tuning :
