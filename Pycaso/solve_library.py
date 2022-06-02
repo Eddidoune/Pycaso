@@ -437,13 +437,15 @@ def least_square_method (Xc1_identified,
     """
     N = len (Xc1_identified)
     x0 = np.zeros((3, N))
+    a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
+    a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
+    A = np.array([a1c1, a2c1, a1c2, a2c2])
+    
     for i in range (N) :
+    
         X1c1, X2c1 = Xc1_identified[i,0], Xc1_identified[i,1]
         X1c2, X2c2 = Xc2_identified[i,0], Xc2_identified[i,1]
-        a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
-        a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
-    
-        A = np.array([a1c1, a2c1, a1c2, a2c2])
+
         X = np.array([X1c1-a1c1[0], X2c1-a2c1[0], X1c2-a1c2[0], X2c2-a2c2[0]])
         
         A = A[:,1:4]
@@ -451,8 +453,8 @@ def least_square_method (Xc1_identified,
         J = np.matmul(At, A)
         J_ = np.linalg.inv(J)
         XA = np.matmul(X, A)
-        
-        x0[:, i] = np.matmul(J_, XA)
+        x0i = np.matmul(J_, XA)
+        x0[:, i] = x0i
     
     return (x0)    
 
