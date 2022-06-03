@@ -8,10 +8,13 @@ try :
     import cupy as np
 except ImportError:
     import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import scipy.optimize as sopt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
+from sklearn.linear_model import LogisticRegression
+
+import seaborn as sn
 
   
 class Direct_Polynome(dict) :

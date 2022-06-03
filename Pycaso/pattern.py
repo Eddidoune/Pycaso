@@ -66,10 +66,9 @@ class Calibrate(dict):
 
 if __name__ == '__main__' :
     # Show the reals and theoreticals points  
-    test = {
+    __dict__ = {
     'ncx' : 18,
     'ncy' : 24,
     'dpi' : 1200}
     # Choose the dict
-    __dict__ = test
-    ChArucco_Board_build_img = Calibrate (__dict__).ChArucco_board()    
+    Calibrate (__dict__).ChArucco_board()    

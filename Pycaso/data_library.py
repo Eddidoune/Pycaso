@@ -690,6 +690,7 @@ def DIC_3D_composed_detection (__DIC_dict__,
                 "Mask": None,
                 "LO_filter": 0}
     
+    print('    - DIC in progress ...')
     if 'dic_kwargs' in __DIC_dict__ :
         optical_flow_parameters = __DIC_dict__['dic_kwargs']  
     else :
@@ -727,19 +728,19 @@ def DIC_3D_composed_detection (__DIC_dict__,
                 im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
             t1 = time.time()
-            all_U[i], all_V[i] = compute_flow(im0_left, 
-                                              im, 
-                                              optical_flow_parameters["pyram_levels"], 
-                                              optical_flow_parameters["factor"], 
-                                              optical_flow_parameters["ordre_inter"],
-                                              optical_flow_parameters["lmbda"], 
-                                              optical_flow_parameters["size_median_filter"],
-                                              optical_flow_parameters["max_linear_iter"], 
-                                              optical_flow_parameters["max_iter"], 
-                                              optical_flow_parameters["lambda2"], 
-                                              optical_flow_parameters["lambda3"], 
-                                              optical_flow_parameters["Mask"], 
-                                              optical_flow_parameters["LO_filter"])
+            all_U[i+1], all_V[i+1] = compute_flow(im0_left, 
+                                                  im, 
+                                                  optical_flow_parameters["pyram_levels"], 
+                                                  optical_flow_parameters["factor"], 
+                                                  optical_flow_parameters["ordre_inter"],
+                                                  optical_flow_parameters["lmbda"], 
+                                                  optical_flow_parameters["size_median_filter"],
+                                                  optical_flow_parameters["max_linear_iter"], 
+                                                  optical_flow_parameters["max_iter"], 
+                                                  optical_flow_parameters["lambda2"], 
+                                                  optical_flow_parameters["lambda3"], 
+                                                  optical_flow_parameters["Mask"], 
+                                                  optical_flow_parameters["LO_filter"])
             t2 = time.time()
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
         # Left0/right camera composed correlations 
