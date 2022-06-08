@@ -316,7 +316,8 @@ def AI_training (X_c1,
                  X_c2,
                  xSoloff_solution,
                  AI_training_size = 1000,
-                 file = 'Soloff_AI_training.csv') :
+                 file = 'Soloff_AI_training.csv',
+                 method = 'simultaneously') :
     """Training the AI metamodel with already known datas.
     
     Args:
@@ -330,7 +331,11 @@ def AI_training (X_c1,
            Number of datas (points) used to train the AI metamodel.
        file : str
            Name of saving file for training
-
+       method : str
+           AI method :
+                   - Simultaneously = x,y and z in the same model
+                   - Independantly = x,y and z in different models
+                   
     Returns:
        model : sklearn.ensemble._forest.RandomForestRegressor
            AI model
@@ -364,12 +369,20 @@ def AI_training (X_c1,
                                  str(yS[rd_list[i]]), 
                                  str(zS[rd_list[i]])])
     # Build the AI model with the AI_training_size.
-    model, accuracy = solvel.AI_solve (file)
-    return(model)
-
+    if method == 'simultaneously' :
+        model, accuracy = solvel.AI_solve_simultaneously (file)
+        return(model)
+    if method == 'independantly' :
+        modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
+        model = [modelx, modely, modelz]
+        return(model)
+    else :
+        print('No method ', method)
+    
 def AI_identification (X_c1,
                        X_c2,
-                       model) :
+                       model,
+                       method = 'simultaneously') :
     """Calculation of the 3D points with AI model.
     
     Args:
@@ -379,6 +392,10 @@ def AI_identification (X_c1,
            Right coordinates of points.
        model : sklearn.ensemble._forest.RandomForestRegressor
            AI model
+       method : str
+           AI method :
+                   - Simultaneously = x,y and z in the same model
+                   - Independantly = x,y and z in different models
 
     Returns:
        xAI_solution : numpy.ndarray
@@ -421,7 +438,7 @@ if __name__ == '__main__' :
     'saving_folder' : saving_folder,
     'window' : [[200, 1800], [200, 1800]]}  #in mm
     
-    profilo = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_04_15_results_adrien_micromachine/profilo/x5_stitching5x5_tilt_cyl_removed_overlap40.npy'
+    # profilo = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_04_15_results_adrien_micromachine/profilo/x5_stitching5x5_tilt_cyl_removed_overlap40.npy'
     
     
     # Create the list of z plans
@@ -493,10 +510,10 @@ if __name__ == '__main__' :
     xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
     xAI_solutions = np.zeros((Np_img, 3, Npoints))
 
-    for image in range (1) :
+    for image in range (Np_img) :
         print('')
         print('')
-        print('Calculation of the DIC ', image)
+        print('Calculation of the pair of images ', image+1)
         print('...')
         print('...')
         
@@ -536,10 +553,8 @@ if __name__ == '__main__' :
                                                       X_c2,
                                                       A111, 
                                                       A_pol,
-                                                      Soloff_pform,
-                                                      method = 'curve_fit')       
+                                                      Soloff_pform)       
             np.save(soloff_file, xSoloff_solution)
-        sys.exit()
         t1 = time.time()
         print('time Soloff = ',t1 - t0)
         print('end SOLOFF')
@@ -585,6 +600,8 @@ if __name__ == '__main__' :
         # cb.set_label('z in mm')
         # plt.show()    
 
+
+        '''
         # Chose the Number of Datas for Artificial Intelligence Learning
         AI_training_size = 50000
         # Create the .csv to make an AI identification
@@ -633,4 +650,4 @@ if __name__ == '__main__' :
         print('time AI = ',t2 - t1)
         print('end AI')
         xAI, yAI, zAI = xAI_solution
-        
+        '''

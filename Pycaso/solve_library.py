@@ -14,7 +14,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.linear_model import LogisticRegression
 
-import seaborn as sn
 
   
 class Direct_Polynome(dict) :
@@ -457,6 +456,22 @@ def least_square_method (Xc1_identified,
     return (x0)    
 
 
+def xopt_mlib (Xtuple) :
+    Xdetected, x0_part, Soloff_pform, A0 = Xtuple
+    Ns = Xdetected.shape[1]
+    xopt = np.zeros((3*Ns))
+    Xdetected_part = Xdetected
+    for i in range (Xdetected_part.shape[1]) :
+        X0i = Xdetected_part[:,i]
+        x0i = x0_part[:,i]
+        xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
+                                    A0, 
+                                    X0i, 
+                                    p0 = x0i, 
+                                    method ='lm')
+        xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
+    return (xopt)
+
 def Levenberg_Marquardt_solving (Xc1_identified, 
                                  Xc2_identified, 
                                  A, 
@@ -519,30 +534,14 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         else :            
             slices.append(slice(int(round(start)), int(round(start + win_size))))
     
-    if mlib :
-        def xopt_mlib (Xtuple) :
-            Xdetected, x0_part = Xtuple
-            Ns = Xdetected.shape[1]
-            xopt = np.zeros((3*Ns))
-            Xdetected_part = Xdetected
-            for i in range (Xdetected_part.shape[1]) :
-                X0i = Xdetected_part[:,i]
-                x0i = x0_part[:,i]
-                xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
-                                            A0, 
-                                            X0i, 
-                                            p0 = x0i, 
-                                            method ='lm')
-                xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
-            return (xopt)
-        
+    if mlib :       
         with Pool(core_number) as p :
             xtuple = []
             for i in range (core_number) :
                 sl = slices[i]
                 Xti = Xdetected[:, sl]
                 x0i = x0[:,sl]
-                xtuple.append((Xti, x0i))
+                xtuple.append((Xti, x0i,Soloff_pform, A0))
             xopt_parallel = p.map(xopt_mlib, xtuple)
             
         for part in range (len(xopt_parallel)) :
@@ -600,17 +599,17 @@ def Levenberg_Marquardt_solving (Xc1_identified,
 
 
 
-def AI_solve (file,
-              n_estimators=800, 
-              min_samples_leaf=1, 
-              min_samples_split=2, 
-              random_state=1, 
-              max_features='sqrt',
-              max_depth=100,
-              bootstrap='true',
-              hyperparameters_tuning = False) :  
-    """Calculation of the magnification between reals and detected positions 
-    and the calibration parameters A:--> x = A.M(X)
+def AI_solve_simultaneously (file,
+                             n_estimators=800, 
+                             min_samples_leaf=1, 
+                             min_samples_split=2, 
+                             random_state=1, 
+                             max_features='sqrt',
+                             max_depth=100,
+                             bootstrap='true',
+                             hyperparameters_tuning = False) :  
+    """Calculation of the AI model between all inputs (Xl and Xr) and 
+    outputs (x,y and z)
     
     Args:
        file : str
@@ -708,6 +707,174 @@ def AI_solve (file,
     
     accuracy = evaluate(model, X2, Y2)
     return(model, accuracy)
+
+
+def AI_solve_independantly (file,
+                            n_estimators=800, 
+                            min_samples_leaf=1, 
+                            min_samples_split=2, 
+                            random_state=1, 
+                            max_features='sqrt',
+                            max_depth=100,
+                            bootstrap='true',
+                            hyperparameters_tuning = False) :  
+    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    output (x,y or z)
+
+    
+    Args:
+       file : str
+           Name of saving file for training
+       n_estimators, 
+       min_samples_leaf, 
+       min_samples_split, 
+       random_state, 
+       max_features, 
+       max_depth, 
+       bootstrap,
+       hyperparameters_tuning : 
+          More information on the link :
+          https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
+           
+           
+    Returns:
+       modelx, modely, modelz : sklearn.ensemble._forest.RandomForestRegressor
+           IA metamodel for x,y and z coordinates
+       accuracyx, accuracyy, accuracyz : int
+           Accuracy of the IA metamodel compared with the training datas
+           for x,y and z coordinates.
+           
+    """
+    dat=pd.read_csv(file, sep=" " )
+    dat=np.array(dat)
+    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
+    # the last 1/5 datas.
+    N = int(len(dat)*4/5)
+    
+    # 1st meta-model
+    X=dat[0:N,0:4]
+    Yx=dat[0:N,4]
+    Yy=dat[0:N,5]
+    Yz=dat[0:N,6]
+    modelx = RandomForestRegressor(n_estimators=n_estimators, 
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
+    
+    modely = RandomForestRegressor(n_estimators=n_estimators, 
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
+    
+    modelz = RandomForestRegressor(n_estimators=n_estimators, 
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
+    
+    modelx.fit(X,Yx)
+    modely.fit(X,Yy)
+    modelz.fit(X,Yz)
+    
+    # TEST 
+    X2=dat[N:,0:4]
+    Yx2=dat[N:,4]
+    Yy2=dat[N:,5]
+    Yz2=dat[N:,6]
+    
+    # hyperparameter tuning 
+    if hyperparameters_tuning :
+        # Number of trees in random forest
+        n_estimators = [int(x) for x in np.linspace(start = 200, 
+                                                    stop = 2000, 
+                                                    num = 10)]
+        # Number of features to consider at every split
+        max_features = ['auto', 'sqrt']
+        # Maximum number of levels in tree
+        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+        max_depth.append(None)
+        # Minimum number of samples required to split a node
+        min_samples_split = [2, 5, 10]
+        # Minimum number of samples required at each leaf node
+        min_samples_leaf = [1, 2, 4]
+        # Method of selecting samples for training each tree
+        bootstrap = [True, False]# Create the random grid
+        random_grid = {'n_estimators': n_estimators,
+                        'max_features': max_features,
+                        'max_depth': max_depth,
+                        'min_samples_split': min_samples_split,
+                        'min_samples_leaf': min_samples_leaf,
+                        'bootstrap': bootstrap}
+        
+        rf_randomx = RandomizedSearchCV(estimator = modelx, 
+                                        param_distributions = random_grid, 
+                                        n_iter = 100, 
+                                        cv = 3, 
+                                        verbose=2, 
+                                        random_state=42, 
+                                        n_jobs = -1)
+        
+        rf_randomy = RandomizedSearchCV(estimator = modely, 
+                                        param_distributions = random_grid, 
+                                        n_iter = 100, 
+                                        cv = 3, 
+                                        verbose=2, 
+                                        random_state=42, 
+                                        n_jobs = -1)
+        
+        rf_randomz = RandomizedSearchCV(estimator = modelz, 
+                                        param_distributions = random_grid, 
+                                        n_iter = 100, 
+                                        cv = 3, 
+                                        verbose=2, 
+                                        random_state=42, 
+                                        n_jobs = -1)
+        
+        rf_randomx.fit(X, Yx)
+        rf_randomy.fit(X, Yy)
+        rf_randomz.fit(X, Yz)
+        
+        best_randomx = rf_randomx.best_estimator_
+        best_randomy = rf_randomy.best_estimator_
+        best_randomz = rf_randomz.best_estimator_
+        print('Best hyper parameters for x')
+        print(best_randomx)
+        print('Best hyper parameters for y')
+        print(best_randomy)
+        print('Best hyper parameters for z')
+        print(best_randomz)
+    
+    #################################
+    def evaluate(model, test_features, test_labels):
+        predictions = model.predict(test_features)
+        errors = abs(predictions - test_labels)
+        mape = 100 * np.mean(errors / np.max(test_labels))
+        accuracy = 100 - mape
+        print('Model Performance')
+        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+        print('Accuracy = {:0.2f}%.'.format(accuracy))
+        return accuracy
+    
+    accuracyx = evaluate(modelx, X2, Yx2)
+    accuracyy = evaluate(modely, X2, Yy2)
+    accuracyz = evaluate(modelz, X2, Yz2)
+
+    return(modelx, 
+           modely,
+           modelz,
+           accuracyx,
+           accuracyy,
+           accuracyz)
+
+
 
 
 if __name__ == '__main__' :

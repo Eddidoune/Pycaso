@@ -358,7 +358,7 @@ def AI_training (X_c1,
                                  str(yS[rd_list[i]]), 
                                  str(zS[rd_list[i]])])
     # Build the AI model with the AI_training_size.
-    model, accuracy = solvel.AI_solve (file)
+    model, accuracy = solvel.AI_solve_xyz (file)
     return(model)
 
 def AI_identification (X_c1,

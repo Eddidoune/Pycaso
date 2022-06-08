@@ -25,9 +25,9 @@ a chalk solution.
 ## Generate pattern
 The file pattern.py create a ChArUco chessboard which can be print for stereo
 correlation. It takes as Input a dictionary with :
-- ncx = 12 : The number of x squares for the chessboard
-- ncy = 16 : The number of y squares for the chessboard
-- dpi = 1200 : The dots per inch of the chessboard
+- ncx = 16 : The number of x squares for the chessboard
+- ncy = 12 : The number of y squares for the chessboard
+- pixel_factor = 10 : The number of sub-pixel per Charucco pixel
 This file generate a png pattern which can be print on a plane surface for the calibration step.
 
 ## Device and acquisition
@@ -55,7 +55,7 @@ __calibration_dict__ = {
 'name' : 'Whatever',
 'ncx' : 16,
 'ncy' : 12,
- sqr' : 0.3}
+ pixel_factor' : 10}
  ```
  - Create the list of z plans
 ```
@@ -68,7 +68,7 @@ for i in range (len(Imgs)) :
 
 - Chose the degrees for Soloff and direct polynomial fitting
 ```
-polynomial_form = 332
+Soloff_pform = 332
 direct_polynomial_form = 4
 ```
 Create the result folder if not exist
@@ -79,17 +79,13 @@ Lauch the Soloff calibration function in the main.py :
 ```
 A111, A_pol, Mag= Soloff_calibration (__calibration_dict__,
                           	       x3_list,
-                 	  	       saving_folder,
-                                      polynomial_form = polynomial_form,
-                                      detection = False)
+                                      Soloff_pform)
 ``` 
 And/Or the direct calibration function in the main.py :
 ```
 direct_A, Mag= direct_calibration (__calibration_dict__,
                         	    x3_list,
-                                   saving_folder,
-                                   direct_polynomial_form,
-                                   detection = False)
+                                   direct_pform)
 ``` 
 The calibration parameters are identified and calibration part is done. For more information about the resolution, see the Hessian detection explaination.
 
@@ -107,17 +103,15 @@ __DIC_dict__ = {
 The identification can start :
 First, use the a correlation process (Here disflow) from left to right images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the left and the right cameras.
 ```
-Xleft_id, Xright_id = data.DIC_3D_detection(__DIC_dict__, 
-	                                    detection = True,
-	                                    saving_folder = saving_folder)
+Xleft_id, Xright_id = data.DIC_3D_detection(__DIC_dict__)
 ```
-Then use one of the pairs (0) to create the points on the global referential (x,y,z) :
+Then use one of the pairs (Xleft_id[0], Xright_id[0]) to create the points on the global referential (x,y,z) :
 ```
 xSoloff_solution = Soloff_identification(Xleft_id[0],
                                          Xright_id[0],
                                          A111, 
                                          A_pol,
-                                         polynomial_form = polynomial_form,
+                                         Soloff_pform,
                                          method = 'curve_fit')       
 xS, yS, zS = xSoloff_solution
 ```

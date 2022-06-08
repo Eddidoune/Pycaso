@@ -11,15 +11,18 @@ class Calibrate(dict):
         self._dict_ = _dict_
         self.ncx = _dict_['ncx']
         self.ncy = _dict_['ncy']
-        self.dpi = _dict_['dpi']
+        if 'pixel_factor' in _dict_ :
+            self.pixel_factor = 1
+        else :
+            self.pixel_factor = _dict_['pixel_factor']
         self.dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
 
     def ChArucco_board (self) :
         """Create ChArucco board for the calibration
         
         Args:
-           dpi : int
-               Resolution of the picture
+           pixel_factor : int
+               number of pixels per 'pattern pixel'
            
         Returns:
            ChArucco_Board_build_img : numpy.ndarray
@@ -27,12 +30,12 @@ class Calibrate(dict):
         """
         ncx = self.ncx
         ncy = self.ncy
-        dpi = self.dpi
+        pixel_factor = self.pixel_factor
         
         n = ncx * ncy / 2
         ChArucco_Board_img = []
         for e in range (int(n)) :
-            ChArucco_mrk = cv2.aruco.drawMarker(self.dictionary, e, 100)
+            ChArucco_mrk = cv2.aruco.drawMarker(self.dictionary, e, pixel_factor*8)
             x, y = ChArucco_mrk.shape
             dx, dy = x//2, y//2
             black_square = np.ones ((x//2,y//2)) * 255
@@ -60,15 +63,15 @@ class Calibrate(dict):
         fig = plt.imshow(ChArucco_Board_build_img, interpolation='nearest', cmap='gray', vmin=0, vmax=255)
         fig.axes.get_xaxis().set_visible(False)
         fig.axes.get_yaxis().set_visible(False)
-        plt.savefig('ChArucco_Board_build_img.png', dpi=dpi)
-        plt.show()        
+        plt.imsave('ChArucco_Board_build_img.png', ChArucco_Board_build_img, cmap = 'gray')
+        plt.show()
         return (ChArucco_Board_build_img)
 
 if __name__ == '__main__' :
     # Show the reals and theoreticals points  
     __dict__ = {
-    'ncx' : 18,
-    'ncy' : 24,
-    'dpi' : 1200}
+    'ncx' : 16,
+    'ncy' : 12,
+    'pixel_factor' : 20}
     # Choose the dict
-    Calibrate (__dict__).ChArucco_board()    
+    ChArucco_Board_build_img = Calibrate (__dict__).ChArucco_board()    

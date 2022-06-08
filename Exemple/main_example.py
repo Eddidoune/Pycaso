@@ -98,7 +98,7 @@ if __name__ == '__main__' :
     xD, yD, zD = xDirect_solution
     wnd = __DIC_dict__['window']    
     zD = zD.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
-     
+    
     plt.figure()
     plt.imshow(zD)
     plt.title('Z projected on left camera with direct calculation')
