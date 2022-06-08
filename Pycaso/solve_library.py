@@ -455,8 +455,17 @@ def least_square_method (Xc1_identified,
     
     return (x0)    
 
-
 def xopt_mlib (Xtuple) :
+    """Multiprocessing function used on the next function Levenberg_Marquardt_solving.
+    
+    Args:
+        Xtuple : list
+            List of arguments for multiprocessing
+           
+    Returns:
+        xopt : numpy.ndarray
+            Solution of the LM resolution
+    """
     Xdetected, x0_part, Soloff_pform, A0 = Xtuple
     Ns = Xdetected.shape[1]
     xopt = np.zeros((3*Ns))
@@ -642,8 +651,6 @@ def AI_solve_simultaneously (file,
     # 1st meta-model
     X=dat[0:N,0:4]
     Y=dat[0:N,4:7]
-    X=dat[0:N,0:4]
-    Y=dat[0:N,4:7]
     model = RandomForestRegressor(n_estimators=n_estimators, 
                                   min_samples_leaf=min_samples_leaf, 
                                   min_samples_split=min_samples_split, 
@@ -747,6 +754,13 @@ def AI_solve_independantly (file,
     """
     dat=pd.read_csv(file, sep=" " )
     dat=np.array(dat)
+    
+    #Build correlation matrix
+    import seaborn as sn
+    corrMatrix = dat.corr()
+    sn.heatmap(corrMatrix, annot=True)
+    plt.show()
+    
     # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
     # the last 1/5 datas.
     N = int(len(dat)*4/5)
@@ -757,12 +771,12 @@ def AI_solve_independantly (file,
     Yy=dat[0:N,5]
     Yz=dat[0:N,6]
     modelx = RandomForestRegressor(n_estimators=n_estimators, 
-                                  min_samples_leaf=min_samples_leaf, 
-                                  min_samples_split=min_samples_split, 
-                                  random_state=random_state, 
-                                  max_features=max_features,
-                                  max_depth=max_depth,
-                                  bootstrap=bootstrap)
+                                    min_samples_leaf=min_samples_leaf, 
+                                    min_samples_split=min_samples_split, 
+                                    random_state=random_state, 
+                                    max_features=max_features,
+                                    max_depth=max_depth,
+                                    bootstrap=bootstrap)
     
     modely = RandomForestRegressor(n_estimators=n_estimators, 
                                   min_samples_leaf=min_samples_leaf, 
@@ -780,8 +794,11 @@ def AI_solve_independantly (file,
                                   max_depth=max_depth,
                                   bootstrap=bootstrap)
     
+    print('IA model training : x')
     modelx.fit(X,Yx)
+    print('IA model training : y')
     modely.fit(X,Yy)
+    print('IA model training : z')
     modelz.fit(X,Yz)
     
     # TEST 

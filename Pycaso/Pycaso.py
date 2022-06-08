@@ -338,7 +338,7 @@ def AI_training (X_c1,
                    
     Returns:
        model : sklearn.ensemble._forest.RandomForestRegressor
-           AI model
+           AI model or list of AI models
     """
     # Organise the list of parameters
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
@@ -372,7 +372,7 @@ def AI_training (X_c1,
     if method == 'simultaneously' :
         model, accuracy = solvel.AI_solve_simultaneously (file)
         return(model)
-    if method == 'independantly' :
+    elif method == 'independantly' :
         modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
         model = [modelx, modely, modelz]
         return(model)
@@ -404,8 +404,17 @@ def AI_identification (X_c1,
     # Solve on all pts
     X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
                                X_c2[:,0], X_c2[:,1]]))        
-    xAI_solution = model.predict(X)
-    xAI_solution = np.transpose(xAI_solution)
+    if method == 'simultaneously' :
+        xAI_solution = model.predict(X)
+        xAI_solution = np.transpose(xAI_solution)
+    elif method == 'independantly' :
+        modelx, modely, modelz = model
+        xAI_solutionx = modelx.predict(X)
+        xAI_solutiony = modely.predict(X)
+        xAI_solutionz = modelz.predict(X)
+        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz])
+    else :
+        print('No method ', method)
     return (xAI_solution)
 
 
@@ -498,11 +507,8 @@ if __name__ == '__main__' :
     print('#####       ')
     print('')
     
-    Xleft_idc, Xright_idc = data.DIC_3D_composed_detection(__DIC_dict__,
+    Xleft_id, Xright_id = data.DIC_3D_composed_detection(__DIC_dict__,
                                                            flip = False)
-    
-    Xleft_id, Xright_id = data.DIC_disflow(__DIC_dict__,
-                                           flip = False)
     
     Np_img, Npoints, Naxes = Xleft_id.shape
     all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
@@ -560,6 +566,9 @@ if __name__ == '__main__' :
         print('end SOLOFF')
         # Points coordinates
         xS, yS, zS = xSoloff_solution
+        df.insert(df.shape[1], 'xSoloff', xS, True)
+        df.insert(df.shape[1], 'ySoloff', yS, True)
+        df.insert(df.shape[1], 'zSoloff', zS, True)
         xSoloff_solutions[image] = xSoloff_solution
         fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
         plt.figure()        
@@ -601,11 +610,11 @@ if __name__ == '__main__' :
         # plt.show()    
 
 
-        '''
         # Chose the Number of Datas for Artificial Intelligence Learning
         AI_training_size = 50000
         # Create the .csv to make an AI identification
-        AI_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
+        AI_sim_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
+        AI_ind_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
         
         x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
                                                     all_Xref, 
@@ -615,39 +624,55 @@ if __name__ == '__main__' :
         Xc2_ = np.transpose(Xc2_)
         
         t0 = time.time()
-        if os.path.exists(AI_file) and False :
-            xAI_solution = np.load(AI_file)
+        if os.path.exists(AI_sim_file) and os.path.exists(AI_ind_file) :
+            xAI_solution_sim = np.load(AI_sim_file)
+            xAI_solution_ind = np.load(AI_ind_file)
         else :
             # Train the AI with already known points
             if image == 0 :
-                model_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                model = AI_training (X_c1,
-                                     X_c2,
-                                     xSoloff_solution,
-                                     AI_training_size = AI_training_size,
-                                     file = model_file)
+                model_sim_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+                model_ind_file = saving_folder +'/Soloff_AI_ind' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+                model_sim = AI_training (X_c1,
+                                         X_c2,
+                                         xSoloff_solution,
+                                         AI_training_size = AI_training_size,
+                                         file = model_sim_file,
+                                         method='simultaneously')
+
+                model_ind = AI_training (X_c1,
+                                         X_c2,
+                                         xSoloff_solution,
+                                         AI_training_size = AI_training_size,
+                                         file = model_ind_file,
+                                         method='independantly')
                 
                 model_file2 = saving_folder +'/Soloff_AI_' + str(image) + '_ChAruco.csv'      
                 model2 = AI_training (Xc1_,
                                       Xc2_,
                                       x_,
                                       AI_training_size = AI_training_size,
-                                      file = model_file2)
+                                      file = model_file2,
+                                      method='simultaneously')
+                
             t1 = time.time()
             print('time training = ',t1 - t0)
 
             # Use the AI model to solve every points
-            xAI_solution = AI_identification (X_c1,
-                                              X_c2,
-                                              model)
+            xAI_solution_sim = AI_identification (X_c1,
+                                                  X_c2,
+                                                  model_sim)
+            
+            xAI_solution_ind = AI_identification (X_c1,
+                                                  X_c2,
+                                                  model_ind)
+            
             xAI_solution2 = AI_identification (X_c1,
                                                X_c2,
                                                model2)
             
-            np.save(AI_file, xAI_solution)
-            np.save(AI_file, xAI_solution2)
+            np.save(AI_sim_file, xAI_solution_sim)
+            np.save(AI_ind_file, xAI_solution_ind)
         t2 = time.time()
         print('time AI = ',t2 - t1)
         print('end AI')
-        xAI, yAI, zAI = xAI_solution
-        '''
+        # xAI, yAI, zAI = xAI_solution
