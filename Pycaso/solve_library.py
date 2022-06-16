@@ -6,8 +6,10 @@ import os
 
 try : 
     import cupy as np
+    import numpy
 except ImportError:
     import numpy as np
+    import numpy
 import matplotlib.pyplot as plt
 import scipy.optimize as sopt
 from sklearn.ensemble import RandomForestRegressor
@@ -41,14 +43,14 @@ class Direct_Polynome(dict) :
         
         n = len(Xl1)
         if   polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
+            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
 
         elif polynomial_form == 2 :
             Xl12 = Xl1 * Xl1
             Xl22 = Xl2 * Xl2
             Xr12 = Xr1 * Xr1
             Xr22 = Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
                              Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
 
@@ -61,7 +63,7 @@ class Direct_Polynome(dict) :
             Xr13 = Xr1 * Xr1 * Xr1
             Xr22 = Xr2 * Xr2
             Xr23 = Xr2 * Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
                              Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
                              Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
@@ -82,7 +84,7 @@ class Direct_Polynome(dict) :
             Xr22 = Xr2 * Xr2
             Xr23 = Xr2 * Xr2 * Xr2
             Xr24 = Xr2 * Xr2 * Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
                              Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
                              Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
@@ -121,17 +123,17 @@ class Soloff_Polynome(dict) :
         x1,x2,x3 = x
         n = len(x1)
         if   polynomial_form == 111 :
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
+            M = numpy.asarray ([np.ones((n)),   x1,        x2,        x3])
         elif polynomial_form == 221 :
             x12 = x1 * x1
             x22 = x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
+            M = numpy.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
                              x1 *x2,         x22,       x1*x3,     x2*x3])   
         elif polynomial_form == 222 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
+            M = numpy.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
                              x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])  
         elif polynomial_form == 332 :
             x12 = x1 * x1
@@ -139,7 +141,7 @@ class Soloff_Polynome(dict) :
             x32 = x3 * x3
             x13 = x1 * x1 * x1
             x23 = x2 * x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
+            M = numpy.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])            
@@ -150,7 +152,7 @@ class Soloff_Polynome(dict) :
             x13 = x1 * x1 * x1
             x23 = x2 * x2 * x2
             x33 = x3 * x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
+            M = numpy.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])    
@@ -163,7 +165,7 @@ class Soloff_Polynome(dict) :
             x33 = x3 * x3 * x3
             x14 = x1 * x1 * x1 * x1
             x24 = x2 * x2 * x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
+            M = numpy.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
                              x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,        x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
@@ -180,7 +182,7 @@ class Soloff_Polynome(dict) :
             x14 = x1 * x1 * x1 * x1
             x24 = x2 * x2 * x2 * x2
             x34 = x3 * x3 * x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
+            M = numpy.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
                              x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,        x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
@@ -199,7 +201,7 @@ class Soloff_Polynome(dict) :
             x34 = x3 * x3 * x3 * x3
             x15 = x1 * x1 * x1 * x1 * x1
             x25 = x2 * x2 * x2 * x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
+            M = numpy.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
                              x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
                              x13,            x12*x2,        x1*x22,         x23,            x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
@@ -223,7 +225,7 @@ class Soloff_Polynome(dict) :
             x15 = x1 * x1 * x1 * x1 * x1
             x25 = x2 * x2 * x2 * x2 * x2
             x35 = x3 * x3 * x3 * x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
+            M = numpy.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
                              x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
                              x13,            x12*x2,        x1*x22,         x23,            x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
@@ -658,6 +660,7 @@ def AI_solve_simultaneously (file,
                                   max_features=max_features,
                                   max_depth=max_depth,
                                   bootstrap=bootstrap)
+    print('IA model training : x,y,z')
     model.fit(X,Y)
     
     # TEST 
@@ -753,14 +756,13 @@ def AI_solve_independantly (file,
            
     """
     dat=pd.read_csv(file, sep=" " )
-    dat=np.array(dat)
-    
     #Build correlation matrix
     import seaborn as sn
     corrMatrix = dat.corr()
     sn.heatmap(corrMatrix, annot=True)
     plt.show()
     
+    dat=np.array(dat)
     # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
     # the last 1/5 datas.
     N = int(len(dat)*4/5)
@@ -891,7 +893,181 @@ def AI_solve_independantly (file,
            accuracyy,
            accuracyz)
 
+def AI_solve_zdependantly (file,
+                           n_estimators=800, 
+                           min_samples_leaf=1, 
+                           min_samples_split=2, 
+                           random_state=1, 
+                           max_features='sqrt',
+                           max_depth=100,
+                           bootstrap='true',
+                           hyperparameters_tuning = False) :  
+    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    output (x,y or z)
 
+    
+    Args:
+       file : str
+           Name of saving file for training
+       n_estimators, 
+       min_samples_leaf, 
+       min_samples_split, 
+       random_state, 
+       max_features, 
+       max_depth, 
+       bootstrap,
+       hyperparameters_tuning : 
+          More information on the link :
+          https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
+           
+           
+    Returns:
+       modelx, modely, modelz : sklearn.ensemble._forest.RandomForestRegressor
+           IA metamodel for x,y and z coordinates
+       accuracyx, accuracyy, accuracyz : int
+           Accuracy of the IA metamodel compared with the training datas
+           for x,y and z coordinates.
+           
+    """
+    dat=pd.read_csv(file, sep=" " )
+    #Build correlation matrix
+    import seaborn as sn
+    corrMatrix = dat.corr()
+    sn.heatmap(corrMatrix, annot=True)
+    plt.show()
+    
+    dat=np.array(dat)
+    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
+    # the last 1/5 datas.
+    N = int(len(dat)*4/5)
+    
+    # 1st meta-model
+    X=dat[0:N,0:4]
+    Xp=dat[0:N,0:6]
+    Yx=dat[0:N,4]
+    Yy=dat[0:N,5]
+    Yz=dat[0:N,6]
+    modelx = RandomForestRegressor(n_estimators=n_estimators, 
+                                    min_samples_leaf=min_samples_leaf, 
+                                    min_samples_split=min_samples_split, 
+                                    random_state=random_state, 
+                                    max_features=max_features,
+                                    max_depth=max_depth,
+                                    bootstrap=bootstrap)
+    
+    modely = RandomForestRegressor(n_estimators=n_estimators, 
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
+    
+    modelz = RandomForestRegressor(n_estimators=n_estimators, 
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
+    
+    print('IA model training : x')
+    modelx.fit(X,Yx)
+    print('IA model training : y')
+    modely.fit(X,Yy)
+    print('IA model training : z')
+    modelz.fit(Xp,Yz)
+    
+    # TEST 
+    X2=dat[N:,0:4]
+    X2p=dat[N:,0:6]
+    Yx2=dat[N:,4]
+    Yy2=dat[N:,5]
+    Yz2=dat[N:,6]
+    
+    # hyperparameter tuning 
+    if hyperparameters_tuning :
+        # Number of trees in random forest
+        n_estimators = [int(x) for x in np.linspace(start = 200, 
+                                                    stop = 2000, 
+                                                    num = 10)]
+        # Number of features to consider at every split
+        max_features = ['auto', 'sqrt']
+        # Maximum number of levels in tree
+        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+        max_depth.append(None)
+        # Minimum number of samples required to split a node
+        min_samples_split = [2, 5, 10]
+        # Minimum number of samples required at each leaf node
+        min_samples_leaf = [1, 2, 4]
+        # Method of selecting samples for training each tree
+        bootstrap = [True, False]# Create the random grid
+        random_grid = {'n_estimators': n_estimators,
+                        'max_features': max_features,
+                        'max_depth': max_depth,
+                        'min_samples_split': min_samples_split,
+                        'min_samples_leaf': min_samples_leaf,
+                        'bootstrap': bootstrap}
+        
+        rf_randomx = RandomizedSearchCV(estimator = modelx, 
+                                        param_distributions = random_grid, 
+                                        n_iter = 100, 
+                                        cv = 3, 
+                                        verbose=2, 
+                                        random_state=42, 
+                                        n_jobs = -1)
+        
+        rf_randomy = RandomizedSearchCV(estimator = modely, 
+                                        param_distributions = random_grid, 
+                                        n_iter = 100, 
+                                        cv = 3, 
+                                        verbose=2, 
+                                        random_state=42, 
+                                        n_jobs = -1)
+        
+        rf_randomz = RandomizedSearchCV(estimator = modelz, 
+                                        param_distributions = random_grid, 
+                                        n_iter = 100, 
+                                        cv = 3, 
+                                        verbose=2, 
+                                        random_state=42, 
+                                        n_jobs = -1)
+        
+        rf_randomx.fit(X, Yx)
+        rf_randomy.fit(X, Yy)
+        rf_randomz.fit(Xp, Yz)
+        
+        best_randomx = rf_randomx.best_estimator_
+        best_randomy = rf_randomy.best_estimator_
+        best_randomz = rf_randomz.best_estimator_
+        print('Best hyper parameters for x')
+        print(best_randomx)
+        print('Best hyper parameters for y')
+        print(best_randomy)
+        print('Best hyper parameters for z')
+        print(best_randomz)
+    
+    #################################
+    def evaluate(model, test_features, test_labels):
+        predictions = model.predict(test_features)
+        errors = abs(predictions - test_labels)
+        mape = 100 * np.mean(errors / np.max(test_labels))
+        accuracy = 100 - mape
+        print('Model Performance')
+        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+        print('Accuracy = {:0.2f}%.'.format(accuracy))
+        return accuracy
+    
+    accuracyx = evaluate(modelx, X2, Yx2)
+    accuracyy = evaluate(modely, X2, Yy2)
+    accuracyz = evaluate(modelz, X2p, Yz2)
+
+    return(modelx, 
+           modely,
+           modelz,
+           accuracyx,
+           accuracyy,
+           accuracyz)
 
 
 if __name__ == '__main__' :

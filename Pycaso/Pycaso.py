@@ -8,8 +8,10 @@ Created on Fri Nov 26 09:19:07 2021
 import sigfig as sgf
 try : 
     import cupy as np
+    import numpy
 except ImportError:
     import numpy as np
+    import numpy
 import sys
 import pathlib
 import os
@@ -27,6 +29,7 @@ import math
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
+    in mm/px
     
     Args:
        X1 : numpy.ndarrayx
@@ -46,7 +49,7 @@ def magnification (X1, X2, x1, x2) :
     Delta_X2 = np.nanmean(abs(X2-np.nanmean(X2)))
     Delta_x1 = np.nanmean(abs(x1-np.nanmean(x1)))
     Delta_x2 = np.nanmean(abs(x2-np.nanmean(x2)))
-    Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
+    Magnification = numpy.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
     return (Magnification)
 
 def Soloff_calibration (__calibration_dict__,
@@ -76,31 +79,31 @@ def Soloff_calibration (__calibration_dict__,
        A111 : numpy.ndarray
            Constants of Soloff polynomial form '111'
        A_pol : numpy.ndarray
-           Constants of Soloff polynomial form chose (Soloff_pform)
+           Constants of Soloff polynomial form chose (Soloff_pforloasm)
        Magnification : int
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
     
-    A111 = np.zeros((2, 2, 4))
+    A111 = numpy.zeros((2, 2, 4))
     if Soloff_pform == 111 :
-        A_pol = np.zeros((2, 2, 4))
+        A_pol = numpy.zeros((2, 2, 4))
     elif Soloff_pform == 221 :
-        A_pol = np.zeros((2, 2, 9))
+        A_pol = numpy.zeros((2, 2, 9))
     elif Soloff_pform == 222 :
-        A_pol = np.zeros((2, 2, 10))
+        A_pol = numpy.zeros((2, 2, 10))
     elif Soloff_pform == 332 :
-        A_pol = np.zeros((2, 2, 19))
+        A_pol = numpy.zeros((2, 2, 19))
     elif Soloff_pform == 333 :
-        A_pol = np.zeros((2, 2, 20))
+        A_pol = numpy.zeros((2, 2, 20))
     elif Soloff_pform == 443 :
-        A_pol = np.zeros((2, 2, 34))
+        A_pol = numpy.zeros((2, 2, 34))
     elif Soloff_pform == 444 :
-        A_pol = np.zeros((2, 2, 35))
+        A_pol = numpy.zeros((2, 2, 35))
     elif Soloff_pform == 554 :
-        A_pol = np.zeros((2, 2, 55))
+        A_pol = numpy.zeros((2, 2, 55))
     elif Soloff_pform == 555 :
-        A_pol = np.zeros((2, 2, 56))    
+        A_pol = numpy.zeros((2, 2, 56))    
     else :
         print ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
         sys.exit()
@@ -121,7 +124,7 @@ def Soloff_calibration (__calibration_dict__,
     solvel.refplans(x, x3_list)
 
     # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
+    Magnification = numpy.zeros((2, 2))
     for camera in [1, 2] :
         if camera == 1 :
             X = Xc1
@@ -224,13 +227,13 @@ def direct_calibration (__calibration_dict__,
     """
     
     if direct_pform == 1 :
-        direct_A = np.zeros((3, 5))
+        direct_A = numpy.zeros((3, 5))
     elif direct_pform == 2 :
-        direct_A = np.zeros((3, 15))
+        direct_A = numpy.zeros((3, 15))
     elif direct_pform == 3 :
-        direct_A = np.zeros((3, 35))
+        direct_A = numpy.zeros((3, 35))
     elif direct_pform == 4 :
-        direct_A = np.zeros((3, 70))
+        direct_A = numpy.zeros((3, 70))
     else :
         print ('Only define for polynomial degrees (1, 2, 3 or 4')
         sys.exit()
@@ -245,7 +248,7 @@ def direct_calibration (__calibration_dict__,
     solvel.refplans(x, x3_list)
 
     # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
+    Magnification = numpy.zeros((2, 2))
 
     for camera in [1, 2] :
         if camera == 1 :
@@ -303,8 +306,8 @@ def direct_identification (Xc1_identified,
     # Solve by direct method
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
-    Xl = np.zeros((2,len(Xl1)))
-    Xr = np.zeros((2,len(Xr1)))
+    Xl = numpy.zeros((2,len(Xl1)))
+    Xr = numpy.zeros((2,len(Xr1)))
     Xl = Xl1, Xl2
     Xr = Xr1, Xr2
     
@@ -376,6 +379,10 @@ def AI_training (X_c1,
         modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
         model = [modelx, modely, modelz]
         return(model)
+    elif method == 'z_dependantly' :
+        modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
+        model = [modelx, modely, modelz]
+        return(model)
     else :
         print('No method ', method)
     
@@ -407,7 +414,7 @@ def AI_identification (X_c1,
     if method == 'simultaneously' :
         xAI_solution = model.predict(X)
         xAI_solution = np.transpose(xAI_solution)
-    elif method == 'independantly' :
+    elif method == 'independantly' or method == 'z_dependantly' :
         modelx, modely, modelz = model
         xAI_solutionx = modelx.predict(X)
         xAI_solutiony = modely.predict(X)
@@ -420,8 +427,8 @@ def AI_identification (X_c1,
 
 if __name__ == '__main__' :
     main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
+    # saving_folder = main_path + '/results/2022_02_02_results'
     saving_folder = main_path + '/results/2022_04_15_results_adrien_micromachine/501_sample'
-    
     # Define the inputs
     __calibration_dict__ = {
     'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_501_x2',
@@ -433,10 +440,11 @@ if __name__ == '__main__' :
     'sqr' : 0.3}  #in mm
     
     # __pattern_dict__ = {
-    # 'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_sample_identification',
-    # 'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_sample_identification',
+    # 'left_folder' : main_path + '/Images_example/2022_02_02/left-identification',
+    # 'right_folder' : main_path + '/Images_example/2022_02_02/right-identification',
     # 'name' : 'micro_identification',
-    # 'ncx' : 12,
+    # 'saving_folder' : saving_folder,
+    # 'ncx' : 16,
     # 'ncy' : 12,
     # 'sqr' : 0.3}  #in mm
     
@@ -453,7 +461,7 @@ if __name__ == '__main__' :
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = np.zeros((len(Imgs)))
+    x3_list = numpy.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
     # x3_list = np.array(sorted(x3_list))
@@ -507,16 +515,20 @@ if __name__ == '__main__' :
     print('#####       ')
     print('')
     
+    # all_X, all_x, nb_pts = data.pattern_detection(__pattern_dict__)    
+    
+    # Xleft_id, Xright_id = all_X
+    # sys.exit()
     Xleft_id, Xright_id = data.DIC_3D_composed_detection(__DIC_dict__,
                                                            flip = False)
     
     Np_img, Npoints, Naxes = Xleft_id.shape
-    all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
-    xDirect_solutions = np.zeros((Np_img, 3, Npoints))
-    xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
-    xAI_solutions = np.zeros((Np_img, 3, Npoints))
+    all_U, all_V, all_W = numpy.zeros((3, 2*Np_img, Npoints))
+    xDirect_solutions = numpy.zeros((Np_img, 3, Npoints))
+    xSoloff_solutions = numpy.zeros((Np_img, 3, Npoints))
+    xAI_solutions = numpy.zeros((Np_img, 3, Npoints))
 
-    for image in range (Np_img) :
+    for image in range (2) :
         print('')
         print('')
         print('Calculation of the pair of images ', image+1)
@@ -553,7 +565,7 @@ if __name__ == '__main__' :
         t0 = time.time()
         soloff_file = saving_folder + '/xsolution_soloff200_1800' + str(image) + '.npy'
         if os.path.exists(soloff_file) and True :
-            xSoloff_solution = np.load(soloff_file)
+            xSoloff_solution = numpy.load(soloff_file)
         else :
             xSoloff_solution = Soloff_identification (X_c1,
                                                       X_c2,
@@ -571,9 +583,18 @@ if __name__ == '__main__' :
         df.insert(df.shape[1], 'zSoloff', zS, True)
         xSoloff_solutions[image] = xSoloff_solution
         fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
+        zS_fit = fit[0] * xS + fit[1] * yS + fit[2] + zS
         plt.figure()        
         plt.show()
 
+        # histogram
+        # n, bins, patches = plt.hist(zS_fit*1000, 20, facecolor='g')
+        # plt.xlabel('z distance from median plan (µm)')
+        # plt.ylabel('Number of points')
+        # plt.title('Histogram of IQ')
+        # plt.xlim(-6, 6)
+        # plt.ylim(0, 40)
+        # plt.show()
         
         # Lagrangian projection on left image 
         win = __DIC_dict__['window']
@@ -613,66 +634,86 @@ if __name__ == '__main__' :
         # Chose the Number of Datas for Artificial Intelligence Learning
         AI_training_size = 50000
         # Create the .csv to make an AI identification
-        AI_sim_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
-        AI_ind_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
+        # AI_sim_file = saving_folder + '/AI/xsolution_AIxsolution_sim_soloff200_1800' + str(image) + '.npy'
+        # AI_ind_file = saving_folder + '/AI/xsolution_AIxsolution_ind_soloff200_1800' + str(image) + '.npy'
+        AI_zdep_file = saving_folder + '/AI/xsolution_AIxsolution_zdep_soloff200_1800' + str(image) + '.npy'
+        
         
         x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
                                                     all_Xref, 
                                                     x3_list)
-        
+
         Xc1_ = np.transpose(Xc1_)
         Xc2_ = np.transpose(Xc2_)
         
         t0 = time.time()
-        if os.path.exists(AI_sim_file) and os.path.exists(AI_ind_file) :
-            xAI_solution_sim = np.load(AI_sim_file)
-            xAI_solution_ind = np.load(AI_ind_file)
+        # if os.path.exists(AI_sim_file) and os.path.exists(AI_ind_file) and False :
+        if False :
+            # xAI_solution_sim = numpy.load(AI_sim_file)
+            # xAI_solution_ind = numpy.load(AI_ind_file)
+            ()
         else :
             # Train the AI with already known points
             if image == 0 :
-                model_sim_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                model_ind_file = saving_folder +'/Soloff_AI_ind' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                model_sim = AI_training (X_c1,
-                                         X_c2,
-                                         xSoloff_solution,
-                                         AI_training_size = AI_training_size,
-                                         file = model_sim_file,
-                                         method='simultaneously')
+                # xSoloff_solution0 = xSoloff_solution
+                # model_sim_file = saving_folder +'/AI/Soloff_AI_sim' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+                # model_sim = AI_training (X_c1,
+                #                          X_c2,
+                #                          xSoloff_solution,
+                #                          AI_training_size = AI_training_size,
+                #                          file = model_sim_file,
+                #                          method='simultaneously')
 
-                model_ind = AI_training (X_c1,
-                                         X_c2,
-                                         xSoloff_solution,
-                                         AI_training_size = AI_training_size,
-                                         file = model_ind_file,
-                                         method='independantly')
+                # model_ind_file = saving_folder +'/AI/Soloff_AI_ind' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+                # model_ind = AI_training (X_c1,
+                #                           X_c2,
+                #                           xSoloff_solution,
+                #                           AI_training_size = AI_training_size,
+                #                           file = model_ind_file,
+                #                           method='independantly')
+
+                model_zdep_file = saving_folder +'/AI/Soloff_AI_zdep' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+                model_zdep = AI_training (X_c1,
+                                          X_c2,
+                                          xSoloff_solution,
+                                          AI_training_size = AI_training_size,
+                                          file = model_zdep_file,
+                                          method='z_dependantly')
                 
-                model_file2 = saving_folder +'/Soloff_AI_' + str(image) + '_ChAruco.csv'      
-                model2 = AI_training (Xc1_,
-                                      Xc2_,
-                                      x_,
-                                      AI_training_size = AI_training_size,
-                                      file = model_file2,
-                                      method='simultaneously')
-                
+                t1 = time.time()
+                print('time training = ',t1 - t0)
+            
             t1 = time.time()
-            print('time training = ',t1 - t0)
-
             # Use the AI model to solve every points
-            xAI_solution_sim = AI_identification (X_c1,
+            # xAI_solution_sim = AI_identification (X_c1,
+            #                                       X_c2,
+            #                                       model_sim,
+            #                                       method = 'simultaneously')
+            
+            # xAI_solution_ind = AI_identification (X_c1,
+            #                                       X_c2,
+            #                                       model_ind,
+            #                                       method = 'independantly')
+            
+            xAI_solution_zdep = AI_identification (X_c1,
                                                   X_c2,
-                                                  model_sim)
+                                                  model_zdep,
+                                                  method = 'z_dependantly')
             
-            xAI_solution_ind = AI_identification (X_c1,
-                                                  X_c2,
-                                                  model_ind)
+            # np.save(AI_sim_file, xAI_solution_sim)
+            # np.save(AI_ind_file, xAI_solution_ind)
+            np.save(AI_zdep_file, xAI_solution_zdep)
+
+            t2 = time.time()
+            print('time AI = ',t2 - t1)
+            print('end AI')
+            xAI, yAI, zAI = xAI_solution_zdep
             
-            xAI_solution2 = AI_identification (X_c1,
-                                               X_c2,
-                                               model2)
+            xdiff, ydiff, zdiff = xAI_solution_zdep - xSoloff_solution
+            rdiff = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
+            print('max : ', np.max(np.abs(xdiff)), np.max(np.abs(ydiff)), np.max(np.abs(zdiff)), np.max(np.abs(rdiff)))
+            print('mean : ', np.mean(np.abs(xdiff)), np.mean(np.abs(ydiff)), np.mean(np.abs(zdiff)), np.mean(np.abs(rdiff)))
+            print('std : ', np.std(xdiff), np.std(ydiff), np.std(zdiff), np.std(rdiff))
             
-            np.save(AI_sim_file, xAI_solution_sim)
-            np.save(AI_ind_file, xAI_solution_ind)
-        t2 = time.time()
-        print('time AI = ',t2 - t1)
-        print('end AI')
-        # xAI, yAI, zAI = xAI_solution
+            
+            

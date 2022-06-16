@@ -133,7 +133,7 @@ if __name__ == '__main__' :
     cb = plt.colorbar()
     plt.clim(2.6, 3)
     cb.set_label('z in mm')
-    plt.show()  
+    plt.show()
     
     
     

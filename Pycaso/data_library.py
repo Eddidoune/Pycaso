@@ -20,8 +20,10 @@ from compute_flow import compute_flow
 
 try : 
     import cupy as np
+    import numpy 
 except ImportError:
     import numpy as np
+    import numpy 
 
 import cv2
 import cv2.aruco as aruco
@@ -112,7 +114,7 @@ class Calibrate(dict):
                 List of the detected corners (automatically with ChAruco and 
                                               Hessian invariants + manually)
         """                        
-        corners_list = np.asarray(corners_list)
+        corners_list = numpy.asarray(corners_list)
         x, y, ids = np.transpose(corners_list)
         img = cv2.imread(im, 0)
 
@@ -136,7 +138,7 @@ class Calibrate(dict):
         # the referential
         nx, ny = self.ncx-1, self.ncy-1
         n_corners = nx*ny
-        corners_list_opt = np.zeros((n_corners, 3))
+        corners_list_opt = numpy.zeros((n_corners, 3))
         pts_list = np.arange(n_corners)
         pts_list = np.reshape(pts_list, (ny,nx))
         ptA = corners_list[0]
@@ -368,7 +370,7 @@ def cut_calibration_model (List_images,
     M = len(List_images)
     
     # First, detect the holes = missing points
-    nb_pts = np.zeros(M)
+    nb_pts = numpy.zeros(M)
     print('M ', M)
     for i in range (0, M) :
         B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i]))[0])
@@ -427,9 +429,9 @@ def cut_calibration_model (List_images,
         ()
     else :
         # Use it as array
-        all_X = np.asarray(all_X)
+        all_X = numpy.asarray(all_X)
         all_X = all_X[:, :, [0, 1]]
-        all_x = np.asarray(all_x)
+        all_x = numpy.asarray(all_x)
         all_x = all_x[:, :, [0, 1]]
     nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
@@ -467,8 +469,8 @@ def NAN_calibration_model (Images,
     
     # First, detect the holes = missing points
     Nall = len(Xref)
-    nb_pts = np.zeros(M)
-    all_X = np.zeros((M, Nall, 3))
+    nb_pts = numpy.zeros(M)
+    all_X = numpy.zeros((M, Nall, 3))
     for i in range (0, M) :
         im = sorted(glob(Images[i]))[0]
         corners_list, pts = Calibrate(__dict__).calibrate(im)
@@ -482,7 +484,7 @@ def NAN_calibration_model (Images,
     for i in range (0, M) :
         all_x.append(Xref)        
     # Use it as array
-    all_x = np.asarray(all_x)
+    all_x = numpy.asarray(all_x)
     all_x = all_x[:, :, [0, 1]]
     all_X = all_X[:, :, [0, 1]]
     nb_pts = np.reshape(nb_pts, (2, M//2))
@@ -534,9 +536,9 @@ def pattern_detection (__dict__,
     if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
         # Taking pre-calculated datas from the saving_folder
         print('    - Taking datas from ', saving_folder)        
-        all_X = np.load(Save_all_X)
-        all_x = np.load(Save_all_x)
-        nb_pts = np.load(Save_nb_pts)
+        all_X = numpy.load(Save_all_X)
+        all_x = numpy.load(Save_all_x)
+        nb_pts = numpy.load(Save_nb_pts)
     
     else : # Corners detection
         print('    - Detection of the pattern in progress ...')
@@ -602,12 +604,12 @@ def DIC_disflow (__DIC_dict__,
     print('    - DIC in progress ...')
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
-        all_U = np.load(Save_all_U)
-        all_V = np.load(Save_all_V)
+        all_U = numpy.load(Save_all_U)
+        all_V = numpy.load(Save_all_V)
     else:
         im0 = cv2.imread(Images[0], 0)
-        all_U = np.zeros((N, im0.shape[0], im0.shape[1]))
-        all_V = np.zeros((N, im0.shape[0], im0.shape[1]))
+        all_U = numpy.zeros((N, im0.shape[0], im0.shape[1]))
+        all_V = numpy.zeros((N, im0.shape[0], im0.shape[1]))
         for i in range(1, N):
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], Images[i]))
             Im1 = cv2.imread(Images[0],0) 
@@ -707,8 +709,8 @@ def DIC_3D_composed_detection (__DIC_dict__,
     
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
-        all_U = np.load(Save_all_U)
-        all_V = np.load(Save_all_V)
+        all_U = numpy.load(Save_all_U)
+        all_V = numpy.load(Save_all_V)
     else:
         im0_left = cv2.imread(Images[0], 0)
         im0_right = cv2.imread(Images[int(N/2)], 0)
@@ -716,8 +718,8 @@ def DIC_3D_composed_detection (__DIC_dict__,
             im0_left = cv2.flip(im0_left, 1)
             im0_right = cv2.flip(im0_right, 1)
         nx, ny = im0_left.shape
-        all_U = np.zeros((N, nx, ny), dtype=np.float32)
-        all_V = np.zeros((N, nx, ny), dtype=np.float32)
+        all_U = numpy.zeros((N, nx, ny), dtype=np.float32)
+        all_V = numpy.zeros((N, nx, ny), dtype=np.float32)
         x, y = np.meshgrid(np.arange(2048), np.arange(2048))
         x = x.astype(np.float32)
         y = y.astype(np.float32)
@@ -837,7 +839,7 @@ def DIC_fields (__DIC_dict__,
     # Taking pre-calculated datas from the saving_folder
     if os.path.exists(Save_UV) :
         print('    - Taking datas from ', saving_folder)        
-        all_UV = np.load(Save_UV)
+        all_UV = numpy.load(Save_UV)
         U_left, V_left, U_right, V_right = all_UV
     else :
         Images_left = sorted(glob(str(left_folder) + '/*'))
@@ -870,10 +872,10 @@ def DIC_fields (__DIC_dict__,
                                       Imr2,
                                       vr_kwargs=vr_kwargs)
             if i == 0 :
-                U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                U_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                V_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_left = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_left = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_right = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_right = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
             U_left[i] = Ul
             V_left[i] = Vl
             U_right[i] = Ur
@@ -914,9 +916,9 @@ def camera_np_coordinates (all_X,
         all_xi = all_x[i*(mid-1):i*mid,:,:]
         sU = all_Xi.shape
         Xref = all_xi[0]
-        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
-        x = np.empty ((sU[0] * sU[1], sU[2]+1))
-        X = np.empty ((sU[0] * sU[1], sU[2]))
+        all_xi = numpy.empty ((sU[0], sU[1], sU[2]+1))
+        x = numpy.empty ((sU[0] * sU[1], sU[2]+1))
+        X = numpy.empty ((sU[0] * sU[1], sU[2]))
         for j in range (sU[0]) :
             all_xi[j][:,0] = Xref[:,0]
             all_xi[j][:,1] = Xref[:,1]
@@ -929,12 +931,12 @@ def camera_np_coordinates (all_X,
         x1 = x[:,0]
         x2 = x[:,1]
         x3 = x[:,2]
-        x = np.asarray([x1,x2,x3]) # reshape x
+        x = numpy.asarray([x1,x2,x3]) # reshape x
 
         # Position detected from cameras : Ucam (X1, X2)
         X1 = X[:,0]
         X2 = X[:,1]
-        X = np.asarray([X1,X2]) # reshape X
+        X = numpy.asarray([X1,X2]) # reshape X
         
         if i == 1 :
             Xc1 = X
@@ -954,7 +956,7 @@ def camera_np_coordinates (all_X,
         x1 = x1[np.logical_not(mask)]
         x2 = x2[np.logical_not(mask)]
         x3 = x3[np.logical_not(mask)]
-        x = np.asarray([x1,x2,x3])
+        x = numpy.asarray([x1,x2,x3])
     else :
         mask = np.array([False])
         
@@ -978,7 +980,7 @@ if __name__ == '__main__' :
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = np.zeros((len(Imgs)))
+    x3_list = numpy.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
 
