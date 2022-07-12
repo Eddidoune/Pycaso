@@ -6,15 +6,17 @@ import os
 
 try : 
     import cupy as np
-    import numpy
 except ImportError:
     import numpy as np
-    import numpy
 import matplotlib.pyplot as plt
 import scipy.optimize as sopt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.linear_model import LogisticRegression
+
+from sklearn.ensemble import HistGradientBoostingRegressor
+
+from sklearn.linear_model import LinearRegression
 
 
   
@@ -43,14 +45,14 @@ class Direct_Polynome(dict) :
         
         n = len(Xl1)
         if   polynomial_form == 1 :
-            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
 
         elif polynomial_form == 2 :
             Xl12 = Xl1 * Xl1
             Xl22 = Xl2 * Xl2
             Xr12 = Xr1 * Xr1
             Xr22 = Xr2 * Xr2
-            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
                              Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
 
@@ -63,7 +65,7 @@ class Direct_Polynome(dict) :
             Xr13 = Xr1 * Xr1 * Xr1
             Xr22 = Xr2 * Xr2
             Xr23 = Xr2 * Xr2 * Xr2
-            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
                              Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
                              Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
@@ -84,7 +86,7 @@ class Direct_Polynome(dict) :
             Xr22 = Xr2 * Xr2
             Xr23 = Xr2 * Xr2 * Xr2
             Xr24 = Xr2 * Xr2 * Xr2 * Xr2
-            M = numpy.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
                              Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
                              Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
@@ -122,18 +124,18 @@ class Soloff_Polynome(dict) :
         polynomial_form = self.polynomial_form
         x1,x2,x3 = x
         n = len(x1)
-        if   polynomial_form == 111 :
-            M = numpy.asarray ([np.ones((n)),   x1,        x2,        x3])
+        if   polynomial_form == 111 or polynomial_form == 1 :
+            M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
         elif polynomial_form == 221 :
             x12 = x1 * x1
             x22 = x2 * x2
-            M = numpy.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
+            M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
                              x1 *x2,         x22,       x1*x3,     x2*x3])   
-        elif polynomial_form == 222 :
+        elif polynomial_form == 222 or polynomial_form == 2 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
-            M = numpy.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
+            M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
                              x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])  
         elif polynomial_form == 332 :
             x12 = x1 * x1
@@ -141,18 +143,18 @@ class Soloff_Polynome(dict) :
             x32 = x3 * x3
             x13 = x1 * x1 * x1
             x23 = x2 * x2 * x2
-            M = numpy.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
+            M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])            
-        elif polynomial_form == 333 :
+        elif polynomial_form == 333 or polynomial_form == 3 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
             x13 = x1 * x1 * x1
             x23 = x2 * x2 * x2
             x33 = x3 * x3 * x3
-            M = numpy.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
+            M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])    
@@ -165,14 +167,14 @@ class Soloff_Polynome(dict) :
             x33 = x3 * x3 * x3
             x14 = x1 * x1 * x1 * x1
             x24 = x2 * x2 * x2 * x2
-            M = numpy.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
+            M = np.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
                              x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,        x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
                              x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
-        elif polynomial_form == 444 :
+        elif polynomial_form == 444 or polynomial_form == 4 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
@@ -182,7 +184,7 @@ class Soloff_Polynome(dict) :
             x14 = x1 * x1 * x1 * x1
             x24 = x2 * x2 * x2 * x2
             x34 = x3 * x3 * x3 * x3
-            M = numpy.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
+            M = np.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
                              x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,        x1*x22,     x23,       x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
@@ -201,7 +203,7 @@ class Soloff_Polynome(dict) :
             x34 = x3 * x3 * x3 * x3
             x15 = x1 * x1 * x1 * x1 * x1
             x25 = x2 * x2 * x2 * x2 * x2
-            M = numpy.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
+            M = np.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
                              x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
                              x13,            x12*x2,        x1*x22,         x23,            x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
@@ -212,7 +214,7 @@ class Soloff_Polynome(dict) :
                              x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
                              x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])   
-        elif polynomial_form == 555 :
+        elif polynomial_form == 555 or polynomial_form == 5 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
@@ -225,7 +227,7 @@ class Soloff_Polynome(dict) :
             x15 = x1 * x1 * x1 * x1 * x1
             x25 = x2 * x2 * x2 * x2 * x2
             x35 = x3 * x3 * x3 * x3 * x3
-            M = numpy.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
+            M = np.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
                              x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
                              x13,            x12*x2,        x1*x22,         x23,            x12*x3,
                              x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
@@ -718,7 +720,6 @@ def AI_solve_simultaneously (file,
     accuracy = evaluate(model, X2, Y2)
     return(model, accuracy)
 
-
 def AI_solve_independantly (file,
                             n_estimators=800, 
                             min_samples_leaf=1, 
@@ -1069,6 +1070,166 @@ def AI_solve_zdependantly (file,
            accuracyy,
            accuracyz)
 
+def AI_HGBoost (file) :  
+    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    output (x,y or z)
+
+    Args:
+       file : str
+          Name of saving file for training
+          More information on the link :
+          https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html#sklearn.ensemble.HistGradientBoostingRegressor
+          
+           
+    Returns:
+       modelx, modely, modelz : sklearn.ensemble._forest.RandomForestRegressor
+           IA metamodel for x,y and z coordinates
+       accuracyx, accuracyy, accuracyz : int
+           Accuracy of the IA metamodel compared with the training datas
+           for x,y and z coordinates.
+           
+    """
+    dat=pd.read_csv(file, sep=" " )
+    dat=np.array(dat)
+    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
+    # the last 1/5 datas.
+    N = int(len(dat)*4/5)
+    
+    # 1st meta-model
+    X=dat[0:N,0:4]
+    Yx=dat[0:N,4]
+    Yy=dat[0:N,5]
+    Yz=dat[0:N,6]
+    print('IA model training : x,y,z')
+    modelx = HistGradientBoostingRegressor().fit(X, Yx)
+    modely = HistGradientBoostingRegressor().fit(X, Yy)
+    modelz = HistGradientBoostingRegressor().fit(X, Yz)
+        
+    # TEST 
+    X2=dat[N:,0:4]
+    Y2x=dat[N:,4]
+    Y2y=dat[N:,5]
+    Y2z=dat[N:,6]
+    
+    '''
+    # hyperparameter tuning 
+    if hyperparameters_tuning :
+        # Number of trees in random forest
+        n_estimators = [int(x) for x in np.linspace(start = 200, 
+                                                    stop = 2000, 
+                                                    num = 10)]
+        # Number of features to consider at every split
+        max_features = ['auto', 'sqrt']
+        # Maximum number of levels in tree
+        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+        max_depth.append(None)
+        # Minimum number of samples required to split a node
+        min_samples_split = [2, 5, 10]
+        # Minimum number of samples required at each leaf node
+        min_samples_leaf = [1, 2, 4]
+        # Method of selecting samples for training each tree
+        bootstrap = [True, False]# Create the random grid
+        random_grid = {'n_estimators': n_estimators,
+                        'max_features': max_features,
+                        'max_depth': max_depth,
+                        'min_samples_split': min_samples_split,
+                        'min_samples_leaf': min_samples_leaf,
+                        'bootstrap': bootstrap}
+        
+        rf_random = RandomizedSearchCV(estimator = model, 
+                                       param_distributions = random_grid, 
+                                       n_iter = 100, 
+                                       cv = 3, 
+                                       verbose=2, 
+                                       random_state=42, 
+                                       n_jobs = -1)
+        rf_random.fit(X, Y)
+        
+        best_random = rf_random.best_estimator_
+        print('Best hyper parameters')
+        print(best_random)
+    '''
+    #################################
+    def evaluate(model, test_features, test_labels):
+        predictions = model.predict(test_features)
+        errors = abs(predictions - test_labels)
+        mape = 100 * np.mean(errors / np.max(test_labels))
+        accuracy = 100 - mape
+        print('Model Performance')
+        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+        print('Accuracy = {:0.2f}%.'.format(accuracy))
+        return accuracy
+    
+    accuracyx = evaluate(modelx, X2, Y2x)
+    accuracyy = evaluate(modely, X2, Y2y)
+    accuracyz = evaluate(modelz, X2, Y2z)
+    
+    model = [modelx, modely, modelz]
+    accuracy = [accuracyx, accuracyy, accuracyz]
+    
+    return(model, accuracy) 
+    
+def AI_LinearRegression (file) :  
+    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    output (x,y or z)
+
+    Args:
+       file : str
+          Name of saving file for training
+          More information on the link :
+          https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html
+          
+           
+    Returns:
+       model = [modelx, modely, modelz] : list of sklearn.ensemble._forest.RandomForestRegressor
+           IA metamodel for x,y and z coordinates
+       accuracyx, accuracyy, accuracyz : int
+           Accuracy of the IA metamodel compared with the training datas
+           for x,y and z coordinates.
+           
+    """
+    dat=pd.read_csv(file, sep=" " )
+    dat=np.array(dat)
+    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
+    # the last 1/5 datas.
+    N = int(len(dat)*4/5)
+    
+    # 1st meta-model
+    X=dat[0:N,0:4]
+    Yx=dat[0:N,4]
+    Yy=dat[0:N,5]
+    Yz=dat[0:N,6]
+    print('IA model training : x,y,z')
+    modelx = LinearRegression().fit(X, Yx)
+    modely = LinearRegression().fit(X, Yy)
+    modelz = LinearRegression().fit(X, Yz)
+        
+    # TEST 
+    X2=dat[N:,0:4]
+    Y2x=dat[N:,4]
+    Y2y=dat[N:,5]
+    Y2z=dat[N:,6]
+    
+    def evaluate(model, test_features, test_labels):
+        predictions = model.predict(test_features)
+        errors = abs(predictions - test_labels)
+        mape = 100 * np.mean(errors / np.max(test_labels))
+        accuracy = 100 - mape
+        print('Model Performance')
+        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
+        print('Accuracy = {:0.2f}%.'.format(accuracy))
+        return accuracy
+    
+    accuracyx = evaluate(modelx, X2, Y2x)
+    accuracyy = evaluate(modely, X2, Y2y)
+    accuracyz = evaluate(modelz, X2, Y2z)
+    
+    model = [modelx, modely, modelz]
+    accuracy = [accuracyx, accuracyy, accuracyz]
+    
+    return(model, accuracy) 
+      
+    
 
 if __name__ == '__main__' :
     ()

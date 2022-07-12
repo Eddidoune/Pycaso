@@ -56,7 +56,7 @@ __calibration_dict__ = {
 'ncx' : 16,
 'ncy' : 12,
  pixel_factor' : 10}
- ```
+```
  - Create the list of z plans
 ```
 Folder = __calibration_dict__['left_folder']
@@ -80,13 +80,13 @@ Lauch the Soloff calibration function in the main.py :
 A111, A_pol, Mag= Soloff_calibration (__calibration_dict__,
                           	       x3_list,
                                       Soloff_pform)
-``` 
+```
 And/Or the direct calibration function in the main.py :
 ```
 direct_A, Mag= direct_calibration (__calibration_dict__,
                         	    x3_list,
                                    direct_pform)
-``` 
+```
 The calibration parameters are identified and calibration part is done. For more information about the resolution, see the Hessian detection explaination.
 
 ## Identification of the coin
@@ -122,4 +122,28 @@ zS = np.reshape(zS,(1400,1400))
 plt.imshow(zS)
 ```
 
+## Identification by AI
+In order to accelerate the resolution, it is possible to train AI on Soloff's evaluated points.
+Let's chose for example 50 000 points for training the AI model :
+NB : Here all the points are calculated by Soloff but, if you want to use the AI protocole to increase the speed of calculation, it is useless to use Soloff on all the points (only 50 000 is enough).
+```
+AI_training_size = 50000
+model = AI_training (X_c1,
+                     X_c2,
+                     xSoloff_solution,
+                     AI_training_size = AI_training_size)
+```
 
+Then, all the points can be calculated here with the AI model :
+```
+xAI_solution = AI_identification (X_c1,
+                                  X_c2,
+                                  model)
+xAI, yAI, zAI = xAI_solution
+```
+Now all of the spacial points i are detected (xAI[i], yAI[i], zAI[i]). 
+Then it is possible to project the zAI on the left camera to tchek the cinematic field :
+```
+zAI = np.reshape(zAI,(1400,1400))
+plt.imshow(zAI)
+```

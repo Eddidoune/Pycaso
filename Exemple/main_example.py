@@ -135,5 +135,23 @@ if __name__ == '__main__' :
     cb.set_label('z in mm')
     plt.show()
     
+    AI_training_size = 50000
+    model = pcs.AI_training (X_c1,
+                             X_c2,
+                             xSoloff_solution,
+                             AI_training_size = AI_training_size)
     
-    
+    xAI_solution = pcs.AI_identification (X_c1,
+                                          X_c2,
+                                          model)
+
+    xAI, yAI, zAI = xSoloff_solution
+    zAI = zAI.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+      
+    plt.figure()
+    plt.imshow(zAI)
+    plt.title('Z projected on left camera with AI calculation')
+    cb = plt.colorbar()
+    plt.clim(2.6, 3)
+    cb.set_label('z in mm')
+    plt.show()

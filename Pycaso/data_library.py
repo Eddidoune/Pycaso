@@ -14,16 +14,14 @@ import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
+sys.path.append('../../../GCpu_OpticalFlow-master/Src')
 
-sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
-from compute_flow import compute_flow
+
 
 try : 
     import cupy as np
-    import numpy 
 except ImportError:
     import numpy as np
-    import numpy 
 
 import cv2
 import cv2.aruco as aruco
@@ -531,14 +529,13 @@ def pattern_detection (__dict__,
     Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
     Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
     Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
-
     # Corners detection
     if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
         # Taking pre-calculated datas from the saving_folder
         print('    - Taking datas from ', saving_folder)        
-        all_X = numpy.load(Save_all_X)
-        all_x = numpy.load(Save_all_x)
-        nb_pts = numpy.load(Save_nb_pts)
+        all_X = np.load(Save_all_X)
+        all_x = np.load(Save_all_x)
+        nb_pts = np.load(Save_nb_pts)
     
     else : # Corners detection
         print('    - Detection of the pattern in progress ...')
@@ -604,12 +601,12 @@ def DIC_disflow (__DIC_dict__,
     print('    - DIC in progress ...')
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
-        all_U = numpy.load(Save_all_U)
-        all_V = numpy.load(Save_all_V)
+        all_U = np.load(Save_all_U)
+        all_V = np.load(Save_all_V)
     else:
         im0 = cv2.imread(Images[0], 0)
-        all_U = numpy.zeros((N, im0.shape[0], im0.shape[1]))
-        all_V = numpy.zeros((N, im0.shape[0], im0.shape[1]))
+        all_U = np.zeros((N, im0.shape[0], im0.shape[1]))
+        all_V = np.zeros((N, im0.shape[0], im0.shape[1]))
         for i in range(1, N):
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], Images[i]))
             Im1 = cv2.imread(Images[0],0) 
@@ -617,9 +614,9 @@ def DIC_disflow (__DIC_dict__,
             if flip :
                 Im1 = cv2.flip(Im1, 1)
                 Im2 = cv2.flip(Im2, 1)
-            all_U[i], all_V[i] = DIC.strain_field(Images[0], 
-                                                  Images[i],
-                                                  vr_kwargs=vr_kwargs)
+            all_U[i], all_V[i] = DIC.displacement_field(Images[0], 
+                                                        Images[i],
+                                                        vr_kwargs=vr_kwargs)
 
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
@@ -674,6 +671,12 @@ def DIC_3D_composed_detection (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
    """
+    try : 
+        from compute_flow import compute_flow
+    except ImportError:
+        print('No modelu named conpute_flow')
+        raise 
+
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
@@ -709,8 +712,8 @@ def DIC_3D_composed_detection (__DIC_dict__,
     
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
-        all_U = numpy.load(Save_all_U)
-        all_V = numpy.load(Save_all_V)
+        all_U = np.load(Save_all_U)
+        all_V = np.load(Save_all_V)
     else:
         im0_left = cv2.imread(Images[0], 0)
         im0_right = cv2.imread(Images[int(N/2)], 0)
@@ -718,9 +721,9 @@ def DIC_3D_composed_detection (__DIC_dict__,
             im0_left = cv2.flip(im0_left, 1)
             im0_right = cv2.flip(im0_right, 1)
         nx, ny = im0_left.shape
-        all_U = numpy.zeros((N, nx, ny), dtype=np.float32)
-        all_V = numpy.zeros((N, nx, ny), dtype=np.float32)
-        x, y = np.meshgrid(np.arange(2048), np.arange(2048))
+        all_U = np.zeros((N, nx, ny), dtype=np.float32)
+        all_V = np.zeros((N, nx, ny), dtype=np.float32)
+        x, y = np.meshgrid(np.arange(ny), np.arange(nx))
         x = x.astype(np.float32)
         y = y.astype(np.float32)
         # Left0/left camera correlations + left0 / right0 correlation
@@ -783,18 +786,20 @@ def DIC_3D_composed_detection (__DIC_dict__,
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
         # ntot = (lx2 - lx1) * (ly2 - ly1)
-        linsp = np.arange(nX1)+1
-        linsp = np.reshape (linsp, (1,nX1))
-        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
-        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
-        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
-        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
+        linsp1 = np.arange(nX1)+1
+        linsp2 = np.arange(nX2)+1
+        linsp1 = np.reshape (linsp1, (1,nX1))
+        linsp2 = np.reshape (linsp2, (1,nX2))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp2)
+        X2matrix = np.matmul(np.transpose(linsp1), np.ones((1, nX2)))
+        X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
+        X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
 
         # Left camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
                                       np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
-                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
+        UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
+                                    np.ravel(V[lx1:lx2, ly1:ly2])]))
 
         # Right camera --> position = each px + displacement
         X_c2 = X_c1 + UV
@@ -839,7 +844,7 @@ def DIC_fields (__DIC_dict__,
     # Taking pre-calculated datas from the saving_folder
     if os.path.exists(Save_UV) :
         print('    - Taking datas from ', saving_folder)        
-        all_UV = numpy.load(Save_UV)
+        all_UV = np.load(Save_UV)
         U_left, V_left, U_right, V_right = all_UV
     else :
         Images_left = sorted(glob(str(left_folder) + '/*'))
@@ -865,17 +870,17 @@ def DIC_fields (__DIC_dict__,
                 Imr1 = cv2.flip(Imr1, 1)
                 Imr2 = cv2.flip(Imr2, 1)
             
-            Ul, Vl = DIC.strain_field(Iml1, 
-                                      Iml2,
-                                      vr_kwargs=vr_kwargs)
-            Ur, Vr = DIC.strain_field(Imr1, 
-                                      Imr2,
-                                      vr_kwargs=vr_kwargs)
+            Ul, Vl = DIC.displacement_field(Iml1, 
+                                            Iml2,
+                                            vr_kwargs=vr_kwargs)
+            Ur, Vr = DIC.displacement_field(Imr1, 
+                                            Imr2,
+                                            vr_kwargs=vr_kwargs)
             if i == 0 :
-                U_left = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
-                V_left = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
-                U_right = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
-                V_right = numpy.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
             U_left[i] = Ul
             V_left[i] = Vl
             U_right[i] = Ur
@@ -916,9 +921,9 @@ def camera_np_coordinates (all_X,
         all_xi = all_x[i*(mid-1):i*mid,:,:]
         sU = all_Xi.shape
         Xref = all_xi[0]
-        all_xi = numpy.empty ((sU[0], sU[1], sU[2]+1))
-        x = numpy.empty ((sU[0] * sU[1], sU[2]+1))
-        X = numpy.empty ((sU[0] * sU[1], sU[2]))
+        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
+        x = np.empty ((sU[0] * sU[1], sU[2]+1))
+        X = np.empty ((sU[0] * sU[1], sU[2]))
         for j in range (sU[0]) :
             all_xi[j][:,0] = Xref[:,0]
             all_xi[j][:,1] = Xref[:,1]
@@ -931,12 +936,12 @@ def camera_np_coordinates (all_X,
         x1 = x[:,0]
         x2 = x[:,1]
         x3 = x[:,2]
-        x = numpy.asarray([x1,x2,x3]) # reshape x
+        x = np.asarray([x1,x2,x3]) # reshape x
 
         # Position detected from cameras : Ucam (X1, X2)
         X1 = X[:,0]
         X2 = X[:,1]
-        X = numpy.asarray([X1,X2]) # reshape X
+        X = np.asarray([X1,X2]) # reshape X
         
         if i == 1 :
             Xc1 = X
@@ -956,7 +961,7 @@ def camera_np_coordinates (all_X,
         x1 = x1[np.logical_not(mask)]
         x2 = x2[np.logical_not(mask)]
         x3 = x3[np.logical_not(mask)]
-        x = numpy.asarray([x1,x2,x3])
+        x = np.asarray([x1,x2,x3])
     else :
         mask = np.array([False])
         
@@ -980,7 +985,7 @@ if __name__ == '__main__' :
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = numpy.zeros((len(Imgs)))
+    x3_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
 

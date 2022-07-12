@@ -8,10 +8,8 @@ Created on Fri Nov 26 09:19:07 2021
 import sigfig as sgf
 try : 
     import cupy as np
-    import numpy
 except ImportError:
     import numpy as np
-    import numpy
 import sys
 import pathlib
 import os
@@ -49,7 +47,7 @@ def magnification (X1, X2, x1, x2) :
     Delta_X2 = np.nanmean(abs(X2-np.nanmean(X2)))
     Delta_x1 = np.nanmean(abs(x1-np.nanmean(x1)))
     Delta_x2 = np.nanmean(abs(x2-np.nanmean(x2)))
-    Magnification = numpy.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
+    Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
     return (Magnification)
 
 def Soloff_calibration (__calibration_dict__,
@@ -85,31 +83,31 @@ def Soloff_calibration (__calibration_dict__,
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
     
-    A111 = numpy.zeros((2, 2, 4))
-    if Soloff_pform == 111 :
-        A_pol = numpy.zeros((2, 2, 4))
+    A111 = np.zeros((2, 2, 4))
+    if Soloff_pform == 111 or Soloff_pform == 1 :
+        A_pol = np.zeros((2, 2, 4))
     elif Soloff_pform == 221 :
-        A_pol = numpy.zeros((2, 2, 9))
-    elif Soloff_pform == 222 :
-        A_pol = numpy.zeros((2, 2, 10))
+        A_pol = np.zeros((2, 2, 9))
+    elif Soloff_pform == 222 or Soloff_pform == 2 :
+        A_pol = np.zeros((2, 2, 10))
     elif Soloff_pform == 332 :
-        A_pol = numpy.zeros((2, 2, 19))
-    elif Soloff_pform == 333 :
-        A_pol = numpy.zeros((2, 2, 20))
+        A_pol = np.zeros((2, 2, 19))
+    elif Soloff_pform == 333 or Soloff_pform == 3 :
+        A_pol = np.zeros((2, 2, 20))
     elif Soloff_pform == 443 :
-        A_pol = numpy.zeros((2, 2, 34))
-    elif Soloff_pform == 444 :
-        A_pol = numpy.zeros((2, 2, 35))
+        A_pol = np.zeros((2, 2, 34))
+    elif Soloff_pform == 444 or Soloff_pform == 4 :
+        A_pol = np.zeros((2, 2, 35))
     elif Soloff_pform == 554 :
-        A_pol = numpy.zeros((2, 2, 55))
-    elif Soloff_pform == 555 :
-        A_pol = numpy.zeros((2, 2, 56))    
+        A_pol = np.zeros((2, 2, 55))
+    elif Soloff_pform == 555 or Soloff_pform == 5 :
+        A_pol = np.zeros((2, 2, 56))    
     else :
         print ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
         sys.exit()
     
     A_0 = [A111, A_pol]
-    Soloff_pforms = [111, Soloff_pform]
+    Soloff_pforms = [1, Soloff_pform]
 
     
     # Detect points from folders
@@ -124,7 +122,7 @@ def Soloff_calibration (__calibration_dict__,
     solvel.refplans(x, x3_list)
 
     # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = numpy.zeros((2, 2))
+    Magnification = np.zeros((2, 2))
     for camera in [1, 2] :
         if camera == 1 :
             X = Xc1
@@ -227,13 +225,13 @@ def direct_calibration (__calibration_dict__,
     """
     
     if direct_pform == 1 :
-        direct_A = numpy.zeros((3, 5))
+        direct_A = np.zeros((3, 5))
     elif direct_pform == 2 :
-        direct_A = numpy.zeros((3, 15))
+        direct_A = np.zeros((3, 15))
     elif direct_pform == 3 :
-        direct_A = numpy.zeros((3, 35))
+        direct_A = np.zeros((3, 35))
     elif direct_pform == 4 :
-        direct_A = numpy.zeros((3, 70))
+        direct_A = np.zeros((3, 70))
     else :
         print ('Only define for polynomial degrees (1, 2, 3 or 4')
         sys.exit()
@@ -248,7 +246,7 @@ def direct_calibration (__calibration_dict__,
     solvel.refplans(x, x3_list)
 
     # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = numpy.zeros((2, 2))
+    Magnification = np.zeros((2, 2))
 
     for camera in [1, 2] :
         if camera == 1 :
@@ -306,8 +304,8 @@ def direct_identification (Xc1_identified,
     # Solve by direct method
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
-    Xl = numpy.zeros((2,len(Xl1)))
-    Xr = numpy.zeros((2,len(Xr1)))
+    Xl = np.zeros((2,len(Xl1)))
+    Xr = np.zeros((2,len(Xr1)))
     Xl = Xl1, Xl2
     Xr = Xr1, Xr2
     
@@ -376,11 +374,11 @@ def AI_training (X_c1,
         model, accuracy = solvel.AI_solve_simultaneously (file)
         return(model)
     elif method == 'independantly' :
-        modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
+        modelx, modely, modelz, _, _, _ = solvel.AI_solve_independantly (file)
         model = [modelx, modely, modelz]
         return(model)
     elif method == 'z_dependantly' :
-        modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
+        modelx, modely, modelz, _, _, _ = solvel.AI_solve_independantly (file)
         model = [modelx, modely, modelz]
         return(model)
     else :
@@ -428,11 +426,11 @@ def AI_identification (X_c1,
 if __name__ == '__main__' :
     main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
     # saving_folder = main_path + '/results/2022_02_02_results'
-    saving_folder = main_path + '/results/2022_04_15_results_adrien_micromachine/501_sample'
+    saving_folder = main_path + '/results/2022_06_21/101_sample_very_first'
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_501_x2',
-    'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_501_x2',
+    'left_folder' : main_path + '/Images_example/2022_06_21/left_101',
+    'right_folder' : main_path + '/Images_example/2022_06_21/right_101',
     'name' : 'micro_calibration',
     'saving_folder' : saving_folder,
     'ncx' : 16,
@@ -449,11 +447,11 @@ if __name__ == '__main__' :
     # 'sqr' : 0.3}  #in mm
     
     __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_sample_identification',
-    'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_sample_identification',
+    'left_folder' : main_path + '/Images_example/2022_06_21/left_very_first',
+    'right_folder' : main_path + '/Images_example/2022_06_21/right_very_first',
     'name' : 'micro_identification',
     'saving_folder' : saving_folder,
-    'window' : [[200, 1800], [200, 1800]]}  #in mm
+    'window' : [[500, 2400], [1300, 3000]]}  #in mm
     
     # profilo = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_04_15_results_adrien_micromachine/profilo/x5_stitching5x5_tilt_cyl_removed_overlap40.npy'
     
@@ -461,7 +459,7 @@ if __name__ == '__main__' :
     # Create the list of z plans
     Folder = __calibration_dict__['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = numpy.zeros((len(Imgs)))
+    x3_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
     # x3_list = np.array(sorted(x3_list))
@@ -484,7 +482,6 @@ if __name__ == '__main__' :
     print('#####       ')
 
     all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__)
-
 
     
     A111, A_pol, Magnification = Soloff_calibration (__calibration_dict__,
@@ -514,21 +511,21 @@ if __name__ == '__main__' :
     print('Identification by DIC')
     print('#####       ')
     print('')
-    
+
     # all_X, all_x, nb_pts = data.pattern_detection(__pattern_dict__)    
     
     # Xleft_id, Xright_id = all_X
     # sys.exit()
     Xleft_id, Xright_id = data.DIC_3D_composed_detection(__DIC_dict__,
-                                                           flip = False)
+                                                         flip = False)
     
     Np_img, Npoints, Naxes = Xleft_id.shape
-    all_U, all_V, all_W = numpy.zeros((3, 2*Np_img, Npoints))
-    xDirect_solutions = numpy.zeros((Np_img, 3, Npoints))
-    xSoloff_solutions = numpy.zeros((Np_img, 3, Npoints))
-    xAI_solutions = numpy.zeros((Np_img, 3, Npoints))
+    all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
+    xDirect_solutions = np.zeros((Np_img, 3, Npoints))
+    xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
+    xAI_solutions = np.zeros((Np_img, 3, Npoints))
 
-    for image in range (2) :
+    for image in range (Np_img) :
         print('')
         print('')
         print('Calculation of the pair of images ', image+1)
@@ -557,15 +554,16 @@ if __name__ == '__main__' :
         print('time direct = ',t1 - t0)
         print('end direct')
 
-        fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
-        plt.figure()
-        plt.show()
-
+        # fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
+        # plt.figure()
+        # plt.show()
+        
         # Soloff identification
         t0 = time.time()
-        soloff_file = saving_folder + '/xsolution_soloff200_1800' + str(image) + '.npy'
+        # soloff_file = saving_folder + '/xsolution_soloff500_2700_1100_3200_' + str(image) + '.npy'
+        soloff_file = saving_folder + '/xsolution_soloff500_2400_1300_3000_' + str(image) + '.npy'
         if os.path.exists(soloff_file) and True :
-            xSoloff_solution = numpy.load(soloff_file)
+            xSoloff_solution = np.load(soloff_file)
         else :
             xSoloff_solution = Soloff_identification (X_c1,
                                                       X_c2,
@@ -582,10 +580,10 @@ if __name__ == '__main__' :
         df.insert(df.shape[1], 'ySoloff', yS, True)
         df.insert(df.shape[1], 'zSoloff', zS, True)
         xSoloff_solutions[image] = xSoloff_solution
-        fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
-        zS_fit = fit[0] * xS + fit[1] * yS + fit[2] + zS
-        plt.figure()        
-        plt.show()
+        # fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
+        # zS_fit = fit[0] * xS + fit[1] * yS + fit[2] + zS
+        # plt.figure()        
+        # plt.show()
 
         # histogram
         # n, bins, patches = plt.hist(zS_fit*1000, 20, facecolor='g')
@@ -639,16 +637,16 @@ if __name__ == '__main__' :
         AI_zdep_file = saving_folder + '/AI/xsolution_AIxsolution_zdep_soloff200_1800' + str(image) + '.npy'
         
         
-        x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
-                                                    all_Xref, 
-                                                    x3_list)
+        # x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
+        #                                             all_Xref, 
+        #                                             x3_list)
 
-        Xc1_ = np.transpose(Xc1_)
-        Xc2_ = np.transpose(Xc2_)
+        # Xc1_ = np.transpose(Xc1_)
+        # Xc2_ = np.transpose(Xc2_)
         
         t0 = time.time()
         # if os.path.exists(AI_sim_file) and os.path.exists(AI_ind_file) and False :
-        if False :
+        if True :
             # xAI_solution_sim = numpy.load(AI_sim_file)
             # xAI_solution_ind = numpy.load(AI_ind_file)
             ()
