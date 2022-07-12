@@ -112,7 +112,7 @@ class Calibrate(dict):
                 List of the detected corners (automatically with ChAruco and 
                                               Hessian invariants + manually)
         """                        
-        corners_list = numpy.asarray(corners_list)
+        corners_list = np.asarray(corners_list)
         x, y, ids = np.transpose(corners_list)
         img = cv2.imread(im, 0)
 
@@ -136,7 +136,7 @@ class Calibrate(dict):
         # the referential
         nx, ny = self.ncx-1, self.ncy-1
         n_corners = nx*ny
-        corners_list_opt = numpy.zeros((n_corners, 3))
+        corners_list_opt = np.zeros((n_corners, 3))
         pts_list = np.arange(n_corners)
         pts_list = np.reshape(pts_list, (ny,nx))
         ptA = corners_list[0]
@@ -368,7 +368,7 @@ def cut_calibration_model (List_images,
     M = len(List_images)
     
     # First, detect the holes = missing points
-    nb_pts = numpy.zeros(M)
+    nb_pts = np.zeros(M)
     print('M ', M)
     for i in range (0, M) :
         B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i]))[0])
@@ -427,9 +427,9 @@ def cut_calibration_model (List_images,
         ()
     else :
         # Use it as array
-        all_X = numpy.asarray(all_X)
+        all_X = np.asarray(all_X)
         all_X = all_X[:, :, [0, 1]]
-        all_x = numpy.asarray(all_x)
+        all_x = np.asarray(all_x)
         all_x = all_x[:, :, [0, 1]]
     nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
@@ -467,8 +467,8 @@ def NAN_calibration_model (Images,
     
     # First, detect the holes = missing points
     Nall = len(Xref)
-    nb_pts = numpy.zeros(M)
-    all_X = numpy.zeros((M, Nall, 3))
+    nb_pts = np.zeros(M)
+    all_X = np.zeros((M, Nall, 3))
     for i in range (0, M) :
         im = sorted(glob(Images[i]))[0]
         corners_list, pts = Calibrate(__dict__).calibrate(im)
@@ -482,7 +482,7 @@ def NAN_calibration_model (Images,
     for i in range (0, M) :
         all_x.append(Xref)        
     # Use it as array
-    all_x = numpy.asarray(all_x)
+    all_x = np.asarray(all_x)
     all_x = all_x[:, :, [0, 1]]
     all_X = all_X[:, :, [0, 1]]
     nb_pts = np.reshape(nb_pts, (2, M//2))
