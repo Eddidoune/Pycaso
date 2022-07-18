@@ -125,6 +125,8 @@ if __name__ == '__main__' :
         np.save(soloff_file, xSoloff_solution)
     
     xS, yS, zS = xSoloff_solution
+    xS = xS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+    yS = yS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     zS = zS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
       
     plt.figure()
@@ -136,6 +138,8 @@ if __name__ == '__main__' :
     plt.show()
     
     AI_training_size = 50000
+    import time
+    t0 = time.time()
     model = pcs.AI_training (X_c1,
                              X_c2,
                              xSoloff_solution,
@@ -145,7 +149,9 @@ if __name__ == '__main__' :
                                           X_c2,
                                           model)
 
-    xAI, yAI, zAI = xSoloff_solution
+    xAI, yAI, zAI = xAI_solution
+    xAI = xAI.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+    yAI = yAI.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     zAI = zAI.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
       
     plt.figure()
@@ -155,3 +161,50 @@ if __name__ == '__main__' :
     plt.clim(2.6, 3)
     cb.set_label('z in mm')
     plt.show()
+    t1 = time.time()
+    
+    xdiff = xAI - xS
+    ydiff = yAI - yS
+    zdiff = zAI - zS
+    rdiff = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
+    print('max : ', np.max(np.abs(xdiff)), np.max(np.abs(ydiff)), np.max(np.abs(zdiff)), np.max(np.abs(rdiff)))
+    print('mean : ', np.mean(np.abs(xdiff)), np.mean(np.abs(ydiff)), np.mean(np.abs(zdiff)), np.mean(np.abs(rdiff)))
+    print('std : ', np.std(xdiff), np.std(ydiff), np.std(zdiff), np.std(rdiff))
+    
+
+
+
+    
+    model_norm = pcs.AI_training_norm (X_c1,
+                             X_c2,
+                             xSoloff_solution,
+                             AI_training_size = AI_training_size)
+    
+    xAI_solution_norm = pcs.AI_identification_norm (X_c1,
+                                          X_c2,
+                                          model)
+
+    xAI_norm, yAI_norm, zAI_norm = xAI_solution_norm
+    xAI_norm = xAI_norm.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+    yAI_norm = yAI_norm.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+    zAI_norm = zAI_norm.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+      
+    plt.figure()
+    plt.imshow(zAI_norm)
+    plt.title('Z projected on left camera with AI_norm calculation')
+    cb = plt.colorbar()
+    plt.clim(2.6, 3)
+    cb.set_label('z in mm')
+    plt.show()
+    t2 = time.time()
+    print(t1-t0)
+    print(t2-t1)
+    
+    xdiff = xAI_norm - xS
+    ydiff = yAI_norm - yS
+    zdiff = zAI_norm - zS
+    rdiff = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
+    print('max : ', np.max(np.abs(xdiff)), np.max(np.abs(ydiff)), np.max(np.abs(zdiff)), np.max(np.abs(rdiff)))
+    print('mean : ', np.mean(np.abs(xdiff)), np.mean(np.abs(ydiff)), np.mean(np.abs(zdiff)), np.mean(np.abs(rdiff)))
+    print('std : ', np.std(xdiff), np.std(ydiff), np.std(zdiff), np.std(rdiff))
+    

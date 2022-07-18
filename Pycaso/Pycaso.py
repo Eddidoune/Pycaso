@@ -423,14 +423,126 @@ def AI_identification (X_c1,
     return (xAI_solution)
 
 
+def AI_training_norm (X_c1,
+                 X_c2,
+                 xSoloff_solution,
+                 AI_training_size = 1000,
+                 file = 'Soloff_AI_training.csv',
+                 method = 'simultaneously') :
+    """Training the AI metamodel with already known datas.
+    
+    Args:
+       X_c1 : numpy.ndarray
+           Left coordinates of points.
+       X_c2 : numpy.ndarray
+           Right coordinates of points.
+       xSoloff_solution : numpy.ndarray
+           3D space coordinates identified with Soloff method.
+       AI_training_size : int
+           Number of datas (points) used to train the AI metamodel.
+       file : str
+           Name of saving file for training
+       method : str
+           AI method :
+                   - Simultaneously = x,y and z in the same model
+                   - Independantly = x,y and z in different models
+                   
+    Returns:
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           AI model or list of AI models
+    """
+    # Organise the list of parameters
+    Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
+    Xr0, Yr0 = X_c2[:,0], X_c2[:,1]
+    xS, yS, zS = xSoloff_solution
+    N = X_c1.shape[0]
+    if AI_training_size > N :
+        print('AI_training_size reduced to size ', N)
+        AI_training_size = N
+    else :
+        ()
+    
+    # List of random points (To minimize the size of calculation)
+    rd_list = np.ndarray.astype((np.random.rand(AI_training_size)*N),int)    
+    with open(file, 'w', newline='') as csvfile:
+        spamwriter = csv.writer(csvfile, 
+                                delimiter=' ',
+                                quotechar='|', 
+                                quoting=csv.QUOTE_MINIMAL)
+        spamwriter.writerow(['Xl'] + ['Yl'] + ['Xr'] + ['Yr'] + 
+                            ['x'] + ['y'] + ['z'])
+        for i in range (AI_training_size) :
+            spamwriter.writerow([str(Xl0[rd_list[i]]), 
+                                 str(Yl0[rd_list[i]]), 
+                                 str(Xr0[rd_list[i]]), 
+                                 str(Yr0[rd_list[i]]), 
+                                 str(xS[rd_list[i]]), 
+                                 str(yS[rd_list[i]]), 
+                                 str(zS[rd_list[i]])])
+    # Build the AI model with the AI_training_size.
+    if method == 'simultaneously' :
+        model, accuracy = solvel.AI_solve_simultaneously (file)
+        return(model)
+    elif method == 'independantly' :
+        modelx, modely, modelz, _, _, _ = solvel.AI_solve_independantly (file)
+        model = [modelx, modely, modelz]
+        return(model)
+    elif method == 'z_dependantly' :
+        modelx, modely, modelz, _, _, _ = solvel.AI_solve_independantly (file)
+        model = [modelx, modely, modelz]
+        return(model)
+    else :
+        print('No method ', method)
+    
+def AI_identification_norm (X_c1,
+                       X_c2,
+                       model,
+                       method = 'simultaneously') :
+    """Calculation of the 3D points with AI model.
+    
+    Args:
+       X_c1 : numpy.ndarray
+           Left coordinates of points.
+       X_c2 : numpy.ndarray
+           Right coordinates of points.
+       model : sklearn.ensemble._forest.RandomForestRegressor
+           AI model
+       method : str
+           AI method :
+                   - Simultaneously = x,y and z in the same model
+                   - Independantly = x,y and z in different models
+
+    Returns:
+       xAI_solution : numpy.ndarray
+           3D space coordinates identified with AI method.
+    """
+    # Solve on all pts
+    X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
+                               X_c2[:,0], X_c2[:,1]]))        
+    if method == 'simultaneously' :
+        xAI_solution = model.predict(X)
+        xAI_solution = np.transpose(xAI_solution)
+    elif method == 'independantly' or method == 'z_dependantly' :
+        modelx, modely, modelz = model
+        xAI_solutionx = modelx.predict(X)
+        xAI_solutiony = modely.predict(X)
+        xAI_solutionz = modelz.predict(X)
+        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz])
+    else :
+        print('No method ', method)
+    return (xAI_solution)
+
+
+
+
 if __name__ == '__main__' :
     main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
     # saving_folder = main_path + '/results/2022_02_02_results'
-    saving_folder = main_path + '/results/2022_06_21/101_sample_very_first'
+    saving_folder = main_path + '/results/2022_07_12/101_sample'
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_06_21/left_101',
-    'right_folder' : main_path + '/Images_example/2022_06_21/right_101',
+    'left_folder' : main_path + '/Images_example/2022_07_12/left_101',
+    'right_folder' : main_path + '/Images_example/2022_07_12/right_101',
     'name' : 'micro_calibration',
     'saving_folder' : saving_folder,
     'ncx' : 16,
@@ -447,11 +559,11 @@ if __name__ == '__main__' :
     # 'sqr' : 0.3}  #in mm
     
     __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_06_21/left_very_first',
-    'right_folder' : main_path + '/Images_example/2022_06_21/right_very_first',
+    'left_folder' : main_path + '/Images_example/2022_07_12/left_e2cut',
+    'right_folder' : main_path + '/Images_example/2022_07_12/right_e2cut',
     'name' : 'micro_identification',
     'saving_folder' : saving_folder,
-    'window' : [[500, 2400], [1300, 3000]]}  #in mm
+    'window' : [[0, 2000], [0, 2000]]}  #in mm
     
     # profilo = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_04_15_results_adrien_micromachine/profilo/x5_stitching5x5_tilt_cyl_removed_overlap40.npy'
     
@@ -557,7 +669,7 @@ if __name__ == '__main__' :
         # fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
         # plt.figure()
         # plt.show()
-        
+        '''
         # Soloff identification
         t0 = time.time()
         # soloff_file = saving_folder + '/xsolution_soloff500_2700_1100_3200_' + str(image) + '.npy'
@@ -712,6 +824,6 @@ if __name__ == '__main__' :
             print('max : ', np.max(np.abs(xdiff)), np.max(np.abs(ydiff)), np.max(np.abs(zdiff)), np.max(np.abs(rdiff)))
             print('mean : ', np.mean(np.abs(xdiff)), np.mean(np.abs(ydiff)), np.mean(np.abs(zdiff)), np.mean(np.abs(rdiff)))
             print('std : ', np.std(xdiff), np.std(ydiff), np.std(zdiff), np.std(rdiff))
-            
+        '''
             
             
