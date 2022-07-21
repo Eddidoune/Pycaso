@@ -309,7 +309,8 @@ class Soloff_Polynome(dict) :
 
 
 def fit_plan_to_points(point,
-                       title = 'no title'):
+                       title = 'no title',
+                       plotting = True) :
     """Plot the median plan from a serie of points
     
     Args:
@@ -317,14 +318,25 @@ def fit_plan_to_points(point,
            Real points x(x1, x2, x3)       
        title : str
            Title of the plotted figure
+       plotting = Bool
+           Plot the result or not
             
     Returns:
        plot points + associated plan
     """
     xs, ys, zs = point 
-    ax = plt.subplot(111, projection='3d')
-    ax.scatter(xs, ys, zs, color='b')
     
+    try : 
+        import cupy as np
+        xsnp = np.asnumpy(xs)
+        ysnp = np.asnumpy(ys)
+        zsnp = np.asnumpy(zs)
+    except ImportError:
+        import numpy as np
+        xsnp = xs
+        ysnp = ys
+        zsnp = zs
+  
     # do fit
     tmp_A = []
     tmp_b = []
@@ -348,19 +360,23 @@ def fit_plan_to_points(point,
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
             Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
-    ax.plot_wireframe(X,Y,Z, color='k')
-        
-    ax.set_title(title)
-    ax.set_xlabel('x (mm)')
-    ax.set_ylabel('y (mm)')
-    ax.set_zlabel('z (mm)')
+
+    if plotting :
+        ax = plt.subplot(111, projection='3d')
+        ax.scatter(xsnp, ysnp, zsnp, color='b')
+        ax.plot_wireframe(X,Y,Z, color='k')
+        ax.set_title(title)
+        ax.set_xlabel('x (mm)')
+        ax.set_ylabel('y (mm)')
+        ax.set_zlabel('z (mm)')
     
     fit = np.transpose(np.array(fit))[0]
     
     return (fit, errors, mean_error, residual)
 
 def fit_plans_to_points(points, 
-                        title = 'no title'):
+                        title = 'no title',
+                        plotting = True):
     """Plot the medians plans from series of points
     
     Args:
@@ -368,6 +384,8 @@ def fit_plans_to_points(points,
            Real points x(x1, x2, x3)       
        title : str
            Title of the plotted figures
+       plotting = Bool
+           Plot the result or not
             
     Returns:
        plot points + associated plans
@@ -382,11 +400,13 @@ def fit_plans_to_points(points,
     for i in range (len(points)) :
         point = points[i]
         fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
-                                                                        title = title)
+                                                                        title = title,
+                                                                        plotting = plotting)
         maxerror.append(np.max(abs(errori)))
         errors.append(errori)
-    plt.figure()
-    plt.show()    
+    if plotting :
+        plt.figure()
+        plt.show()    
     print('Plan square max error = ', sgf.round((max(maxerror)), sigfigs =3), ' mm')
     print('Plan square mean error = ', sgf.round((np.mean(mean_error**2))**(1/2), sigfigs = 3), ' mm')
     print('Plan square mean residual = ', sgf.round((np.mean(residual**2))**(1/2), sigfigs = 3))

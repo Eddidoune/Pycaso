@@ -538,11 +538,11 @@ def AI_identification_norm (X_c1,
 if __name__ == '__main__' :
     main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
     # saving_folder = main_path + '/results/2022_02_02_results'
-    saving_folder = main_path + '/results/2022_07_12/101_sample'
+    saving_folder = main_path + '/results/2022_07_20/Essai_0'
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_07_12/left_101',
-    'right_folder' : main_path + '/Images_example/2022_07_12/right_101',
+    'left_folder' : main_path + '/Images_example/2022_07_20/left_501',
+    'right_folder' : main_path + '/Images_example/2022_07_20/right_501',
     'name' : 'micro_calibration',
     'saving_folder' : saving_folder,
     'ncx' : 16,
@@ -559,8 +559,8 @@ if __name__ == '__main__' :
     # 'sqr' : 0.3}  #in mm
     
     __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_07_12/left_e2cut',
-    'right_folder' : main_path + '/Images_example/2022_07_12/right_e2cut',
+    'left_folder' : main_path + '/Images_example/2022_07_20/left',
+    'right_folder' : main_path + '/Images_example/2022_07_20/right',
     'name' : 'micro_identification',
     'saving_folder' : saving_folder,
     'window' : [[0, 2000], [0, 2000]]}  #in mm
@@ -574,7 +574,6 @@ if __name__ == '__main__' :
     x3_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
         x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
-    # x3_list = np.array(sorted(x3_list))
 
     
     # Chose the polynomial degree for the calibration fitting
@@ -665,11 +664,18 @@ if __name__ == '__main__' :
         t1 = time.time()
         print('time direct = ',t1 - t0)
         print('end direct')
-
+        zD = zD.reshape((2000,2000))
+        zDs = zD[350:1550, 350:1550]
+        plt.imshow(zD[250:1750, 250:1750])
+        plt.colorbar()
+        plt.clim(2.9, 3.1)
+        # np.save('/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_07_19/zD_40_smoothlight.npy', zD)
+        
+        sys.exit()
+        
         # fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
         # plt.figure()
         # plt.show()
-        '''
         # Soloff identification
         t0 = time.time()
         # soloff_file = saving_folder + '/xsolution_soloff500_2700_1100_3200_' + str(image) + '.npy'
@@ -692,10 +698,17 @@ if __name__ == '__main__' :
         df.insert(df.shape[1], 'ySoloff', yS, True)
         df.insert(df.shape[1], 'zSoloff', zS, True)
         xSoloff_solutions[image] = xSoloff_solution
-        # fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
-        # zS_fit = fit[0] * xS + fit[1] * yS + fit[2] + zS
-        # plt.figure()        
-        # plt.show()
+        xS = xS.reshape((2000,2000))
+        yS = yS.reshape((2000,2000))
+        zS = zS.reshape((2000,2000))
+        xSs = xS[350:1550, 350:1550]
+        ySs = yS[350:1550, 350:1550]
+        zSs = zS[350:1550, 350:1550]
+        xSol_sol = np.array([np.ravel(xSs), np.ravel(ySs), np.ravel(zSs)])
+        fit, er, mean_er, res = solvel.fit_plan_to_points(xSol_sol)
+        zS_fit = fit[0] * xSs + fit[1] * ySs + fit[2] + zSs
+        plt.figure()        
+        plt.show()
 
         # histogram
         # n, bins, patches = plt.hist(zS_fit*1000, 20, facecolor='g')
@@ -715,6 +728,7 @@ if __name__ == '__main__' :
         Z = np.reshape(zS,(n_wx,n_wy))
         X0,Y0=np.meshgrid(np.linspace(X.min(),X.max(),1600),
                           np.linspace(Y.min(),Y.max(),1600))
+        
         # plt.figure()
         # plt.imshow(np.gradient(Y-Y0)[1])
         # plt.title('Gradient Y')
@@ -744,86 +758,31 @@ if __name__ == '__main__' :
         # Chose the Number of Datas for Artificial Intelligence Learning
         AI_training_size = 50000
         # Create the .csv to make an AI identification
-        # AI_sim_file = saving_folder + '/AI/xsolution_AIxsolution_sim_soloff200_1800' + str(image) + '.npy'
-        # AI_ind_file = saving_folder + '/AI/xsolution_AIxsolution_ind_soloff200_1800' + str(image) + '.npy'
-        AI_zdep_file = saving_folder + '/AI/xsolution_AIxsolution_zdep_soloff200_1800' + str(image) + '.npy'
-        
-        
-        # x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
-        #                                             all_Xref, 
-        #                                             x3_list)
-
-        # Xc1_ = np.transpose(Xc1_)
-        # Xc2_ = np.transpose(Xc2_)
+        AI_file = saving_folder + '/xsolution_AIxsolution_zdep_soloff200_1800' + str(image) + '.npy'
         
         t0 = time.time()
-        # if os.path.exists(AI_sim_file) and os.path.exists(AI_ind_file) and False :
-        if True :
-            # xAI_solution_sim = numpy.load(AI_sim_file)
-            # xAI_solution_ind = numpy.load(AI_ind_file)
-            ()
-        else :
-            # Train the AI with already known points
-            if image == 0 :
-                # xSoloff_solution0 = xSoloff_solution
-                # model_sim_file = saving_folder +'/AI/Soloff_AI_sim' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                # model_sim = AI_training (X_c1,
-                #                          X_c2,
-                #                          xSoloff_solution,
-                #                          AI_training_size = AI_training_size,
-                #                          file = model_sim_file,
-                #                          method='simultaneously')
 
-                # model_ind_file = saving_folder +'/AI/Soloff_AI_ind' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                # model_ind = AI_training (X_c1,
-                #                           X_c2,
-                #                           xSoloff_solution,
-                #                           AI_training_size = AI_training_size,
-                #                           file = model_ind_file,
-                #                           method='independantly')
-
-                model_zdep_file = saving_folder +'/AI/Soloff_AI_zdep' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                model_zdep = AI_training (X_c1,
+        model_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
+        model = AI_training (X_c1,
+                            X_c2,
+                            xSoloff_solution,
+                            AI_training_size = AI_training_size,
+                            file = model_file)
+        
+        t1 = time.time()
+        print('time training = ',t1 - t0)
+        
+        
+        xAI_solution = AI_identification (X_c1,
                                           X_c2,
-                                          xSoloff_solution,
-                                          AI_training_size = AI_training_size,
-                                          file = model_zdep_file,
-                                          method='z_dependantly')
-                
-                t1 = time.time()
-                print('time training = ',t1 - t0)
-            
-            t1 = time.time()
-            # Use the AI model to solve every points
-            # xAI_solution_sim = AI_identification (X_c1,
-            #                                       X_c2,
-            #                                       model_sim,
-            #                                       method = 'simultaneously')
-            
-            # xAI_solution_ind = AI_identification (X_c1,
-            #                                       X_c2,
-            #                                       model_ind,
-            #                                       method = 'independantly')
-            
-            xAI_solution_zdep = AI_identification (X_c1,
-                                                  X_c2,
-                                                  model_zdep,
-                                                  method = 'z_dependantly')
-            
-            # np.save(AI_sim_file, xAI_solution_sim)
-            # np.save(AI_ind_file, xAI_solution_ind)
-            np.save(AI_zdep_file, xAI_solution_zdep)
+                                          model)
+        
+        np.save(AI_file, xAI_solution)
 
-            t2 = time.time()
-            print('time AI = ',t2 - t1)
-            print('end AI')
-            xAI, yAI, zAI = xAI_solution_zdep
-            
-            xdiff, ydiff, zdiff = xAI_solution_zdep - xSoloff_solution
-            rdiff = np.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
-            print('max : ', np.max(np.abs(xdiff)), np.max(np.abs(ydiff)), np.max(np.abs(zdiff)), np.max(np.abs(rdiff)))
-            print('mean : ', np.mean(np.abs(xdiff)), np.mean(np.abs(ydiff)), np.mean(np.abs(zdiff)), np.mean(np.abs(rdiff)))
-            print('std : ', np.std(xdiff), np.std(ydiff), np.std(zdiff), np.std(rdiff))
-        '''
+        t2 = time.time()
+        print('time AI = ',t2 - t1)
+        print('end AI')
+        xAI, yAI, zAI = xAI_solution
+
             
             

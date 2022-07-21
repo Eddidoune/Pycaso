@@ -15,8 +15,9 @@ import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 sys.path.append('../../../GCpu_OpticalFlow-master/Src')
-
-
+# sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
+# import compute_flow
+# sys.exit()
 
 try : 
     import cupy as np
@@ -69,12 +70,14 @@ class Calibrate(dict):
                                                 self.dictionary, 
                                                 parameters=self.parameters)
         
+        idall = []
         if len(corners) != 0 :
             if len(corners) < len(self.board.ids):
                 for idd in self.board.ids:
                     if idd not in ids:
-                        print("mark ", idd, " not detected")
-                        
+                        idall.append(int(idd))
+            
+            print("marks ", idall, " not detected")         
             if ids is not None and len(ids) > 0:
                 ret, chcorners, chids = aruco.interpolateCornersCharuco(
                     corners, ids, img, self.board)
@@ -82,9 +85,12 @@ class Calibrate(dict):
                 print('---')
                 corners_list = []
                 BU = []
-                for i in range (0, len(chcorners)) :
-                    BU.append(chcorners[i][0])
-                    corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+                if ret != 0 :
+                    for i in range (0, len(chcorners)) :
+                        BU.append(chcorners[i][0])
+                        corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+                else :
+                    ()
         else :
             corners_list = False
         return (corners_list, ret) 
@@ -434,7 +440,6 @@ def cut_calibration_model (List_images,
     nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
 
-
 def NAN_calibration_model (Images, 
                            Xref, 
                            __dict__,
@@ -473,9 +478,14 @@ def NAN_calibration_model (Images,
         im = sorted(glob(Images[i]))[0]
         corners_list, pts = Calibrate(__dict__).calibrate(im)
         nb_pts[i] = pts
-        corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
-                                                                   im,
-                                                                   hybrid_verification = hybrid_verification)
+        if any (corners_list) :
+            corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
+                                                                       im,
+                                                                       hybrid_verification = hybrid_verification)
+        else :
+            corners_list = np.empty((Nall, 3))
+            corners_list[:] = np.nan
+        
         all_X[i] = corners_list
 
     all_x = []
@@ -487,7 +497,6 @@ def NAN_calibration_model (Images,
     all_X = all_X[:, :, [0, 1]]
     nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_x, all_X, nb_pts)
-
 
 def pattern_detection (__dict__,
                        hybrid_verification = False) :
@@ -674,7 +683,7 @@ def DIC_3D_composed_detection (__DIC_dict__,
     try : 
         from compute_flow import compute_flow
     except ImportError:
-        print('No modelu named conpute_flow')
+        print('No module named conpute_flow')
         raise 
 
     left_folder = __DIC_dict__['left_folder']
@@ -891,8 +900,6 @@ def DIC_fields (__DIC_dict__,
 
     return(U_left, V_left, U_right, V_right)
 
-
-
 def camera_np_coordinates (all_X, 
                            all_x, 
                            x3_list) :
@@ -966,6 +973,41 @@ def camera_np_coordinates (all_X,
         mask = np.array([False])
         
     return (x, Xc1, Xc2)
+
+def Def_fields (all_x) :
+    """Calcul all the deformations fields from displacements fields
+    
+    Args:
+       all_x : numpy.ndarray
+           x solutions
+           
+    Returns:
+       Exy : numpy.ndarray
+           deformations fields in %
+       Exx : numpy.ndarray
+           deformations fields in %
+       Eyy : numpy.ndarray
+           deformations fields in %
+       Eyx : numpy.ndarray
+           deformations fields in %
+       Ezy : numpy.ndarray
+           deformations fields in %
+       Ezx : numpy.ndarray
+           deformations fields in %
+    """    
+    Np_img, axis, nx, ny = all_x.shape
+    Exyz = np.zeros((6, Np_img, nx, ny))
+    for image in range (1, Np_img) :
+        im0 = all_x[0]
+        imi = all_x[image]
+        U, V, W = imi - im0
+        Exyz[0, image], Exyz[1, image] = np.gradient(U)
+        Exyz[2, image], Exyz[3, image] = np.gradient(V)
+        Exyz[4, image], Exyz[5, image] = np.gradient(W)
+
+    Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
+    
+    return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
 
 
 if __name__ == '__main__' :

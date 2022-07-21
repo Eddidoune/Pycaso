@@ -110,6 +110,8 @@ if __name__ == '__main__' :
     
     # Soloff identification
     soloff_file = saving_folder + '/xsolution_soloff0.npy'
+    import time
+    t00 = time.time()
     
     # Condition not to calculate Soloff points if already exists in a
     # database
@@ -128,6 +130,8 @@ if __name__ == '__main__' :
     xS = xS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     yS = yS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     zS = zS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+    t0 = time.time()    
+    print('tS : ',t0-t00)
       
     plt.figure()
     plt.imshow(zS)
@@ -138,8 +142,7 @@ if __name__ == '__main__' :
     plt.show()
     
     AI_training_size = 50000
-    import time
-    t0 = time.time()
+
     model = pcs.AI_training (X_c1,
                              X_c2,
                              xSoloff_solution,
@@ -162,6 +165,7 @@ if __name__ == '__main__' :
     cb.set_label('z in mm')
     plt.show()
     t1 = time.time()
+    print('tAI : ',t1-t0)
     
     xdiff = xAI - xS
     ydiff = yAI - yS
@@ -197,8 +201,7 @@ if __name__ == '__main__' :
     cb.set_label('z in mm')
     plt.show()
     t2 = time.time()
-    print(t1-t0)
-    print(t2-t1)
+    print('tAI_norm : ',t2-t1)
     
     xdiff = xAI_norm - xS
     ydiff = yAI_norm - yS
