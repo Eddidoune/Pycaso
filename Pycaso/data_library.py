@@ -14,10 +14,13 @@ import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
-sys.path.append('../../../GCpu_OpticalFlow-master/Src')
-# sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
-# import compute_flow
-# sys.exit()
+sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
+
+try : 
+    from compute_flow import compute_flow
+except ImportError:
+    print('No module named conpute_flow')
+    raise 
 
 try : 
     import cupy as np
@@ -499,7 +502,8 @@ def NAN_calibration_model (Images,
     return (all_x, all_X, nb_pts)
 
 def pattern_detection (__dict__,
-                       hybrid_verification = False) :
+                       hybrid_verification = False,
+                       save = True) :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -511,7 +515,9 @@ def pattern_detection (__dict__,
            corners is show and you can decide to change any point using
            it ID (ID indicated on the image) as an input. If there is no
            bad detected corner, press ENTER to go to the next image.
-
+       save : bool, optional
+           Save the datas in the saving_folder
+           
     Returns:
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera ranged in an array 
@@ -558,12 +564,112 @@ def pattern_detection (__dict__,
         if not np.any(all_X[0]):
             print('Not any point detected in all images/cameras')
         else :
+            if save :
+                np.save(Save_all_X, all_X)
+                np.save(Save_all_x, all_x)
+                np.save(Save_nb_pts, nb_pts)
+                print('    - Saving datas in ', saving_folder)
+
+        
+    return(all_X, all_x, nb_pts)
+
+def multifolder_pattern_detection (__dict__,
+                                   hybrid_verification = False) :
+    """Detect the corners of Charucco's pattern in multiple folders.
+    
+    Args:
+       __dict__ : dict
+           Pattern properties define in a dict.
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
+           
+    Returns:
+       all_X : numpy.ndarray
+           The corners of the pattern detect by the camera ranged in an array 
+           arrange with all left pictures followed by all right pictures. 
+           Expl : [left_picture_1, left_picture_2, right_picture_1, 
+                   right_picture_2]
+       all_x : numpy.ndarray
+           The theorical corners of the pattern
+    """
+    # Taking the main parameters from bibliotheque_data_eddy.
+    saving_folder = __dict__['saving_folder']
+    left_folder = __dict__['left_folder']
+    right_folder = __dict__['right_folder']
+    name = __dict__['name']
+    ncx = __dict__['ncx']
+    ncy = __dict__['ncy']
+    sqr = __dict__['sqr']
+    nxy = len(sorted(glob(str(left_folder) + '/*')))
+    nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(left_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
+    npts = (ncx-1)*(ncy-1)
+    multall_X = np.empty((nxy, nxy, 2*nz, npts, 2))
+    multall_x = np.empty((nxy, nxy, 2*nz, npts, 2))
+    multnb_pts = np.empty((nxy, nxy, 2, nz))
+
+
+
+    Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
+    Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
+    Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
+    # Corners detection
+    if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
+        # Taking pre-calculated datas from the saving_folder
+        print('    - Taking datas from ', saving_folder)        
+        all_X = np.load(Save_all_X)
+        all_x = np.load(Save_all_x)
+        nb_pts = np.load(Save_nb_pts)
+    
+    else : # Corners detection
+        for i, imx in enumerate(sorted(glob(str(left_folder) + '/*'))) :
+            dx = imx[len(left_folder)+2:]
+            for j, imy in enumerate(sorted(glob(str(imx) + '/*'))) :
+                dy = imy[len(imx)+2:]
+                __dict__n = {
+                            'left_folder' : left_folder + imy[len(left_folder):],
+                            'right_folder' : right_folder + imy[len(left_folder):],
+                            'name' : name,
+                            'saving_folder' : saving_folder,
+                            'ncx' : ncx,
+                            'ncy' : ncy,
+                            'sqr' : sqr}
+                all_X, all_x, nb_pts = pattern_detection (__dict__n,
+                                                          hybrid_verification = hybrid_verification,
+                                                          save = False)
+                all_x[:,:,0] += float(dx)
+                all_x[:,:,1] += float(dy)
+                
+                multall_X [i,j]= all_X
+                multall_x [i,j]= all_x
+                multnb_pts [i,j]= nb_pts
+                print('x = ', dx)
+                print('y = ', dy)
+        
+        # Re_organise arrays
+        all_X = np.empty((2*nz, nxy*nxy*npts, 2))
+        all_x = np.empty((2*nz, nxy*nxy*npts, 2))
+        nb_pts = np.empty((2, nz))
+        for i in range (nz) :
+            all_X[i] = multall_X[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
+            all_x[i] = multall_x[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
+            
+            all_X[i+nz] = multall_X[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
+            all_x[i+nz] = multall_x[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
+            nb_pts[0, i] = np.min(multnb_pts[:,:,0,i])
+            nb_pts[1, i] = np.min(multnb_pts[:,:,1,i])
+        
+        # Save datas
+        if not np.any(all_X[0]):
+            print('Not any point detected in all images/cameras')
+        else :
             np.save(Save_all_X, all_X)
             np.save(Save_all_x, all_x)
             np.save(Save_nb_pts, nb_pts)
-    
             print('    - Saving datas in ', saving_folder)
-
         
     return(all_X, all_x, nb_pts)
 
@@ -623,8 +729,8 @@ def DIC_disflow (__DIC_dict__,
             if flip :
                 Im1 = cv2.flip(Im1, 1)
                 Im2 = cv2.flip(Im2, 1)
-            all_U[i], all_V[i] = DIC.displacement_field(Images[0], 
-                                                        Images[i],
+            all_U[i], all_V[i] = DIC.displacement_field(Im1, 
+                                                        Im2,
                                                         vr_kwargs=vr_kwargs)
 
         np.save(Save_all_U, all_U)
@@ -680,12 +786,6 @@ def DIC_3D_composed_detection (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
    """
-    try : 
-        from compute_flow import compute_flow
-    except ImportError:
-        print('No module named conpute_flow')
-        raise 
-
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
@@ -823,7 +923,7 @@ def DIC_3D_composed_detection (__DIC_dict__,
 
 def DIC_fields (__DIC_dict__,
                 flip = False) :
-    """Use the DIC to calcul all the left deformed fields ans the right 
+    """Use the DIC to calcul all the left deformed fields and the right 
     deformed fields.
     
     Args:
@@ -1012,24 +1112,17 @@ def Def_fields (all_x) :
 
 if __name__ == '__main__' :
     main_path = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src'    
-    saving_folder = main_path + '/results/2022_02_28_results/Test0'
+    saving_folder = main_path + '/results/2022_09_14_results/multifolder'
     
     # Define the inputs
     __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_02_28/test1',
-    'right_folder' : main_path + '/Images_example/2022_02_28/test2',
-    'name' : 'micro_calibration',
-    'saving_folder' : saving_folder,
-    'ncx' : 16,
-    'ncy' : 12,
-    'sqr' : 0.3}
-    
-    # Create the list of z plans
-    Folder = __calibration_dict__['left_folder']
-    Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = np.zeros((len(Imgs)))
-    for i in range (len(Imgs)) :
-        x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
+                            'left_folder' : main_path + '/Images_example/2022_09_14_preliminaire/left_5',
+                            'right_folder' : main_path + '/Images_example/2022_09_14_preliminaire/right_5',
+                            'name' : 'micro_calibration',
+                            'saving_folder' : saving_folder,
+                            'ncx' : 16,
+                            'ncy' : 12,
+                            'sqr' : 0.3}
 
     # Chose the degrees for Soloff and direct polynomial fitting
     Soloff_pform = 332
@@ -1042,7 +1135,6 @@ if __name__ == '__main__' :
         P = pathlib.Path(saving_folder)
         pathlib.Path.mkdir(P, parents = True)    
     
-    
-    all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
-                                             hybrid_verification = False)    
+    all_X, all_x, nb_pts = multifolder_pattern_detection(__calibration_dict__,
+                                                          hybrid_verification = False)    
     

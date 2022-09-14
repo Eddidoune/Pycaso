@@ -11,19 +11,9 @@ try :
 except ImportError:
     import numpy as np
 import sys
-import pathlib
-import os
-import time
-from glob import glob
-import pandas as pd
-import cv2
 import solve_library as solvel 
 import data_library as data
-import matplotlib.pyplot as plt
-import scipy.ndimage as nd
-# from mpl_toolkits import mplot3d
 import csv
-import math
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
@@ -53,7 +43,8 @@ def magnification (X1, X2, x1, x2) :
 def Soloff_calibration (__calibration_dict__,
                         x3_list,
                         Soloff_pform,
-                        hybrid_verification = False) :
+                        hybrid_verification = False,
+                        multifolder = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = A111 (Resp A_pol):--> X = A.M(x)
     
@@ -72,6 +63,8 @@ def Soloff_calibration (__calibration_dict__,
            corners is show and you can decide to change any point using
            it ID (ID indicated on the image) as an input. If there is no
            bad detected corner, press ENTER to go to the next image.
+       multifolder : bool, optional
+           Used for specific image acquisition when all directions moved
 
     Returns:
        A111 : numpy.ndarray
@@ -111,12 +104,16 @@ def Soloff_calibration (__calibration_dict__,
 
     
     # Detect points from folders
-    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                        hybrid_verification = hybrid_verification)        
+    if multifolder :
+        all_X, all_x, nb_pts = data.multifolder_pattern_detection(__calibration_dict__,
+                                                                  hybrid_verification = hybrid_verification)          
+    else :
+        all_X, all_x, nb_pts = data.pattern_detection(__calibration_dict__,
+                                                      hybrid_verification = hybrid_verification)        
 
     # Creation of the reference matrix Xref and the real position Ucam for 
     # each camera
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)     
+    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)     
 
     # Plot the references plans
     solvel.refplans(x, x3_list)
@@ -142,7 +139,7 @@ def Soloff_calibration (__calibration_dict__,
             M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
             Ai = np.matmul(X, np.linalg.pinv(M))
             A_0[pol][camera-1] = Ai
-    
+            
             # Error of projection
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
@@ -196,14 +193,15 @@ def Soloff_identification (Xc1_identified,
                                                             Xc2_identified, 
                                                             A_pol, 
                                                             x0, 
-                                                            Soloff_pform = Soloff_pform, 
+                                                            Soloff_pform, 
                                                             method = 'curve_fit')
     return (x_solution)
 
-
 def direct_calibration (__calibration_dict__,
                         x3_list,
-                        direct_pform) :
+                        direct_pform,
+                        hybrid_verification = False,
+                        multifolder = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
     
@@ -216,6 +214,14 @@ def direct_calibration (__calibration_dict__,
                                               same way in the target folder)
        direct_pform : int
            Polynomial degree
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
+       multifolder : bool, optional
+           Used for specific image acquisition when all directions moved
 
     Returns:
        A : numpy.ndarray
@@ -232,15 +238,23 @@ def direct_calibration (__calibration_dict__,
         direct_A = np.zeros((3, 35))
     elif direct_pform == 4 :
         direct_A = np.zeros((3, 70))
+    elif direct_pform == 5 :
+        direct_A = np.zeros((3, 121))
     else :
-        print ('Only define for polynomial degrees (1, 2, 3 or 4')
+        print ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
         sys.exit()
+    
     # Detect points from folders
-    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__)        
+    if multifolder :
+        all_X, all_x, nb_pts = data.multifolder_pattern_detection(__calibration_dict__,
+                                                                  hybrid_verification = hybrid_verification)          
+    else :
+        all_X, all_x, nb_pts = data.pattern_detection(__calibration_dict__,
+                                                      hybrid_verification = hybrid_verification)      
 
     # Creation of the reference matrix Xref and the real position Ucam for 
     # each camera i
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
+    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)
 
     # Plot the references plans
     solvel.refplans(x, x3_list)
@@ -421,7 +435,6 @@ def AI_identification (X_c1,
     else :
         print('No method ', method)
     return (xAI_solution)
-
 
 def AI_training_norm (X_c1,
                  X_c2,

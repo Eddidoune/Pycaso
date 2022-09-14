@@ -101,6 +101,49 @@ class Direct_Polynome(dict) :
                              Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
                              Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
 
+        elif polynomial_form == 5 :
+            Xl12 = Xl1 * Xl1
+            Xl13 = Xl1 * Xl1 * Xl1
+            Xl14 = Xl1 * Xl1 * Xl1 * Xl1
+            Xl15 = Xl1 * Xl1 * Xl1 * Xl1 * Xl1
+            Xl22 = Xl2 * Xl2
+            Xl23 = Xl2 * Xl2 * Xl2
+            Xl24 = Xl2 * Xl2 * Xl2 * Xl2
+            Xl25 = Xl2 * Xl2 * Xl2 * Xl2 * Xl2
+            Xr12 = Xr1 * Xr1
+            Xr13 = Xr1 * Xr1 * Xr1
+            Xr14 = Xr1 * Xr1 * Xr1 * Xr1
+            Xr15 = Xr1 * Xr1 * Xr1 * Xr1 * Xr1
+            Xr22 = Xr2 * Xr2
+            Xr23 = Xr2 * Xr2 * Xr2
+            Xr24 = Xr2 * Xr2 * Xr2 * Xr2
+            Xr25 = Xr2 * Xr2 * Xr2 * Xr2 * Xr2
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
+                             Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
+                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
+                             Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
+                             Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
+                             Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
+                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
+                             Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
+                             Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
+                             Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
+                             Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
+                             Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
+                             Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
+                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24,
+                             Xl15,           Xl14*Xl2,      Xl14*Xr1,       Xl14*Xr2,       Xl13*Xl22,
+                             Xl13*Xl2*Xr1,   Xl13*Xl2*Xr2,  Xl13*Xr12,      Xl13*Xr1*Xr2,   Xl13*Xr22,
+                             Xl2*Xl23,       Xl2*Xl22*Xr1,  Xl2*Xl22*Xr2,   Xl2*Xl2*Xr12,   Xl2*Xl2*Xr1*Xr2,
+                             Xl2*Xl2*Xr22,   Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
+                             Xl1*Xl24,       Xl1*Xl23*Xr1,  Xl1*Xl23*Xr2,   Xl1*Xl22*Xr12,  Xl1*Xl22*Xr1*Xr2,
+                             Xl1*Xl22*Xr22,  Xl1*Xl2*Xr13,  Xl1*Xl2*Xr12*Xr2,Xl1*Xl2*Xr1*Xr22,Xl1*Xl2*Xr23,
+                             Xl25,           Xl24*Xr1,      Xl24*Xr2,       Xl23*Xr12,      Xl23*Xr1*Xr2,
+                             Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
+                             Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
+                             Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
+                             Xr25])
+            
         return (M)
     
    
@@ -309,7 +352,7 @@ class Soloff_Polynome(dict) :
 
 
 def fit_plan_to_points(point,
-                       title = 'no title',
+                       title = False,
                        plotting = True) :
     """Plot the median plan from a serie of points
     
@@ -365,7 +408,8 @@ def fit_plan_to_points(point,
         ax = plt.subplot(111, projection='3d')
         ax.scatter(xsnp, ysnp, zsnp, color='b')
         ax.plot_wireframe(X,Y,Z, color='k')
-        ax.set_title(title)
+        if title :
+            ax.set_title(title)
         ax.set_xlabel('x (mm)')
         ax.set_ylabel('y (mm)')
         ax.set_zlabel('z (mm)')
@@ -375,7 +419,7 @@ def fit_plan_to_points(point,
     return (fit, errors, mean_error, residual)
 
 def fit_plans_to_points(points, 
-                        title = 'no title',
+                        title = False,
                         plotting = True):
     """Plot the medians plans from series of points
     
