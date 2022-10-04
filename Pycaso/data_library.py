@@ -1074,7 +1074,7 @@ def camera_np_coordinates (all_X,
         
     return (x, Xc1, Xc2)
 
-def Def_fields (all_x) :
+def Def_fields (UVW) :
     """Calcul all the deformations fields from displacements fields
     
     Args:
@@ -1095,12 +1095,11 @@ def Def_fields (all_x) :
        Ezx : numpy.ndarray
            deformations fields in %
     """    
-    Np_img, axis, nx, ny = all_x.shape
+    Np_img, axis, nx, ny = UVW.shape
     Exyz = np.zeros((6, Np_img, nx, ny))
     for image in range (1, Np_img) :
-        im0 = all_x[0]
-        imi = all_x[image]
-        U, V, W = imi - im0
+        UVWi = UVW[image]
+        U, V, W = UVWi
         Exyz[0, image], Exyz[1, image] = np.gradient(U)
         Exyz[2, image], Exyz[3, image] = np.gradient(V)
         Exyz[4, image], Exyz[5, image] = np.gradient(W)
