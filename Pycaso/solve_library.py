@@ -353,7 +353,7 @@ class Soloff_Polynome(dict) :
 
 def fit_plan_to_points(point,
                        title = False,
-                       plotting = True) :
+                       plotting = False) :
     """Plot the median plan from a serie of points
     
     Args:
@@ -405,7 +405,10 @@ def fit_plan_to_points(point,
             Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
 
     if plotting :
-        ax = plt.subplot(111, projection='3d')
+        from mpl_toolkits.mplot3d import Axes3D #<-- Note the capitalization! 
+        fig = plt.figure()
+        ax = Axes3D(fig)
+        # ax = plt.subplot(111, projection='3d')
         ax.scatter(xsnp, ysnp, zsnp, color='b')
         ax.plot_wireframe(X,Y,Z, color='k')
         if title :
@@ -420,7 +423,7 @@ def fit_plan_to_points(point,
 
 def fit_plans_to_points(points, 
                         title = False,
-                        plotting = True):
+                        plotting = False):
     """Plot the medians plans from series of points
     
     Args:
@@ -457,7 +460,9 @@ def fit_plans_to_points(points,
 
     return (fit, errors, mean_error, residual)
 
-def refplans(xc1, x3_list) :
+def refplans(xc1, 
+             x3_list,
+             plotting = False) :
     """Plot the medians plans from references points
     
     Args:
@@ -465,6 +470,8 @@ def refplans(xc1, x3_list) :
            Real points x(x1, x2, x3)       
        x3_list : numpy.ndarray
            List of the different plans coordinates
+       plotting = Bool
+           Plot the result or not
             
     Returns:
        plot points + associated plans
@@ -483,7 +490,8 @@ def refplans(xc1, x3_list) :
         xcons.append (plan)
 
     fit_plans_to_points(xcons, 
-                        title = 'Calibration plans')
+                        title = 'Calibration plans',
+                        plotting = plotting)
 
 def least_square_method (Xc1_identified, 
                          Xc2_identified, 

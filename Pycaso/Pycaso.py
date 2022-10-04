@@ -44,7 +44,8 @@ def Soloff_calibration (__calibration_dict__,
                         x3_list,
                         Soloff_pform,
                         hybrid_verification = False,
-                        multifolder = False) :
+                        multifolder = False,
+                        plotting = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = A111 (Resp A_pol):--> X = A.M(x)
     
@@ -65,7 +66,9 @@ def Soloff_calibration (__calibration_dict__,
            bad detected corner, press ENTER to go to the next image.
        multifolder : bool, optional
            Used for specific image acquisition when all directions moved
-
+       plotting = Bool
+           Plot the calibration view or not
+           
     Returns:
        A111 : numpy.ndarray
            Constants of Soloff polynomial form '111'
@@ -116,7 +119,7 @@ def Soloff_calibration (__calibration_dict__,
     x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)     
 
     # Plot the references plans
-    solvel.refplans(x, x3_list)
+    solvel.refplans(x, x3_list, plotting = plotting)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -201,7 +204,8 @@ def direct_calibration (__calibration_dict__,
                         x3_list,
                         direct_pform,
                         hybrid_verification = False,
-                        multifolder = False) :
+                        multifolder = False,
+                        plotting = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
     
@@ -222,7 +226,9 @@ def direct_calibration (__calibration_dict__,
            bad detected corner, press ENTER to go to the next image.
        multifolder : bool, optional
            Used for specific image acquisition when all directions moved
-
+       plotting = Bool
+           Plot the calibration view or not
+           
     Returns:
        A : numpy.ndarray
            Constants of direct polynomial
@@ -257,7 +263,7 @@ def direct_calibration (__calibration_dict__,
     x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)
 
     # Plot the references plans
-    solvel.refplans(x, x3_list)
+    solvel.refplans(x, x3_list, plotting = plotting)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))

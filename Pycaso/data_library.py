@@ -215,7 +215,7 @@ class Calibrate(dict):
                 diy = column2 * xy + line2 * yy
                 xi = int(x0 + dix)
                 yi = int(y0 + diy)
-                d = int(l//2)
+                d = int(l//4)
                 
                 # Find the missing point, if on the screen
                 xm, ym = img.shape
@@ -795,10 +795,10 @@ def DIC_3D_composed_detection (__DIC_dict__,
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
-                "size_median_filter": 5, 
+                "size_median_filter": 3, 
                 "max_linear_iter": 1, 
                 "max_iter": 10, 
-                "lmbda": 1.*10**5, 
+                "lmbda": 2.*10**4, 
                 "lambda2": 0.001, 
                 "lambda3": 1., 
                 "Mask": None,
@@ -1110,31 +1110,4 @@ def Def_fields (all_x) :
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
 
 
-if __name__ == '__main__' :
-    main_path = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src'    
-    saving_folder = main_path + '/results/2022_09_14_results/multifolder'
-    
-    # Define the inputs
-    __calibration_dict__ = {
-                            'left_folder' : main_path + '/Images_example/2022_09_14_preliminaire/left_5',
-                            'right_folder' : main_path + '/Images_example/2022_09_14_preliminaire/right_5',
-                            'name' : 'micro_calibration',
-                            'saving_folder' : saving_folder,
-                            'ncx' : 16,
-                            'ncy' : 12,
-                            'sqr' : 0.3}
-
-    # Chose the degrees for Soloff and direct polynomial fitting
-    Soloff_pform = 332
-    direct_pform = 4
-    
-    # Create the result folder if not exist
-    if os.path.exists(saving_folder) :
-        ()
-    else :
-        P = pathlib.Path(saving_folder)
-        pathlib.Path.mkdir(P, parents = True)    
-    
-    all_X, all_x, nb_pts = multifolder_pattern_detection(__calibration_dict__,
-                                                          hybrid_verification = False)    
     
