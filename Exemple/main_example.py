@@ -78,8 +78,7 @@ if __name__ == '__main__' :
     print('Identification of displacements field by DIC')
     print('#####       ')
     print('')
-    Xleft_id, Xright_id = data.DIC_disflow(__DIC_dict__)
-    Xleft_idc, Xright_idc = data.DIC_3D_composed_detection(__DIC_dict__)
+    Xleft_id, Xright_id = data.DIC_get_positions(__DIC_dict__)
     
     print('')
     print('#####       ')

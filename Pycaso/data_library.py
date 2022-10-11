@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from sigfig import round
 from glob import glob
 from copy import deepcopy
 import DIC
 import math
 import matplotlib.pyplot as plt
 import sys
-import pathlib
 import os
 import time
 import skimage.feature as sfe
@@ -17,18 +15,11 @@ from skimage.segmentation import clear_border
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 
 try : 
-    from compute_flow import compute_flow
-except ImportError:
-    print('No module named conpute_flow')
-    raise 
-
-try : 
     import cupy as np
 except ImportError:
     import numpy as np
 
 import cv2
-import cv2.aruco as aruco
 
 
 class Calibrate(dict):
@@ -42,10 +33,10 @@ class Calibrate(dict):
         self.ncy = _dict_['ncy']
         self.sqr = _dict_['sqr']
         self.mrk = self.sqr / 2
-        self.dictionary = aruco.Dictionary_get(aruco.DICT_6X6_250)
-        self.parameters = aruco.DetectorParameters_create()
+        self.dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+        self.parameters = cv2.aruco.DetectorParameters_create()
         self.parameters.adaptiveThreshWinSizeMax = 300
-        self.board = aruco.CharucoBoard_create(
+        self.board = cv2.aruco.CharucoBoard_create(
             self.ncx,
             self.ncy,
             self.sqr,
@@ -69,7 +60,7 @@ class Calibrate(dict):
         else :
             print("=> Calculation of the image ...", str(im[-20:]))
         img = cv2.imread(im, 0)        
-        corners, ids, rip = aruco.detectMarkers(img, 
+        corners, ids, rip = cv2.aruco.detectMarkers(img, 
                                                 self.dictionary, 
                                                 parameters=self.parameters)
         
@@ -82,7 +73,7 @@ class Calibrate(dict):
             
             print("marks ", idall, " not detected")         
             if ids is not None and len(ids) > 0:
-                ret, chcorners, chids = aruco.interpolateCornersCharuco(
+                ret, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
                     corners, ids, img, self.board)
                 print(len(corners), ' marks detected. ', ret, ' points detected')
                 print('---')
@@ -673,10 +664,84 @@ def multifolder_pattern_detection (__dict__,
         
     return(all_X, all_x, nb_pts)
 
+def camera_np_coordinates (all_X, 
+                           all_x, 
+                           x3_list) :
+    """Organising the coordinates of the calibration
+    
+    Args:
+       all_X : numpy.ndarray
+           The corners of the pattern detect by the camera
+       all_x : numpy.ndarray
+           The theorical corners of the pattern
+       x3_list : numpy.ndarray
+           List of the different z position. (Ordered the same way in the 
+           target folder)
+    Returns:
+       x : numpy.ndarray
+           Organised real positions in 3D space
+       Xc1 : numpy.ndarray
+           Organised detected positions of camera 1
+       Xc2 : numpy.ndarray
+           Organised detected positions of camera 2
+    """
+    for i in [1, 2] :
+        print('')
+        mid = all_X.shape[0]//2    
+        all_Xi = all_X[(i-1)*mid:i*mid,:,:]
+        all_xi = all_x[i*(mid-1):i*mid,:,:]
+        sU = all_Xi.shape
+        Xref = all_xi[0]
+        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
+        x = np.empty ((sU[0] * sU[1], sU[2]+1))
+        X = np.empty ((sU[0] * sU[1], sU[2]))
+        for j in range (sU[0]) :
+            all_xi[j][:,0] = Xref[:,0]
+            all_xi[j][:,1] = Xref[:,1]
+            all_xi[j][:,2] = x3_list[j]
+
+            x[j*sU[1] : (j+1)*sU[1], :]  = all_xi[j]
+            X[j*sU[1] : (j+1)*sU[1], :]  = all_Xi[j]
+
+        # Real position in space : Xref (x1, x2, x3)
+        x1 = x[:,0]
+        x2 = x[:,1]
+        x3 = x[:,2]
+        x = np.asarray([x1,x2,x3]) # reshape x
+
+        # Position detected from cameras : Ucam (X1, X2)
+        X1 = X[:,0]
+        X2 = X[:,1]
+        X = np.asarray([X1,X2]) # reshape X
+        
+        if i == 1 :
+            Xc1 = X
+        if i == 2 :
+            Xc2 = X
+    # If there is some NAN value, then delete all 2D and 3D corresponding 
+    # points
+    if np.isnan(Xc1).any() or np.isnan(Xc2).any() :
+        mask1 = np.ma.masked_invalid(Xc1)
+        mask2 = np.ma.masked_invalid(Xc2)
+        mask = mask1.mask + mask2.mask
+        Xc1 = Xc1[np.logical_not(mask)]
+        Xc1 = np.reshape(Xc1, (2, len(Xc1)//2))
+        Xc2 = Xc2[np.logical_not(mask)]
+        Xc2 = np.reshape(Xc2, (2, len(Xc2)//2))
+        mask = mask[0]
+        x1 = x1[np.logical_not(mask)]
+        x2 = x2[np.logical_not(mask)]
+        x3 = x3[np.logical_not(mask)]
+        x = np.asarray([x1,x2,x3])
+    else :
+        mask = np.array([False])
+        
+    return (x, Xc1, Xc2)
+
 def DIC_disflow (__DIC_dict__,
                  flip = False) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the deformed ones (other left and right pictures).
+    (first left one) in the other ones (other left and right pictures).
     
     Args:
        __DIC_dict__ : dict
@@ -693,15 +758,14 @@ def DIC_disflow (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
     """
-    saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     window = __DIC_dict__['window']
     vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
 
-    Save_all_U = str(saving_folder) +"/Lagrangian_all_U_" + name + ".npy"
-    Save_all_V = str(saving_folder) +"/Lagrangian_all_V_" + name + ".npy"
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/disflow_U_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/disflow_V_" + name + ".npy"
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
@@ -766,10 +830,10 @@ def DIC_disflow (__DIC_dict__,
     Xright_id = np.array(Xright_id)
     return(Xleft_id, Xright_id)
 
-def DIC_3D_composed_detection (__DIC_dict__,
-                                flip = False):
+def DIC_compute_flow (__DIC_dict__,
+                      flip = False):
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the deformed ones (other left and right pictures).
+    (first left one) in the other ones (other left and right pictures).
     
     Args:
        __DIC_dict__ : dict
@@ -786,12 +850,17 @@ def DIC_3D_composed_detection (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
    """
+    try : 
+        from compute_flow import compute_flow
+    except ImportError:
+        print('No module named compute_flow')
+        sys.exit()
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     window = __DIC_dict__['window']
-    Save_all_U = str(__DIC_dict__['saving_folder']) +"/Compose_all_U_alternative_" + name + ".npy"
-    Save_all_V = str(__DIC_dict__['saving_folder']) +"/Compose_all_V_alternative_" + name + ".npy"
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
@@ -921,10 +990,46 @@ def DIC_3D_composed_detection (__DIC_dict__,
     Xright_id = np.array(Xright_id)
     return (Xleft_id, Xright_id)
 
+def DIC_get_positions (__DIC_dict__,
+                       flip = False,
+                       method = 'compute_flow') :
+    """Use the DIC to locate all the points from the reference picture
+    (first left one) in the other ones (other left and right pictures).
+    
+    Args:
+       __DIC_dict__ : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
+           
+    Returns:
+       Xleft_id : numpy.ndarrayleft_sample_identification
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
+    """
+    if method == 'compute_flow' :
+        try : 
+            from compute_flow import compute_flow
+        except ImportError:
+            print('No module named conpute_flow, disflow from OpenCV will be used')
+            method = 'disflow'
+    if method == 'disflow' :
+        return (DIC_disflow(__DIC_dict__,
+                              flip = flip))
+    if method == 'compute_flow' :
+        return (DIC_compute_flow(__DIC_dict__,
+                              flip = flip))
+    else :
+        print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
+        raise
+
 def DIC_fields (__DIC_dict__,
                 flip = False) :
-    """Use the DIC to calcul all the left deformed fields and the right 
-    deformed fields.
+    """Use the DIC to calcul all the left and right displacements fields.
     
     Args:
        __DIC_dict__ : dict
@@ -936,13 +1041,13 @@ def DIC_fields (__DIC_dict__,
            
     Returns:
        U_left : numpy.ndarray
-           All the left deformed fields in x direction.
+           All the left displacements fields in x direction.
        V_left : numpy.ndarray 
-           All the left deformed fields in y direction.
+           All the left displacements fields in y direction.
        U_right : numpy.ndarray 
-           All the right deformed fields in x direction.
+           All the right displacements fields in x direction.
        V_right : numpy.ndarray
-           All the right deformed fields in y direction.
+           All the right displacements fields in y direction.
     """
     saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
@@ -1000,80 +1105,6 @@ def DIC_fields (__DIC_dict__,
 
     return(U_left, V_left, U_right, V_right)
 
-def camera_np_coordinates (all_X, 
-                           all_x, 
-                           x3_list) :
-    """Organising the coordinates of the calibration
-    
-    Args:
-       all_X : numpy.ndarray
-           The corners of the pattern detect by the camera
-       all_x : numpy.ndarray
-           The theorical corners of the pattern
-       x3_list : numpy.ndarray
-           List of the different z position. (Ordered the same way in the 
-           target folder)
-    Returns:
-       x : numpy.ndarray
-           Organised real positions in 3D space
-       Xc1 : numpy.ndarray
-           Organised detected positions of camera 1
-       Xc2 : numpy.ndarray
-           Organised detected positions of camera 2
-    """
-    for i in [1, 2] :
-        print('')
-        mid = all_X.shape[0]//2    
-        all_Xi = all_X[(i-1)*mid:i*mid,:,:]
-        all_xi = all_x[i*(mid-1):i*mid,:,:]
-        sU = all_Xi.shape
-        Xref = all_xi[0]
-        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
-        x = np.empty ((sU[0] * sU[1], sU[2]+1))
-        X = np.empty ((sU[0] * sU[1], sU[2]))
-        for j in range (sU[0]) :
-            all_xi[j][:,0] = Xref[:,0]
-            all_xi[j][:,1] = Xref[:,1]
-            all_xi[j][:,2] = x3_list[j]
-
-            x[j*sU[1] : (j+1)*sU[1], :]  = all_xi[j]
-            X[j*sU[1] : (j+1)*sU[1], :]  = all_Xi[j]
-
-        # Real position in space : Xref (x1, x2, x3)
-        x1 = x[:,0]
-        x2 = x[:,1]
-        x3 = x[:,2]
-        x = np.asarray([x1,x2,x3]) # reshape x
-
-        # Position detected from cameras : Ucam (X1, X2)
-        X1 = X[:,0]
-        X2 = X[:,1]
-        X = np.asarray([X1,X2]) # reshape X
-        
-        if i == 1 :
-            Xc1 = X
-        if i == 2 :
-            Xc2 = X
-    # If there is some NAN value, then delete all 2D and 3D corresponding 
-    # points
-    if np.isnan(Xc1).any() or np.isnan(Xc2).any() :
-        mask1 = np.ma.masked_invalid(Xc1)
-        mask2 = np.ma.masked_invalid(Xc2)
-        mask = mask1.mask + mask2.mask
-        Xc1 = Xc1[np.logical_not(mask)]
-        Xc1 = np.reshape(Xc1, (2, len(Xc1)//2))
-        Xc2 = Xc2[np.logical_not(mask)]
-        Xc2 = np.reshape(Xc2, (2, len(Xc2)//2))
-        mask = mask[0]
-        x1 = x1[np.logical_not(mask)]
-        x2 = x2[np.logical_not(mask)]
-        x3 = x3[np.logical_not(mask)]
-        x = np.asarray([x1,x2,x3])
-    else :
-        mask = np.array([False])
-        
-    return (x, Xc1, Xc2)
-
 def Def_fields (UVW) :
     """Calcul all the deformations fields from displacements fields
     
@@ -1107,6 +1138,3 @@ def Def_fields (UVW) :
     Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
     
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
-
-
-    

@@ -324,8 +324,6 @@ def direct_identification (Xc1_identified,
     # Solve by direct method
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
-    Xl = np.zeros((2,len(Xl1)))
-    Xr = np.zeros((2,len(Xr1)))
     Xl = Xl1, Xl2
     Xr = Xr1, Xr2
     
