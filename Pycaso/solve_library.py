@@ -45,7 +45,8 @@ class Direct_Polynome(dict) :
         
         n = len(Xl1)
         if   polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2],
+                             dtype = np.float32)
 
         elif polynomial_form == 2 :
             Xl12 = Xl1 * Xl1
@@ -54,7 +55,8 @@ class Direct_Polynome(dict) :
             Xr22 = Xr2 * Xr2
             M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
+                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22],
+                             dtype = np.float32)
 
         elif polynomial_form == 3 :
             Xl12 = Xl1 * Xl1
@@ -71,7 +73,8 @@ class Direct_Polynome(dict) :
                              Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
                              Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
                              Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23])
+                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23],
+                             dtype = np.float32)
 
         elif polynomial_form == 4 :
             Xl12 = Xl1 * Xl1
@@ -99,7 +102,8 @@ class Direct_Polynome(dict) :
                              Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
                              Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
                              Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
+                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24],
+                             dtype = np.float32)
 
         elif polynomial_form == 5 :
             Xl12 = Xl1 * Xl1
@@ -142,7 +146,8 @@ class Direct_Polynome(dict) :
                              Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
                              Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
                              Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
-                             Xr25])
+                             Xr25],
+                             dtype = np.float32)
             
         return (M)
     
@@ -168,18 +173,24 @@ class Soloff_Polynome(dict) :
         x1,x2,x3 = x
         n = len(x1)
         if   polynomial_form == 111 or polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
+            M = np.asarray ([np.ones((n)),   x1,        x2,        x3],
+                             dtype = np.float32)
+            
         elif polynomial_form == 221 :
             x12 = x1 * x1
             x22 = x2 * x2
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
-                             x1 *x2,         x22,       x1*x3,     x2*x3])   
+                             x1 *x2,         x22,       x1*x3,     x2*x3],
+                             dtype = np.float32)
+            
         elif polynomial_form == 222 or polynomial_form == 2 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
-                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])  
+                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32],
+                             dtype = np.float32)
+            
         elif polynomial_form == 332 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -189,7 +200,9 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])            
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32],
+                             dtype = np.float32)
+            
         elif polynomial_form == 333 or polynomial_form == 3 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -200,7 +213,9 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])    
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33],
+                             dtype = np.float32)
+            
         elif polynomial_form == 443 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -216,7 +231,9 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33],
+                             dtype = np.float32)
+            
         elif polynomial_form == 444 or polynomial_form == 4 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -233,7 +250,9 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])   
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34],
+                             dtype = np.float32)
+            
         elif polynomial_form == 554 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -256,7 +275,9 @@ class Soloff_Polynome(dict) :
                              x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
                              x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
-                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])   
+                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34],
+                             dtype = np.float32)
+            
         elif polynomial_form == 555 or polynomial_form == 5 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -281,7 +302,9 @@ class Soloff_Polynome(dict) :
                              x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
                              x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34,
-                             x35])
+                             x35],
+                             dtype = np.float32)
+            
         return (M)
 
 
@@ -299,7 +322,7 @@ class Soloff_Polynome(dict) :
                Calculted position
         """
         polynomial_form = self.polynomial_form
-        x = np.array ([x])
+        x = np.array ([x], dtype = np.float32)
         x = x.reshape((3,len(x[0])//3))
         M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)    
         Xc = np.matmul(a, M)
@@ -322,7 +345,7 @@ class Soloff_Polynome(dict) :
                Functional calculation
         """
         polynomial_form = self.polynomial_form
-        x = np.array ([x])
+        x = np.array ([x], dtype = np.float32)
         x = x.reshape((3,len(x[0])//3))
         M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x) 
         Xc = np.matmul(a, M)
@@ -386,8 +409,8 @@ def fit_plan_to_points(point,
     for i in range(len(xs)):
         tmp_A.append([xs[i], ys[i], 1])
         tmp_b.append(zs[i])
-    b = np.matrix(tmp_b).T
-    A = np.matrix(tmp_A)
+    b = np.matrix(tmp_b, dtype = np.float32).T
+    A = np.matrix(tmp_A, dtype = np.float32)
     
     # Manual solution
     fit = (A.T * A).I * A.T * b
@@ -399,7 +422,7 @@ def fit_plan_to_points(point,
     # plot plan
     X,Y = np.meshgrid(np.linspace(np.min(xs), np.max(xs), 10),
                       np.linspace(np.min(ys), np.max(ys), 10))
-    Z = np.zeros(X.shape)
+    Z = np.zeros(X.shape, dtype = np.float32)
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
             Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
@@ -417,7 +440,7 @@ def fit_plan_to_points(point,
         ax.set_ylabel('y (mm)')
         ax.set_zlabel('z (mm)')
     
-    fit = np.transpose(np.array(fit))[0]
+    fit = np.transpose(np.array(fit, dtype = np.float32))[0]
     
     return (fit, errors, mean_error, residual)
 
@@ -439,10 +462,10 @@ def fit_plans_to_points(points,
     """
     # plot raw data
     l = len (points)
-    fit = np.zeros((l, 3))
+    fit = np.zeros((l, 3), dtype = np.float32)
     errors = []
-    mean_error = np.zeros(l)
-    residual = np.zeros(l)
+    mean_error = np.zeros(l, dtype = np.float32)
+    residual = np.zeros(l, dtype = np.float32)
     maxerror = []
     for i in range (len(points)) :
         point = points[i]
@@ -512,7 +535,7 @@ def least_square_method (Xc1_identified,
            Solution x = xsol of the system 
     """
     N = len (Xc1_identified)
-    x0 = np.zeros((3, N))
+    x0 = np.zeros((3, N), dtype = np.float32)
     a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
     a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
     A = np.array([a1c1, a2c1, a1c2, a2c2])
@@ -544,7 +567,7 @@ def xopt_mlib (Xtuple) :
     """
     Xdetected, x0_part, Soloff_pform, A0 = Xtuple
     Ns = Xdetected.shape[1]
-    xopt = np.zeros((3*Ns))
+    xopt = np.zeros((3*Ns), dtype = np.float32)
     Xdetected_part = Xdetected
     for i in range (Xdetected_part.shape[1]) :
         X0i = Xdetected_part[:,i]
@@ -606,7 +629,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
     Xdetected = np.array([Xc1_identified[:,0], 
                           Xc1_identified[:,1], 
                           Xc2_identified[:,0], 
-                          Xc2_identified[:,1]])
+                          Xc2_identified[:,1]], dtype = np.float32)
     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
     xopt = np.zeros((3,N))
     
@@ -661,7 +684,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         print('Without joblib or multiprocessing libraries the calculation may be very long.')
         def xopt_solve (Xdetected) :
             Ns = Xdetected.shape[1]
-            xopt = np.zeros((3*Ns))
+            xopt = np.zeros((3*Ns), dtype = np.float32)
             x0_part = x0
             for i in range (Xdetected.shape[1]) :
                 X0i = Xdetected[:,i]

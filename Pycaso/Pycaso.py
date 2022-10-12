@@ -37,7 +37,7 @@ def magnification (X1, X2, x1, x2) :
     Delta_X2 = np.nanmean(abs(X2-np.nanmean(X2)))
     Delta_x1 = np.nanmean(abs(x1-np.nanmean(x1)))
     Delta_x2 = np.nanmean(abs(x2-np.nanmean(x2)))
-    Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
+    Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2], dtype = np.float32) 
     return (Magnification)
 
 def Soloff_calibration (__calibration_dict__,
@@ -79,25 +79,25 @@ def Soloff_calibration (__calibration_dict__,
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
     
-    A111 = np.zeros((2, 2, 4))
+    A111 = np.zeros((2, 2, 4), dtype = np.float32)
     if Soloff_pform == 111 or Soloff_pform == 1 :
-        A_pol = np.zeros((2, 2, 4))
+        A_pol = np.zeros((2, 2, 4), dtype = np.float32)
     elif Soloff_pform == 221 :
-        A_pol = np.zeros((2, 2, 9))
+        A_pol = np.zeros((2, 2, 9), dtype = np.float32)
     elif Soloff_pform == 222 or Soloff_pform == 2 :
-        A_pol = np.zeros((2, 2, 10))
+        A_pol = np.zeros((2, 2, 10), dtype = np.float32)
     elif Soloff_pform == 332 :
-        A_pol = np.zeros((2, 2, 19))
+        A_pol = np.zeros((2, 2, 19), dtype = np.float32)
     elif Soloff_pform == 333 or Soloff_pform == 3 :
-        A_pol = np.zeros((2, 2, 20))
+        A_pol = np.zeros((2, 2, 20), dtype = np.float32)
     elif Soloff_pform == 443 :
-        A_pol = np.zeros((2, 2, 34))
+        A_pol = np.zeros((2, 2, 34), dtype = np.float32)
     elif Soloff_pform == 444 or Soloff_pform == 4 :
-        A_pol = np.zeros((2, 2, 35))
+        A_pol = np.zeros((2, 2, 35), dtype = np.float32)
     elif Soloff_pform == 554 :
-        A_pol = np.zeros((2, 2, 55))
+        A_pol = np.zeros((2, 2, 55), dtype = np.float32)
     elif Soloff_pform == 555 or Soloff_pform == 5 :
-        A_pol = np.zeros((2, 2, 56))    
+        A_pol = np.zeros((2, 2, 56), dtype = np.float32)    
     else :
         print ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
         sys.exit()
@@ -122,7 +122,7 @@ def Soloff_calibration (__calibration_dict__,
     solvel.refplans(x, x3_list, plotting = plotting)
 
     # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
+    Magnification = np.zeros((2, 2), dtype = np.float32)
     for camera in [1, 2] :
         if camera == 1 :
             X = Xc1
@@ -237,15 +237,15 @@ def direct_calibration (__calibration_dict__,
     """
     
     if direct_pform == 1 :
-        direct_A = np.zeros((3, 5))
+        direct_A = np.zeros((3, 5), dtype = np.float32)
     elif direct_pform == 2 :
-        direct_A = np.zeros((3, 15))
+        direct_A = np.zeros((3, 15), dtype = np.float32)
     elif direct_pform == 3 :
-        direct_A = np.zeros((3, 35))
+        direct_A = np.zeros((3, 35), dtype = np.float32)
     elif direct_pform == 4 :
-        direct_A = np.zeros((3, 70))
+        direct_A = np.zeros((3, 70), dtype = np.float32)
     elif direct_pform == 5 :
-        direct_A = np.zeros((3, 121))
+        direct_A = np.zeros((3, 121), dtype = np.float32)
     else :
         print ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
         sys.exit()
@@ -266,7 +266,7 @@ def direct_calibration (__calibration_dict__,
     solvel.refplans(x, x3_list, plotting = plotting)
 
     # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
+    Magnification = np.zeros((2, 2), dtype = np.float32)
 
     for camera in [1, 2] :
         if camera == 1 :
@@ -280,7 +280,7 @@ def direct_calibration (__calibration_dict__,
         Magnification[camera-1] = magnification (X1, X2, x1, x2)
         
         # Do the system x = Ap*M, where M is the monomial of the real 
-        # coordinates of crosses and x the image coordinates, and M the unknow
+        # coordinates of crosses, x the image coordinates, and M the unknow
         M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
         direct_A = Ap
@@ -435,17 +435,18 @@ def AI_identification (X_c1,
         xAI_solutionx = modelx.predict(X)
         xAI_solutiony = modely.predict(X)
         xAI_solutionz = modelz.predict(X)
-        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz])
+        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz], 
+                                dtype = np.float32)
     else :
         print('No method ', method)
     return (xAI_solution)
 
 def AI_training_norm (X_c1,
-                 X_c2,
-                 xSoloff_solution,
-                 AI_training_size = 1000,
-                 file = 'Soloff_AI_training.csv',
-                 method = 'simultaneously') :
+                      X_c2,
+                      xSoloff_solution,
+                      AI_training_size = 1000,
+                      file = 'Soloff_AI_training.csv',
+                      method = 'simultaneously') :
     """Training the AI metamodel with already known datas.
     
     Args:
@@ -544,7 +545,8 @@ def AI_identification_norm (X_c1,
         xAI_solutionx = modelx.predict(X)
         xAI_solutiony = modely.predict(X)
         xAI_solutionz = modelz.predict(X)
-        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz])
+        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz], 
+                                dtype = np.float32)
     else :
         print('No method ', method)
     return (xAI_solution)

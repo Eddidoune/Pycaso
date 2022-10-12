@@ -21,7 +21,6 @@ except ImportError:
 
 import cv2
 
-
 class Calibrate(dict):
     """Identification class of the corners of a chessboard by 
         Charuco's method"""
@@ -136,7 +135,7 @@ class Calibrate(dict):
         # the referential
         nx, ny = self.ncx-1, self.ncy-1
         n_corners = nx*ny
-        corners_list_opt = np.zeros((n_corners, 3))
+        corners_list_opt = np.zeros((n_corners, 3), dtype = np.float32)
         pts_list = np.arange(n_corners)
         pts_list = np.reshape(pts_list, (ny,nx))
         ptA = corners_list[0]
@@ -368,7 +367,7 @@ def cut_calibration_model (List_images,
     M = len(List_images)
     
     # First, detect the holes = missing points
-    nb_pts = np.zeros(M)
+    nb_pts = np.zeros(M, dtype = np.float32)
     print('M ', M)
     for i in range (0, M) :
         B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i]))[0])
@@ -427,9 +426,9 @@ def cut_calibration_model (List_images,
         ()
     else :
         # Use it as array
-        all_X = np.asarray(all_X)
+        all_X = np.asarray(all_X, dtype = np.float32)
         all_X = all_X[:, :, [0, 1]]
-        all_x = np.asarray(all_x)
+        all_x = np.asarray(all_x, dtype = np.float32)
         all_x = all_x[:, :, [0, 1]]
     nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
@@ -466,8 +465,8 @@ def NAN_calibration_model (Images,
     
     # First, detect the holes = missing points
     Nall = len(Xref)
-    nb_pts = np.zeros(M)
-    all_X = np.zeros((M, Nall, 3))
+    nb_pts = np.zeros(M, dtype = np.float32)
+    all_X = np.zeros((M, Nall, 3), dtype = np.float32)
     for i in range (0, M) :
         im = sorted(glob(Images[i]))[0]
         corners_list, pts = Calibrate(__dict__).calibrate(im)
@@ -486,7 +485,7 @@ def NAN_calibration_model (Images,
     for i in range (0, M) :
         all_x.append(Xref)        
     # Use it as array
-    all_x = np.asarray(all_x)
+    all_x = np.asarray(all_x, dtype = np.float32)
     all_x = all_x[:, :, [0, 1]]
     all_X = all_X[:, :, [0, 1]]
     nb_pts = np.reshape(nb_pts, (2, M//2))
@@ -598,9 +597,9 @@ def multifolder_pattern_detection (__dict__,
     nxy = len(sorted(glob(str(left_folder) + '/*')))
     nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(left_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
     npts = (ncx-1)*(ncy-1)
-    multall_X = np.empty((nxy, nxy, 2*nz, npts, 2))
-    multall_x = np.empty((nxy, nxy, 2*nz, npts, 2))
-    multnb_pts = np.empty((nxy, nxy, 2, nz))
+    multall_X = np.empty((nxy, nxy, 2*nz, npts, 2), dtype = np.float32)
+    multall_x = np.empty((nxy, nxy, 2*nz, npts, 2), dtype = np.float32)
+    multnb_pts = np.empty((nxy, nxy, 2, nz), dtype = np.float32)
 
 
 
@@ -641,9 +640,9 @@ def multifolder_pattern_detection (__dict__,
                 print('y = ', dy)
         
         # Re_organise arrays
-        all_X = np.empty((2*nz, nxy*nxy*npts, 2))
-        all_x = np.empty((2*nz, nxy*nxy*npts, 2))
-        nb_pts = np.empty((2, nz))
+        all_X = np.empty((2*nz, nxy*nxy*npts, 2), dtype = np.float32)
+        all_x = np.empty((2*nz, nxy*nxy*npts, 2), dtype = np.float32)
+        nb_pts = np.empty((2, nz), dtype = np.float32)
         for i in range (nz) :
             all_X[i] = multall_X[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
             all_x[i] = multall_x[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
@@ -692,9 +691,9 @@ def camera_np_coordinates (all_X,
         all_xi = all_x[i*(mid-1):i*mid,:,:]
         sU = all_Xi.shape
         Xref = all_xi[0]
-        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
-        x = np.empty ((sU[0] * sU[1], sU[2]+1))
-        X = np.empty ((sU[0] * sU[1], sU[2]))
+        all_xi = np.empty ((sU[0], sU[1], sU[2]+1), dtype = np.float32)
+        x = np.empty ((sU[0] * sU[1], sU[2]+1), dtype = np.float32)
+        X = np.empty ((sU[0] * sU[1], sU[2]), dtype = np.float32)
         for j in range (sU[0]) :
             all_xi[j][:,0] = Xref[:,0]
             all_xi[j][:,1] = Xref[:,1]
@@ -732,7 +731,7 @@ def camera_np_coordinates (all_X,
         x1 = x1[np.logical_not(mask)]
         x2 = x2[np.logical_not(mask)]
         x3 = x3[np.logical_not(mask)]
-        x = np.asarray([x1,x2,x3])
+        x = np.asarray([x1,x2,x3], dtype = np.float32)
     else :
         mask = np.array([False])
         
@@ -826,8 +825,8 @@ def DIC_disflow (__DIC_dict__,
         else : 
             Xright_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
+    Xleft_id = np.array(Xleft_id, dtype = np.float32)
+    Xright_id = np.array(Xright_id, dtype = np.float32)
     return(Xleft_id, Xright_id)
 
 def DIC_compute_flow (__DIC_dict__,
@@ -986,8 +985,8 @@ def DIC_compute_flow (__DIC_dict__,
         else : 
             Xright_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
+    Xleft_id = np.array(Xleft_id, dtype = np.float32)
+    Xright_id = np.array(Xright_id, dtype = np.float32)
     return (Xleft_id, Xright_id)
 
 def DIC_get_positions (__DIC_dict__,
@@ -1099,7 +1098,7 @@ def DIC_fields (__DIC_dict__,
             V_left[i] = Vl
             U_right[i] = Ur
             V_right[i] = Vr
-        all_UV = np.array([U_left, V_left, U_right, V_right])       
+        all_UV = np.array([U_left, V_left, U_right, V_right], dtype = np.float32)       
         np.save(Save_UV, all_UV)
         print('    - Saving datas in ', saving_folder)
 
@@ -1127,7 +1126,7 @@ def Def_fields (UVW) :
            deformations fields in %
     """    
     Np_img, axis, nx, ny = UVW.shape
-    Exyz = np.zeros((6, Np_img, nx, ny))
+    Exyz = np.zeros((6, Np_img, nx, ny), dtype = np.float32)
     for image in range (1, Np_img) :
         UVWi = UVW[image]
         U, V, W = UVWi
