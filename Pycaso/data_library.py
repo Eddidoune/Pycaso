@@ -1018,10 +1018,10 @@ def DIC_get_positions (__DIC_dict__,
             method = 'disflow'
     if method == 'disflow' :
         return (DIC_disflow(__DIC_dict__,
-                              flip = flip))
+                            flip = flip))
     if method == 'compute_flow' :
         return (DIC_compute_flow(__DIC_dict__,
-                              flip = flip))
+                                 flip = flip))
     else :
         print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
         raise

@@ -78,7 +78,7 @@ def Soloff_calibration (__calibration_dict__,
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
-    
+    x3_list = np.array(x3_list, dtype = np.float32)
     A111 = np.zeros((2, 2, 4), dtype = np.float32)
     if Soloff_pform == 111 or Soloff_pform == 1 :
         A_pol = np.zeros((2, 2, 4), dtype = np.float32)
@@ -235,6 +235,7 @@ def direct_calibration (__calibration_dict__,
        Magnification : int
            Magnification between reals and detected positions
     """
+    x3_list = np.array(x3_list, dtype = np.float32)
     
     if direct_pform == 1 :
         direct_A = np.zeros((3, 5), dtype = np.float32)

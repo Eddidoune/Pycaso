@@ -45,8 +45,7 @@ class Direct_Polynome(dict) :
         
         n = len(Xl1)
         if   polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2],
-                             dtype = np.float32)
+            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
 
         elif polynomial_form == 2 :
             Xl12 = Xl1 * Xl1
@@ -55,8 +54,7 @@ class Direct_Polynome(dict) :
             Xr22 = Xr2 * Xr2
             M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
                              Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22],
-                             dtype = np.float32)
+                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
 
         elif polynomial_form == 3 :
             Xl12 = Xl1 * Xl1
@@ -73,8 +71,7 @@ class Direct_Polynome(dict) :
                              Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
                              Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
                              Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23],
-                             dtype = np.float32)
+                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23])
 
         elif polynomial_form == 4 :
             Xl12 = Xl1 * Xl1
@@ -102,8 +99,7 @@ class Direct_Polynome(dict) :
                              Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
                              Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
                              Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24],
-                             dtype = np.float32)
+                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
 
         elif polynomial_form == 5 :
             Xl12 = Xl1 * Xl1
@@ -146,8 +142,7 @@ class Direct_Polynome(dict) :
                              Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
                              Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
                              Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
-                             Xr25],
-                             dtype = np.float32)
+                             Xr25])
             
         return (M)
     
@@ -173,23 +168,20 @@ class Soloff_Polynome(dict) :
         x1,x2,x3 = x
         n = len(x1)
         if   polynomial_form == 111 or polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3],
-                             dtype = np.float32)
+            M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
             
         elif polynomial_form == 221 :
             x12 = x1 * x1
             x22 = x2 * x2
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
-                             x1 *x2,         x22,       x1*x3,     x2*x3],
-                             dtype = np.float32)
+                             x1 *x2,         x22,       x1*x3,     x2*x3])
             
         elif polynomial_form == 222 or polynomial_form == 2 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
-                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32],
-                             dtype = np.float32)
+                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])
             
         elif polynomial_form == 332 :
             x12 = x1 * x1
@@ -200,8 +192,7 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32],
-                             dtype = np.float32)
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])
             
         elif polynomial_form == 333 or polynomial_form == 3 :
             x12 = x1 * x1
@@ -213,8 +204,7 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33],
-                             dtype = np.float32)
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])
             
         elif polynomial_form == 443 :
             x12 = x1 * x1
@@ -231,8 +221,7 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33],
-                             dtype = np.float32)
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])
             
         elif polynomial_form == 444 or polynomial_form == 4 :
             x12 = x1 * x1
@@ -250,8 +239,7 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34],
-                             dtype = np.float32)
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])
             
         elif polynomial_form == 554 :
             x12 = x1 * x1
@@ -275,8 +263,7 @@ class Soloff_Polynome(dict) :
                              x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
                              x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
-                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34],
-                             dtype = np.float32)
+                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])
             
         elif polynomial_form == 555 or polynomial_form == 5 :
             x12 = x1 * x1
@@ -302,8 +289,7 @@ class Soloff_Polynome(dict) :
                              x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
                              x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34,
-                             x35],
-                             dtype = np.float32)
+                             x35])
             
         return (M)
 
