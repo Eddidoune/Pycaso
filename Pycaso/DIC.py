@@ -163,9 +163,7 @@ class Vref:
     return f
 
 #variational refinement
-def getresidue(ima,
-               imb,
-               f): 
+def getresidue(ima,imb,f): 
     x, y = np.meshgrid(np.arange(ima.shape[1]), np.arange(ima.shape[0])) 
     x = x.astype('float32') 
     y = y.astype('float32') 
@@ -173,10 +171,10 @@ def getresidue(ima,
     residue=ima-remap.astype('float32') 
     return residue
 
-def displacement_field (Im1, 
-                        Im2, 
-                        window = [False],
-                        vr_kwargs=dict()) :
+def strain_field (Im1, 
+                  Im2, 
+                  window = [False],
+                  vr_kwargs=dict()) :
     """Calcul the displacement field between two images.
 
     Args:
@@ -224,41 +222,8 @@ def displacement_field (Im1,
 
     return (U,V)
 
-def strain_fields (U, 
-                   V,
-                   W) :
-    """Calcul all the strain fields between two images.
+    
 
-    Args:
-        U : type = numpy.ndarray
-            U displacement field (x coord)
-        V : type : numpy.ndarray
-            V displacement field (y coord)
-        W : type : numpy.ndarray
-            W displacement field (z coord)
-
-    Returns:
-        Exx : type = numpy.ndarray
-            Exx strain field (dx/x)
-        Exy : type = numpy.ndarray
-            Exx strain field (dx/y)
-        Eyx : type = numpy.ndarray
-            Exx strain field (dy/x)
-        Eyy : type = numpy.ndarray
-            Exx strain field (dy/y)        
-        Ezx : type = numpy.ndarray
-            Exx strain field (dz/x)
-        Ezy : type = numpy.ndarray
-            Exx strain field (dz/y)          
-    """  
-    Exy,Exx = np.gradient(U)
-    Eyy,Eyx = np.gradient(V)
-    Ezy,Ezx = np.gradient(W)
-    
-    return (Exx, Exy, Eyx, Eyy, Ezx, Ezy)
-    
-    
-    
 if __name__ == '__main__' :
     ('#############################################################')
     ('#############################################################')
@@ -290,8 +255,9 @@ if __name__ == '__main__' :
     
     chdir(path_images)
     
-    
-    
-    U, V = displacement_field(image_ref, image_def)
+
+
+
+    U, V = strain_field(image_ref, image_def)
     
     plt.imshow((V),plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(np.nanmin(V),np.nanmax(V))

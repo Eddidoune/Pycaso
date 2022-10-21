@@ -6,17 +6,16 @@ import os
 
 try : 
     import cupy as np
+    cpy = True
 except ImportError:
     import numpy as np
+    cpy = False
+    
 import matplotlib.pyplot as plt
 import scipy.optimize as sopt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.linear_model import LogisticRegression
-
-from sklearn.ensemble import HistGradientBoostingRegressor
-
-from sklearn.linear_model import LinearRegression
 
 
   
@@ -101,49 +100,6 @@ class Direct_Polynome(dict) :
                              Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
                              Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
 
-        elif polynomial_form == 5 :
-            Xl12 = Xl1 * Xl1
-            Xl13 = Xl1 * Xl1 * Xl1
-            Xl14 = Xl1 * Xl1 * Xl1 * Xl1
-            Xl15 = Xl1 * Xl1 * Xl1 * Xl1 * Xl1
-            Xl22 = Xl2 * Xl2
-            Xl23 = Xl2 * Xl2 * Xl2
-            Xl24 = Xl2 * Xl2 * Xl2 * Xl2
-            Xl25 = Xl2 * Xl2 * Xl2 * Xl2 * Xl2
-            Xr12 = Xr1 * Xr1
-            Xr13 = Xr1 * Xr1 * Xr1
-            Xr14 = Xr1 * Xr1 * Xr1 * Xr1
-            Xr15 = Xr1 * Xr1 * Xr1 * Xr1 * Xr1
-            Xr22 = Xr2 * Xr2
-            Xr23 = Xr2 * Xr2 * Xr2
-            Xr24 = Xr2 * Xr2 * Xr2 * Xr2
-            Xr25 = Xr2 * Xr2 * Xr2 * Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
-                             Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                             Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                             Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                             Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
-                             Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
-                             Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
-                             Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
-                             Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
-                             Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
-                             Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24,
-                             Xl15,           Xl14*Xl2,      Xl14*Xr1,       Xl14*Xr2,       Xl13*Xl22,
-                             Xl13*Xl2*Xr1,   Xl13*Xl2*Xr2,  Xl13*Xr12,      Xl13*Xr1*Xr2,   Xl13*Xr22,
-                             Xl2*Xl23,       Xl2*Xl22*Xr1,  Xl2*Xl22*Xr2,   Xl2*Xl2*Xr12,   Xl2*Xl2*Xr1*Xr2,
-                             Xl2*Xl2*Xr22,   Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xl1*Xl24,       Xl1*Xl23*Xr1,  Xl1*Xl23*Xr2,   Xl1*Xl22*Xr12,  Xl1*Xl22*Xr1*Xr2,
-                             Xl1*Xl22*Xr22,  Xl1*Xl2*Xr13,  Xl1*Xl2*Xr12*Xr2,Xl1*Xl2*Xr1*Xr22,Xl1*Xl2*Xr23,
-                             Xl25,           Xl24*Xr1,      Xl24*Xr2,       Xl23*Xr12,      Xl23*Xr1*Xr2,
-                             Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
-                             Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
-                             Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
-                             Xr25])
-            
         return (M)
     
    
@@ -167,22 +123,19 @@ class Soloff_Polynome(dict) :
         polynomial_form = self.polynomial_form
         x1,x2,x3 = x
         n = len(x1)
-        if   polynomial_form == 111 or polynomial_form == 1 :
+        if   polynomial_form == 111 :
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
-            
         elif polynomial_form == 221 :
             x12 = x1 * x1
             x22 = x2 * x2
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
-                             x1 *x2,         x22,       x1*x3,     x2*x3])
-            
-        elif polynomial_form == 222 or polynomial_form == 2 :
+                             x1 *x2,         x22,       x1*x3,     x2*x3])   
+        elif polynomial_form == 222 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
-                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])
-            
+                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])  
         elif polynomial_form == 332 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -192,9 +145,8 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])
-            
-        elif polynomial_form == 333 or polynomial_form == 3 :
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])            
+        elif polynomial_form == 333 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
@@ -204,8 +156,7 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])
-            
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])    
         elif polynomial_form == 443 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -221,9 +172,8 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])
-            
-        elif polynomial_form == 444 or polynomial_form == 4 :
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
+        elif polynomial_form == 444 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
@@ -239,8 +189,7 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])
-            
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])   
         elif polynomial_form == 554 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -263,9 +212,8 @@ class Soloff_Polynome(dict) :
                              x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
                              x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
-                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])
-            
-        elif polynomial_form == 555 or polynomial_form == 5 :
+                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])   
+        elif polynomial_form == 555 :
             x12 = x1 * x1
             x22 = x2 * x2
             x32 = x3 * x3
@@ -290,7 +238,6 @@ class Soloff_Polynome(dict) :
                              x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
                              x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34,
                              x35])
-            
         return (M)
 
 
@@ -308,7 +255,7 @@ class Soloff_Polynome(dict) :
                Calculted position
         """
         polynomial_form = self.polynomial_form
-        x = np.array ([x], dtype = np.float32)
+        x = np.array ([x])
         x = x.reshape((3,len(x[0])//3))
         M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)    
         Xc = np.matmul(a, M)
@@ -331,7 +278,7 @@ class Soloff_Polynome(dict) :
                Functional calculation
         """
         polynomial_form = self.polynomial_form
-        x = np.array ([x], dtype = np.float32)
+        x = np.array ([x])
         x = x.reshape((3,len(x[0])//3))
         M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x) 
         Xc = np.matmul(a, M)
@@ -361,8 +308,7 @@ class Soloff_Polynome(dict) :
 
 
 def fit_plan_to_points(point,
-                       title = False,
-                       plotting = False) :
+                       title = 'no title'):
     """Plot the median plan from a serie of points
     
     Args:
@@ -370,33 +316,22 @@ def fit_plan_to_points(point,
            Real points x(x1, x2, x3)       
        title : str
            Title of the plotted figure
-       plotting = Bool
-           Plot the result or not
             
     Returns:
        plot points + associated plan
     """
     xs, ys, zs = point 
+    ax = plt.subplot(111, projection='3d')
+    ax.scatter(xs, ys, zs, color='b')
     
-    try : 
-        import cupy as np
-        xsnp = np.asnumpy(xs)
-        ysnp = np.asnumpy(ys)
-        zsnp = np.asnumpy(zs)
-    except ImportError:
-        import numpy as np
-        xsnp = xs
-        ysnp = ys
-        zsnp = zs
-  
     # do fit
     tmp_A = []
     tmp_b = []
     for i in range(len(xs)):
         tmp_A.append([xs[i], ys[i], 1])
         tmp_b.append(zs[i])
-    b = np.matrix(tmp_b, dtype = np.float32).T
-    A = np.matrix(tmp_A, dtype = np.float32)
+    b = np.matrix(tmp_b).T
+    A = np.matrix(tmp_A)
     
     # Manual solution
     fit = (A.T * A).I * A.T * b
@@ -408,31 +343,23 @@ def fit_plan_to_points(point,
     # plot plan
     X,Y = np.meshgrid(np.linspace(np.min(xs), np.max(xs), 10),
                       np.linspace(np.min(ys), np.max(ys), 10))
-    Z = np.zeros(X.shape, dtype = np.float32)
+    Z = np.zeros(X.shape)
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
             Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
-
-    if plotting :
-        from mpl_toolkits.mplot3d import Axes3D #<-- Note the capitalization! 
-        fig = plt.figure()
-        ax = Axes3D(fig)
-        # ax = plt.subplot(111, projection='3d')
-        ax.scatter(xsnp, ysnp, zsnp, color='b')
-        ax.plot_wireframe(X,Y,Z, color='k')
-        if title :
-            ax.set_title(title)
-        ax.set_xlabel('x (mm)')
-        ax.set_ylabel('y (mm)')
-        ax.set_zlabel('z (mm)')
+    ax.plot_wireframe(X,Y,Z, color='k')
+        
+    ax.set_title(title)
+    ax.set_xlabel('x (mm)')
+    ax.set_ylabel('y (mm)')
+    ax.set_zlabel('z (mm)')
     
-    fit = np.transpose(np.array(fit, dtype = np.float32))[0]
+    fit = np.transpose(np.array(fit))[0]
     
     return (fit, errors, mean_error, residual)
 
 def fit_plans_to_points(points, 
-                        title = False,
-                        plotting = False):
+                        title = 'no title'):
     """Plot the medians plans from series of points
     
     Args:
@@ -440,38 +367,32 @@ def fit_plans_to_points(points,
            Real points x(x1, x2, x3)       
        title : str
            Title of the plotted figures
-       plotting = Bool
-           Plot the result or not
             
     Returns:
        plot points + associated plans
     """
     # plot raw data
     l = len (points)
-    fit = np.zeros((l, 3), dtype = np.float32)
+    fit = np.zeros((l, 3))
     errors = []
-    mean_error = np.zeros(l, dtype = np.float32)
-    residual = np.zeros(l, dtype = np.float32)
+    mean_error = np.zeros(l)
+    residual = np.zeros(l)
     maxerror = []
     for i in range (len(points)) :
         point = points[i]
         fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
-                                                                        title = title,
-                                                                        plotting = plotting)
+                                                                        title = title)
         maxerror.append(np.max(abs(errori)))
         errors.append(errori)
-    if plotting :
-        plt.figure()
-        plt.show()    
+    plt.figure()
+    plt.show()    
     print('Plan square max error = ', sgf.round((max(maxerror)), sigfigs =3), ' mm')
     print('Plan square mean error = ', sgf.round((np.mean(mean_error**2))**(1/2), sigfigs = 3), ' mm')
     print('Plan square mean residual = ', sgf.round((np.mean(residual**2))**(1/2), sigfigs = 3))
 
     return (fit, errors, mean_error, residual)
 
-def refplans(xc1, 
-             x3_list,
-             plotting = False) :
+def refplans(xc1, x3_list) :
     """Plot the medians plans from references points
     
     Args:
@@ -479,8 +400,6 @@ def refplans(xc1,
            Real points x(x1, x2, x3)       
        x3_list : numpy.ndarray
            List of the different plans coordinates
-       plotting = Bool
-           Plot the result or not
             
     Returns:
        plot points + associated plans
@@ -499,8 +418,7 @@ def refplans(xc1,
         xcons.append (plan)
 
     fit_plans_to_points(xcons, 
-                        title = 'Calibration plans',
-                        plotting = plotting)
+                        title = 'Calibration plans')
 
 def least_square_method (Xc1_identified, 
                          Xc2_identified, 
@@ -521,7 +439,7 @@ def least_square_method (Xc1_identified,
            Solution x = xsol of the system 
     """
     N = len (Xc1_identified)
-    x0 = np.zeros((3, N), dtype = np.float32)
+    x0 = np.zeros((3, N))
     a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
     a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
     A = np.array([a1c1, a2c1, a1c2, a2c2])
@@ -553,7 +471,7 @@ def xopt_mlib (Xtuple) :
     """
     Xdetected, x0_part, Soloff_pform, A0 = Xtuple
     Ns = Xdetected.shape[1]
-    xopt = np.zeros((3*Ns), dtype = np.float32)
+    xopt = np.zeros((3*Ns))
     Xdetected_part = Xdetected
     for i in range (Xdetected_part.shape[1]) :
         X0i = Xdetected_part[:,i]
@@ -615,7 +533,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
     Xdetected = np.array([Xc1_identified[:,0], 
                           Xc1_identified[:,1], 
                           Xc2_identified[:,0], 
-                          Xc2_identified[:,1]], dtype = np.float32)
+                          Xc2_identified[:,1]])
     A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
     xopt = np.zeros((3,N))
     
@@ -670,7 +588,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         print('Without joblib or multiprocessing libraries the calculation may be very long.')
         def xopt_solve (Xdetected) :
             Ns = Xdetected.shape[1]
-            xopt = np.zeros((3*Ns), dtype = np.float32)
+            xopt = np.zeros((3*Ns))
             x0_part = x0
             for i in range (Xdetected.shape[1]) :
                 X0i = Xdetected[:,i]
@@ -736,6 +654,8 @@ def AI_solve_simultaneously (file,
     # 1st meta-model
     X=dat[0:N,0:4]
     Y=dat[0:N,4:7]
+    X=dat[0:N,0:4]
+    Y=dat[0:N,4:7]
     model = RandomForestRegressor(n_estimators=n_estimators, 
                                   min_samples_leaf=min_samples_leaf, 
                                   min_samples_split=min_samples_split, 
@@ -743,7 +663,6 @@ def AI_solve_simultaneously (file,
                                   max_features=max_features,
                                   max_depth=max_depth,
                                   bootstrap=bootstrap)
-    print('IA model training : x,y,z')
     model.fit(X,Y)
     
     # TEST 
@@ -801,6 +720,7 @@ def AI_solve_simultaneously (file,
     accuracy = evaluate(model, X2, Y2)
     return(model, accuracy)
 
+
 def AI_solve_independantly (file,
                             n_estimators=800, 
                             min_samples_leaf=1, 
@@ -838,12 +758,6 @@ def AI_solve_independantly (file,
            
     """
     dat=pd.read_csv(file, sep=" " )
-    #Build correlation matrix
-    import seaborn as sn
-    corrMatrix = dat.corr()
-    sn.heatmap(corrMatrix, annot=True)
-    plt.show()
-    
     dat=np.array(dat)
     # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
     # the last 1/5 datas.
@@ -855,12 +769,12 @@ def AI_solve_independantly (file,
     Yy=dat[0:N,5]
     Yz=dat[0:N,6]
     modelx = RandomForestRegressor(n_estimators=n_estimators, 
-                                    min_samples_leaf=min_samples_leaf, 
-                                    min_samples_split=min_samples_split, 
-                                    random_state=random_state, 
-                                    max_features=max_features,
-                                    max_depth=max_depth,
-                                    bootstrap=bootstrap)
+                                  min_samples_leaf=min_samples_leaf, 
+                                  min_samples_split=min_samples_split, 
+                                  random_state=random_state, 
+                                  max_features=max_features,
+                                  max_depth=max_depth,
+                                  bootstrap=bootstrap)
     
     modely = RandomForestRegressor(n_estimators=n_estimators, 
                                   min_samples_leaf=min_samples_leaf, 
@@ -878,11 +792,8 @@ def AI_solve_independantly (file,
                                   max_depth=max_depth,
                                   bootstrap=bootstrap)
     
-    print('IA model training : x')
     modelx.fit(X,Yx)
-    print('IA model training : y')
     modely.fit(X,Yy)
-    print('IA model training : z')
     modelz.fit(X,Yz)
     
     # TEST 
@@ -975,342 +886,8 @@ def AI_solve_independantly (file,
            accuracyy,
            accuracyz)
 
-def AI_solve_zdependantly (file,
-                           n_estimators=800, 
-                           min_samples_leaf=1, 
-                           min_samples_split=2, 
-                           random_state=1, 
-                           max_features='sqrt',
-                           max_depth=100,
-                           bootstrap='true',
-                           hyperparameters_tuning = False) :  
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
-    output (x,y or z)
 
-    
-    Args:
-       file : str
-           Name of saving file for training
-       n_estimators, 
-       min_samples_leaf, 
-       min_samples_split, 
-       random_state, 
-       max_features, 
-       max_depth, 
-       bootstrap,
-       hyperparameters_tuning : 
-          More information on the link :
-          https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
-           
-           
-    Returns:
-       modelx, modely, modelz : sklearn.ensemble._forest.RandomForestRegressor
-           IA metamodel for x,y and z coordinates
-       accuracyx, accuracyy, accuracyz : int
-           Accuracy of the IA metamodel compared with the training datas
-           for x,y and z coordinates.
-           
-    """
-    dat=pd.read_csv(file, sep=" " )
-    #Build correlation matrix
-    import seaborn as sn
-    corrMatrix = dat.corr()
-    sn.heatmap(corrMatrix, annot=True)
-    plt.show()
-    
-    dat=np.array(dat)
-    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
-    # the last 1/5 datas.
-    N = int(len(dat)*4/5)
-    
-    # 1st meta-model
-    X=dat[0:N,0:4]
-    Xp=dat[0:N,0:6]
-    Yx=dat[0:N,4]
-    Yy=dat[0:N,5]
-    Yz=dat[0:N,6]
-    modelx = RandomForestRegressor(n_estimators=n_estimators, 
-                                    min_samples_leaf=min_samples_leaf, 
-                                    min_samples_split=min_samples_split, 
-                                    random_state=random_state, 
-                                    max_features=max_features,
-                                    max_depth=max_depth,
-                                    bootstrap=bootstrap)
-    
-    modely = RandomForestRegressor(n_estimators=n_estimators, 
-                                  min_samples_leaf=min_samples_leaf, 
-                                  min_samples_split=min_samples_split, 
-                                  random_state=random_state, 
-                                  max_features=max_features,
-                                  max_depth=max_depth,
-                                  bootstrap=bootstrap)
-    
-    modelz = RandomForestRegressor(n_estimators=n_estimators, 
-                                  min_samples_leaf=min_samples_leaf, 
-                                  min_samples_split=min_samples_split, 
-                                  random_state=random_state, 
-                                  max_features=max_features,
-                                  max_depth=max_depth,
-                                  bootstrap=bootstrap)
-    
-    print('IA model training : x')
-    modelx.fit(X,Yx)
-    print('IA model training : y')
-    modely.fit(X,Yy)
-    print('IA model training : z')
-    modelz.fit(Xp,Yz)
-    
-    # TEST 
-    X2=dat[N:,0:4]
-    X2p=dat[N:,0:6]
-    Yx2=dat[N:,4]
-    Yy2=dat[N:,5]
-    Yz2=dat[N:,6]
-    
-    # hyperparameter tuning 
-    if hyperparameters_tuning :
-        # Number of trees in random forest
-        n_estimators = [int(x) for x in np.linspace(start = 200, 
-                                                    stop = 2000, 
-                                                    num = 10)]
-        # Number of features to consider at every split
-        max_features = ['auto', 'sqrt']
-        # Maximum number of levels in tree
-        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-        max_depth.append(None)
-        # Minimum number of samples required to split a node
-        min_samples_split = [2, 5, 10]
-        # Minimum number of samples required at each leaf node
-        min_samples_leaf = [1, 2, 4]
-        # Method of selecting samples for training each tree
-        bootstrap = [True, False]# Create the random grid
-        random_grid = {'n_estimators': n_estimators,
-                        'max_features': max_features,
-                        'max_depth': max_depth,
-                        'min_samples_split': min_samples_split,
-                        'min_samples_leaf': min_samples_leaf,
-                        'bootstrap': bootstrap}
-        
-        rf_randomx = RandomizedSearchCV(estimator = modelx, 
-                                        param_distributions = random_grid, 
-                                        n_iter = 100, 
-                                        cv = 3, 
-                                        verbose=2, 
-                                        random_state=42, 
-                                        n_jobs = -1)
-        
-        rf_randomy = RandomizedSearchCV(estimator = modely, 
-                                        param_distributions = random_grid, 
-                                        n_iter = 100, 
-                                        cv = 3, 
-                                        verbose=2, 
-                                        random_state=42, 
-                                        n_jobs = -1)
-        
-        rf_randomz = RandomizedSearchCV(estimator = modelz, 
-                                        param_distributions = random_grid, 
-                                        n_iter = 100, 
-                                        cv = 3, 
-                                        verbose=2, 
-                                        random_state=42, 
-                                        n_jobs = -1)
-        
-        rf_randomx.fit(X, Yx)
-        rf_randomy.fit(X, Yy)
-        rf_randomz.fit(Xp, Yz)
-        
-        best_randomx = rf_randomx.best_estimator_
-        best_randomy = rf_randomy.best_estimator_
-        best_randomz = rf_randomz.best_estimator_
-        print('Best hyper parameters for x')
-        print(best_randomx)
-        print('Best hyper parameters for y')
-        print(best_randomy)
-        print('Best hyper parameters for z')
-        print(best_randomz)
-    
-    #################################
-    def evaluate(model, test_features, test_labels):
-        predictions = model.predict(test_features)
-        errors = abs(predictions - test_labels)
-        mape = 100 * np.mean(errors / np.max(test_labels))
-        accuracy = 100 - mape
-        print('Model Performance')
-        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
-        print('Accuracy = {:0.2f}%.'.format(accuracy))
-        return accuracy
-    
-    accuracyx = evaluate(modelx, X2, Yx2)
-    accuracyy = evaluate(modely, X2, Yy2)
-    accuracyz = evaluate(modelz, X2p, Yz2)
 
-    return(modelx, 
-           modely,
-           modelz,
-           accuracyx,
-           accuracyy,
-           accuracyz)
-
-def AI_HGBoost (file) :  
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
-    output (x,y or z)
-
-    Args:
-       file : str
-          Name of saving file for training
-          More information on the link :
-          https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html#sklearn.ensemble.HistGradientBoostingRegressor
-          
-           
-    Returns:
-       modelx, modely, modelz : sklearn.ensemble._forest.RandomForestRegressor
-           IA metamodel for x,y and z coordinates
-       accuracyx, accuracyy, accuracyz : int
-           Accuracy of the IA metamodel compared with the training datas
-           for x,y and z coordinates.
-           
-    """
-    dat=pd.read_csv(file, sep=" " )
-    dat=np.array(dat)
-    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
-    # the last 1/5 datas.
-    N = int(len(dat)*4/5)
-    
-    # 1st meta-model
-    X=dat[0:N,0:4]
-    Yx=dat[0:N,4]
-    Yy=dat[0:N,5]
-    Yz=dat[0:N,6]
-    print('IA model training : x,y,z')
-    modelx = HistGradientBoostingRegressor().fit(X, Yx)
-    modely = HistGradientBoostingRegressor().fit(X, Yy)
-    modelz = HistGradientBoostingRegressor().fit(X, Yz)
-        
-    # TEST 
-    X2=dat[N:,0:4]
-    Y2x=dat[N:,4]
-    Y2y=dat[N:,5]
-    Y2z=dat[N:,6]
-    
-    '''
-    # hyperparameter tuning 
-    if hyperparameters_tuning :
-        # Number of trees in random forest
-        n_estimators = [int(x) for x in np.linspace(start = 200, 
-                                                    stop = 2000, 
-                                                    num = 10)]
-        # Number of features to consider at every split
-        max_features = ['auto', 'sqrt']
-        # Maximum number of levels in tree
-        max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
-        max_depth.append(None)
-        # Minimum number of samples required to split a node
-        min_samples_split = [2, 5, 10]
-        # Minimum number of samples required at each leaf node
-        min_samples_leaf = [1, 2, 4]
-        # Method of selecting samples for training each tree
-        bootstrap = [True, False]# Create the random grid
-        random_grid = {'n_estimators': n_estimators,
-                        'max_features': max_features,
-                        'max_depth': max_depth,
-                        'min_samples_split': min_samples_split,
-                        'min_samples_leaf': min_samples_leaf,
-                        'bootstrap': bootstrap}
-        
-        rf_random = RandomizedSearchCV(estimator = model, 
-                                       param_distributions = random_grid, 
-                                       n_iter = 100, 
-                                       cv = 3, 
-                                       verbose=2, 
-                                       random_state=42, 
-                                       n_jobs = -1)
-        rf_random.fit(X, Y)
-        
-        best_random = rf_random.best_estimator_
-        print('Best hyper parameters')
-        print(best_random)
-    '''
-    #################################
-    def evaluate(model, test_features, test_labels):
-        predictions = model.predict(test_features)
-        errors = abs(predictions - test_labels)
-        mape = 100 * np.mean(errors / np.max(test_labels))
-        accuracy = 100 - mape
-        print('Model Performance')
-        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
-        print('Accuracy = {:0.2f}%.'.format(accuracy))
-        return accuracy
-    
-    accuracyx = evaluate(modelx, X2, Y2x)
-    accuracyy = evaluate(modely, X2, Y2y)
-    accuracyz = evaluate(modelz, X2, Y2z)
-    
-    model = [modelx, modely, modelz]
-    accuracy = [accuracyx, accuracyy, accuracyz]
-    
-    return(model, accuracy) 
-    
-def AI_LinearRegression (file) :  
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
-    output (x,y or z)
-
-    Args:
-       file : str
-          Name of saving file for training
-          More information on the link :
-          https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LinearRegression.html
-          
-           
-    Returns:
-       model = [modelx, modely, modelz] : list of sklearn.ensemble._forest.RandomForestRegressor
-           IA metamodel for x,y and z coordinates
-       accuracyx, accuracyy, accuracyz : int
-           Accuracy of the IA metamodel compared with the training datas
-           for x,y and z coordinates.
-           
-    """
-    dat=pd.read_csv(file, sep=" " )
-    dat=np.array(dat)
-    # The model learn on 4/5 of all datas. Then the accuracy is estimated on 
-    # the last 1/5 datas.
-    N = int(len(dat)*4/5)
-    
-    # 1st meta-model
-    X=dat[0:N,0:4]
-    Yx=dat[0:N,4]
-    Yy=dat[0:N,5]
-    Yz=dat[0:N,6]
-    print('IA model training : x,y,z')
-    modelx = LinearRegression().fit(X, Yx)
-    modely = LinearRegression().fit(X, Yy)
-    modelz = LinearRegression().fit(X, Yz)
-        
-    # TEST 
-    X2=dat[N:,0:4]
-    Y2x=dat[N:,4]
-    Y2y=dat[N:,5]
-    Y2z=dat[N:,6]
-    
-    def evaluate(model, test_features, test_labels):
-        predictions = model.predict(test_features)
-        errors = abs(predictions - test_labels)
-        mape = 100 * np.mean(errors / np.max(test_labels))
-        accuracy = 100 - mape
-        print('Model Performance')
-        print('Average Error: {:0.4f} degrees.'.format(np.mean(errors)))
-        print('Accuracy = {:0.2f}%.'.format(accuracy))
-        return accuracy
-    
-    accuracyx = evaluate(modelx, X2, Y2x)
-    accuracyy = evaluate(modely, X2, Y2y)
-    accuracyz = evaluate(modelz, X2, Y2z)
-    
-    model = [modelx, modely, modelz]
-    accuracy = [accuracyx, accuracyy, accuracyz]
-    
-    return(model, accuracy) 
-      
-    
 
 if __name__ == '__main__' :
     ()

@@ -129,7 +129,7 @@ if __name__ == '__main__' :
     xS = xS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     yS = yS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     zS = zS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
-    t0 = time.time()    
+    t0 = time.time()
     print('tS : ',t0-t00)
       
     plt.figure()

@@ -8,8 +8,11 @@ Created on Fri Nov 26 09:19:07 2021
 import sigfig as sgf
 try : 
     import cupy as np
+    cpy = True
 except ImportError:
     import numpy as np
+    cpy = False
+    
 import sys
 import pathlib
 import os
