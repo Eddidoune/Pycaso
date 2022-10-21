@@ -101,9 +101,9 @@ __DIC_dict__ = {
 ```
 
 The identification can start :
-First, use the a correlation process (Here disflow) from left to right images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the left and the right cameras.
+First, use the correlation process (default = GCpu_OpticalFlow or disflow) from left to right images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the left and the right cameras.
 ```
-Xleft_id, Xright_id = data.DIC_3D_detection(__DIC_dict__)
+Xleft_id, Xright_id = data.DIC_get_positions(__DIC_dict__)
 ```
 Then use one of the pairs (Xleft_id[0], Xright_id[0]) to create the points on the global referential (x,y,z) :
 ```

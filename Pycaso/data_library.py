@@ -564,7 +564,7 @@ def pattern_detection (__dict__,
 def DIC_disflow (__DIC_dict__,
                  flip = False) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the deformed ones (other left and right pictures).
+    (first left one) in the other ones (other left and right pictures).
     
     Args:
        __DIC_dict__ : dict
@@ -581,15 +581,14 @@ def DIC_disflow (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
     """
-    saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     window = __DIC_dict__['window']
     vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
 
-    Save_all_U = str(saving_folder) +"/Lagrangian_all_U_" + name + ".npy"
-    Save_all_V = str(saving_folder) +"/Lagrangian_all_V_" + name + ".npy"
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/disflow_U_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/disflow_V_" + name + ".npy"
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
@@ -617,9 +616,9 @@ def DIC_disflow (__DIC_dict__,
             if flip :
                 Im1 = cv2.flip(Im1, 1)
                 Im2 = cv2.flip(Im2, 1)
-            all_U[i], all_V[i] = DIC.strain_field(Images[0], 
-                                                  Images[i],
-                                                  vr_kwargs=vr_kwargs)
+            all_U[i], all_V[i] = DIC.displacement_field(Im1, 
+                                                        Im2,
+                                                        vr_kwargs=vr_kwargs)
 
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
@@ -650,14 +649,14 @@ def DIC_disflow (__DIC_dict__,
         else : 
             Xright_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
+    Xleft_id = np.array(Xleft_id, dtype = np.float32)
+    Xright_id = np.array(Xright_id, dtype = np.float32)
     return(Xleft_id, Xright_id)
 
-def DIC_3D_composed_detection (__DIC_dict__,
-                                flip = False):
+def DIC_compute_flow (__DIC_dict__,
+                      flip = False):
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the deformed ones (other left and right pictures).
+    (first left one) in the other ones (other left and right pictures).
     
     Args:
        __DIC_dict__ : dict
@@ -674,19 +673,24 @@ def DIC_3D_composed_detection (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
    """
+    try : 
+        from compute_flow import compute_flow
+    except ImportError:
+        print('No module named compute_flow')
+        sys.exit()
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     window = __DIC_dict__['window']
-    Save_all_U = str(__DIC_dict__['saving_folder']) +"/Compose_all_U_alternative_" + name + ".npy"
-    Save_all_V = str(__DIC_dict__['saving_folder']) +"/Compose_all_V_alternative_" + name + ".npy"
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
-                "size_median_filter": 5, 
+                "size_median_filter": 3, 
                 "max_linear_iter": 1, 
                 "max_iter": 10, 
-                "lmbda": 1.*10**5, 
+                "lmbda": 2.*10**4, 
                 "lambda2": 0.001, 
                 "lambda3": 1., 
                 "Mask": None,
@@ -720,7 +724,7 @@ def DIC_3D_composed_detection (__DIC_dict__,
         nx, ny = im0_left.shape
         all_U = np.zeros((N, nx, ny), dtype=np.float32)
         all_V = np.zeros((N, nx, ny), dtype=np.float32)
-        x, y = np.meshgrid(np.arange(2048), np.arange(2048))
+        x, y = np.meshgrid(np.arange(ny), np.arange(nx))
         x = x.astype(np.float32)
         y = y.astype(np.float32)
         # Left0/left camera correlations + left0 / right0 correlation
@@ -770,6 +774,14 @@ def DIC_3D_composed_detection (__DIC_dict__,
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
             u = u.astype(np.float32)
             v = v.astype(np.float32)
+            # Convert to numpy for cv2
+            if cpy :
+                u = np.asnumpy(u)
+                v = np.asnumpy(v)
+                x = np.asnumpy(x)
+                y = np.asnumpy(y)
+                all_U = np.asnumpy(all_U)
+                all_V = np.asnumpy(all_V)
             # Composition of transformations
             all_U[int(N/2)+i+1] = all_U[int(N/2)] + cv2.remap(u, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
             all_V[int(N/2)+i+1] = all_V[int(N/2)] + cv2.remap(v, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
@@ -783,18 +795,20 @@ def DIC_3D_composed_detection (__DIC_dict__,
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
         # ntot = (lx2 - lx1) * (ly2 - ly1)
-        linsp = np.arange(nX1)+1
-        linsp = np.reshape (linsp, (1,nX1))
-        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
-        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
-        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
-        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
+        linsp1 = np.arange(nX1)+1
+        linsp2 = np.arange(nX2)+1
+        linsp1 = np.reshape (linsp1, (1,nX1))
+        linsp2 = np.reshape (linsp2, (1,nX2))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp2)
+        X2matrix = np.matmul(np.transpose(linsp1), np.ones((1, nX2)))
+        X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
+        X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
 
         # Left camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
                                       np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
-                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
+        UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
+                                    np.ravel(V[lx1:lx2, ly1:ly2])]))
 
         # Right camera --> position = each px + displacement
         X_c2 = X_c1 + UV
@@ -803,9 +817,46 @@ def DIC_3D_composed_detection (__DIC_dict__,
         else : 
             Xright_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
+    Xleft_id = np.array(Xleft_id, dtype = np.float32)
+    Xright_id = np.array(Xright_id, dtype = np.float32)
     return (Xleft_id, Xright_id)
+
+def DIC_get_positions (__DIC_dict__,
+                       flip = False,
+                       method = 'compute_flow') :
+    """Use the DIC to locate all the points from the reference picture
+    (first left one) in the other ones (other left and right pictures).
+    
+    Args:
+       __DIC_dict__ : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
+           
+    Returns:
+       Xleft_id : numpy.ndarrayleft_sample_identification
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
+    """
+    if method == 'compute_flow' :
+        try : 
+            from compute_flow import compute_flow
+        except ImportError:
+            print('No module named conpute_flow, disflow from OpenCV will be used')
+            method = 'disflow'
+    if method == 'disflow' :
+        return (DIC_disflow(__DIC_dict__,
+                            flip = flip))
+    if method == 'compute_flow' :
+        return (DIC_compute_flow(__DIC_dict__,
+                                 flip = flip))
+    else :
+        print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
+        raise
 
 def DIC_fields (__DIC_dict__,
                 flip = False) :
