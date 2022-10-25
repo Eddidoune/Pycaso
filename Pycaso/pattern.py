@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from matplotlib import pyplot as plt
-
 import numpy as np
 import cv2
 
@@ -12,10 +11,11 @@ class Calibrate(dict):
         self.ncx = _dict_['ncx']
         self.ncy = _dict_['ncy']
         if 'pixel_factor' in _dict_ :
-            self.pixel_factor = 1
-        else :
             self.pixel_factor = _dict_['pixel_factor']
-        self.dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+        else :
+            self.pixel_factor = 1
+            
+        self.dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000)
 
     def ChArucco_board (self) :
         """Create ChArucco board for the calibration
@@ -70,8 +70,8 @@ class Calibrate(dict):
 if __name__ == '__main__' :
     # Show the reals and theoreticals points  
     __dict__ = {
-    'ncx' : 16,
-    'ncy' : 12,
-    'pixel_factor' : 20}
+    'ncx' : 32,
+    'ncy' : 24,
+    'pixel_factor' : 2}
     # Choose the dict
-    ChArucco_Board_build_img = Calibrate (__dict__).ChArucco_board()    
+    ChAruco_Board_build_img = Calibrate (__dict__).ChAruco_board()   

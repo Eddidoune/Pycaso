@@ -2,10 +2,7 @@
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
-from scipy.stats import skew, kurtosis
-from numpy import linalg as LA
 from glob import glob
-
 from os import chdir
 
 default = dict(
@@ -163,7 +160,9 @@ class Vref:
     return f
 
 #variational refinement
-def getresidue(ima,imb,f): 
+def getresidue(ima,
+               imb,
+               f): 
     x, y = np.meshgrid(np.arange(ima.shape[1]), np.arange(ima.shape[0])) 
     x = x.astype('float32') 
     y = y.astype('float32') 
@@ -171,10 +170,10 @@ def getresidue(ima,imb,f):
     residue=ima-remap.astype('float32') 
     return residue
 
-def strain_field (Im1, 
-                  Im2, 
-                  window = [False],
-                  vr_kwargs=dict()) :
+def displacement_field (Im1, 
+                        Im2, 
+                        window = [False],
+                        vr_kwargs=dict()) :
     """Calcul the displacement field between two images.
 
     Args:
@@ -222,42 +221,33 @@ def strain_field (Im1,
 
     return (U,V)
 
+def strain_fields (U, 
+                   V,
+                   W) :
+    """Calcul all the strain fields between two images.
+    Args:
+        U : type = numpy.ndarray
+            U displacement field (x coord)
+        V : type : numpy.ndarray
+            V displacement field (y coord)
+        W : type : numpy.ndarray
+            W displacement field (z coord)
+    Returns:
+        Exx : type = numpy.ndarray
+            Exx strain field (dx/x)
+        Exy : type = numpy.ndarray
+            Exx strain field (dx/y)
+        Eyx : type = numpy.ndarray
+            Exx strain field (dy/x)
+        Eyy : type = numpy.ndarray
+            Exx strain field (dy/y)        
+        Ezx : type = numpy.ndarray
+            Exx strain field (dz/x)
+        Ezy : type = numpy.ndarray
+            Exx strain field (dz/y)          
+    """  
+    Exy,Exx = np.gradient(U)
+    Eyy,Eyx = np.gradient(V)
+    Ezy,Ezx = np.gradient(W)
     
-
-if __name__ == '__main__' :
-    ('#############################################################')
-    ('#############################################################')
-    ('#######################               #######################')
-    ('#######################    Entrées    #######################')
-    ('#######################               #######################')
-    ('#############################################################')
-    ('#############################################################')
-    
-    path_images = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/Images_example" # Path where the images that we want to compare are.
-    
-    all_image = False # If all_image = True, the program will not take care about image_ref and image_def but it will take all the pairs of images (Starting at 'start_image' and ending at 'end_image'
-    start_image = 3
-    end_image = 4
-    image_ref = 'left_coin_14_02_2022_identification/left_coin.tif' # Reference Image (Image 1 at instant t)
-    image_def = 'right_coin_14_02_2022_identification/right_coin.tif' # Target Image (Image 2 at instant t+dt)
-    
-    print(type(image_def))
-    ('#############################################################')
-    ('#############################################################')
-    ('#######################               #######################')
-    ('#######################     Code      #######################')
-    ('#######################               #######################')
-    ('#############################################################')
-    ('#############################################################')
-    images_list = sorted(glob(path_images + '/*.tif'))
-    
-    
-    
-    chdir(path_images)
-    
-
-
-
-    U, V = strain_field(image_ref, image_def)
-    
-    plt.imshow((V),plt.get_cmap('hot'));cb = plt.colorbar();plt.clim(np.nanmin(V),np.nanmax(V))
+    return (Exx, Exy, Eyx, Eyy, Ezx, Ezy)

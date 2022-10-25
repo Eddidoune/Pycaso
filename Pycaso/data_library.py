@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from sigfig import round
 from glob import glob
 from copy import deepcopy
 import DIC
@@ -16,7 +15,6 @@ from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
-from compute_flow import compute_flow
 
 try : 
     import cupy as np
@@ -26,7 +24,6 @@ except ImportError:
     cpy = False
 
 import cv2
-import cv2.aruco as aruco
 
 
 class Calibrate(dict):
@@ -40,10 +37,10 @@ class Calibrate(dict):
         self.ncy = _dict_['ncy']
         self.sqr = _dict_['sqr']
         self.mrk = self.sqr / 2
-        self.dictionary = aruco.Dictionary_get(aruco.DICT_6X6_250)
-        self.parameters = aruco.DetectorParameters_create()
+        self.dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+        self.parameters = cv2.aruco.DetectorParameters_create()
         self.parameters.adaptiveThreshWinSizeMax = 300
-        self.board = aruco.CharucoBoard_create(
+        self.board = cv2.aruco.CharucoBoard_create(
             self.ncx,
             self.ncy,
             self.sqr,
@@ -67,18 +64,20 @@ class Calibrate(dict):
         else :
             print("=> Calculation of the image ...", str(im[-20:]))
         img = cv2.imread(im, 0)        
-        corners, ids, rip = aruco.detectMarkers(img, 
-                                                self.dictionary, 
-                                                parameters=self.parameters)
+        corners, ids, rip = cv2.aruco.detectMarkers(img, 
+                                                    self.dictionary, 
+                                                    parameters=self.parameters)
         
+        idall = []
         if len(corners) != 0 :
             if len(corners) < len(self.board.ids):
                 for idd in self.board.ids:
                     if idd not in ids:
-                        print("mark ", idd, " not detected")
+                        idall.append(int(idd))
                         
+            print("marks ", idall, " not detected")         
             if ids is not None and len(ids) > 0:
-                ret, chcorners, chids = aruco.interpolateCornersCharuco(
+                ret, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
                     corners, ids, img, self.board)
                 print(len(corners), ' marks detected. ', ret, ' points detected')
                 print('---')
@@ -208,7 +207,7 @@ class Calibrate(dict):
                 diy = column2 * xy + line2 * yy
                 xi = int(x0 + dix)
                 yi = int(y0 + diy)
-                d = int(l//2)
+                d = int(l//4)
                 
                 # Find the missing point, if on the screen
                 xm, ym = img.shape
@@ -219,7 +218,6 @@ class Calibrate(dict):
                     # Try Hessian detection and pick the biggest binary 
                     # area
                     bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
-                    # im_focus = img_hess[yi-d:yi+d, xi-d:xi+d]
                     label_img=label(clear_border(bin_im_win))
                     regions = regionprops(label_img)
                     areas = []
@@ -436,7 +434,6 @@ def cut_calibration_model (List_images,
     nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
 
-
 def NAN_calibration_model (Images, 
                            Xref, 
                            __dict__,
@@ -475,9 +472,14 @@ def NAN_calibration_model (Images,
         im = sorted(glob(Images[i]))[0]
         corners_list, pts = Calibrate(__dict__).calibrate(im)
         nb_pts[i] = pts
-        corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
-                                                                   im,
-                                                                   hybrid_verification = hybrid_verification)
+        if any (corners_list) :
+            corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
+                                                                       im,
+                                                                       hybrid_verification = hybrid_verification)
+        else :
+            corners_list = np.empty((Nall, 3))
+            corners_list[:] = np.nan
+        
         all_X[i] = corners_list
 
     all_x = []
@@ -490,9 +492,9 @@ def NAN_calibration_model (Images,
     nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_x, all_X, nb_pts)
 
-
 def pattern_detection (__dict__,
-                       hybrid_verification = False) :
+                       hybrid_verification = False,
+                       save = True) :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -504,7 +506,9 @@ def pattern_detection (__dict__,
            corners is show and you can decide to change any point using
            it ID (ID indicated on the image) as an input. If there is no
            bad detected corner, press ENTER to go to the next image.
-
+       save : bool, optional
+           Save the datas in the saving_folder
+           
     Returns:
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera ranged in an array 
@@ -543,11 +547,11 @@ def pattern_detection (__dict__,
     else : # Corners detection
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
-        Xref = calibration_model(ncx, ncy, sqr)
-        all_x, all_X, nb_pts = NAN_calibration_model(Images, 
-                                                     Xref, 
-                                                     __dict__,
-                                                     hybrid_verification = hybrid_verification)
+        Xref = Calibrate(__dict__).calibration_model(ncx, ncy, sqr)
+        all_x, all_X, nb_pts = Calibrate(__dict__).NAN_calibration_model(Images, 
+                                                                         Xref, 
+                                                                         __dict__,
+                                                                         hybrid_verification = hybrid_verification)
 
         if not np.any(all_X[0]):
             print('Not any point detected in all images/cameras')
@@ -555,11 +559,180 @@ def pattern_detection (__dict__,
             np.save(Save_all_X, all_X)
             np.save(Save_all_x, all_x)
             np.save(Save_nb_pts, nb_pts)
-    
             print('    - Saving datas in ', saving_folder)
+            
+    return(all_X, all_x, nb_pts)
 
+def multifolder_pattern_detection (__dict__,
+                                   hybrid_verification = False) :
+    """Detect the corners of Charucco's pattern in multiple folders.
+    
+    Args:
+       __dict__ : dict
+           Pattern properties define in a dict.
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
+           
+    Returns:
+       all_X : numpy.ndarray
+           The corners of the pattern detect by the camera ranged in an array 
+           arrange with all left pictures followed by all right pictures. 
+           Expl : [left_picture_1, left_picture_2, right_picture_1, 
+                   right_picture_2]
+       all_x : numpy.ndarray
+           The theorical corners of the pattern
+    """
+    # Taking the main parameters from bibliotheque_data_eddy.
+    saving_folder = __dict__['saving_folder']
+    left_folder = __dict__['left_folder']
+    right_folder = __dict__['right_folder']
+    name = __dict__['name']
+    ncx = __dict__['ncx']
+    ncy = __dict__['ncy']
+    sqr = __dict__['sqr']
+    nxy = len(sorted(glob(str(left_folder) + '/*')))
+    nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(left_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
+    npts = (ncx-1)*(ncy-1)
+    multall_X = np.empty((nxy, nxy, 2*nz, npts, 2))
+    multall_x = np.empty((nxy, nxy, 2*nz, npts, 2))
+    multnb_pts = np.empty((nxy, nxy, 2, nz))
+    Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
+    Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
+    Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
+    # Corners detection
+    if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
+        # Taking pre-calculated datas from the saving_folder
+        print('    - Taking datas from ', saving_folder)        
+        all_X = np.load(Save_all_X)
+        all_x = np.load(Save_all_x)
+        nb_pts = np.load(Save_nb_pts)
+    
+    else : # Corners detection
+        for i, imx in enumerate(sorted(glob(str(left_folder) + '/*'))) :
+            dx = imx[len(left_folder)+2:]
+            for j, imy in enumerate(sorted(glob(str(imx) + '/*'))) :
+                dy = imy[len(imx)+2:]
+                __dict__n = {
+                            'left_folder' : left_folder + imy[len(left_folder):],
+                            'right_folder' : right_folder + imy[len(left_folder):],
+                            'name' : name,
+                            'saving_folder' : saving_folder,
+                            'ncx' : ncx,
+                            'ncy' : ncy,
+                            'sqr' : sqr}
+                all_X, all_x, nb_pts = pattern_detection (__dict__n,
+                                                          hybrid_verification = hybrid_verification,
+                                                          save = False)
+                all_x[:,:,0] += float(dx)
+                all_x[:,:,1] += float(dy)
+                
+                multall_X [i,j]= all_X
+                multall_x [i,j]= all_x
+                multnb_pts [i,j]= nb_pts
+                print('x = ', dx)
+                print('y = ', dy)
+        
+        # Re_organise arrays
+        all_X = np.empty((2*nz, nxy*nxy*npts, 2))
+        all_x = np.empty((2*nz, nxy*nxy*npts, 2))
+        nb_pts = np.empty((2, nz))
+        for i in range (nz) :
+            all_X[i] = multall_X[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
+            all_x[i] = multall_x[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
+            
+            all_X[i+nz] = multall_X[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
+            all_x[i+nz] = multall_x[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
+            nb_pts[0, i] = np.min(multnb_pts[:,:,0,i])
+            nb_pts[1, i] = np.min(multnb_pts[:,:,1,i])
+        
+        # Save datas
+        if not np.any(all_X[0]):
+            print('Not any point detected in all images/cameras')
+        else :
+            np.save(Save_all_X, all_X)
+            np.save(Save_all_x, all_x)
+            np.save(Save_nb_pts, nb_pts)
+            print('    - Saving datas in ', saving_folder)
         
     return(all_X, all_x, nb_pts)
+
+def camera_np_coordinates (all_X, 
+                           all_x, 
+                           x3_list) :
+    """Organising the coordinates of the calibration
+    
+    Args:
+       all_X : numpy.ndarray
+           The corners of the pattern detect by the camera
+       all_x : numpy.ndarray
+           The theorical corners of the pattern
+       x3_list : numpy.ndarray
+           List of the different z position. (Ordered the same way in the 
+           target folder)
+    Returns:
+       x : numpy.ndarray
+           Organised real positions in 3D space
+       Xc1 : numpy.ndarray
+           Organised detected positions of camera 1
+       Xc2 : numpy.ndarray
+           Organised detected positions of camera 2
+    """
+    for i in [1, 2] :
+        print('')
+        mid = all_X.shape[0]//2    
+        all_Xi = all_X[(i-1)*mid:i*mid,:,:]
+        all_xi = all_x[i*(mid-1):i*mid,:,:]
+        sU = all_Xi.shape
+        Xref = all_xi[0]
+        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
+        x = np.empty ((sU[0] * sU[1], sU[2]+1))
+        X = np.empty ((sU[0] * sU[1], sU[2]))
+        for j in range (sU[0]) :
+            all_xi[j][:,0] = Xref[:,0]
+            all_xi[j][:,1] = Xref[:,1]
+            all_xi[j][:,2] = x3_list[j]
+
+            x[j*sU[1] : (j+1)*sU[1], :]  = all_xi[j]
+            X[j*sU[1] : (j+1)*sU[1], :]  = all_Xi[j]
+
+        # Real position in space : Xref (x1, x2, x3)
+        x1 = x[:,0]
+        x2 = x[:,1]
+        x3 = x[:,2]
+        x = np.asarray([x1,x2,x3]) # reshape x
+
+        # Position detected from cameras : Ucam (X1, X2)
+        X1 = X[:,0]
+        X2 = X[:,1]
+        X = np.asarray([X1,X2]) # reshape X
+        
+        if i == 1 :
+            Xc1 = X
+        if i == 2 :
+            Xc2 = X
+    # If there is some NAN value, then delete all 2D and 3D corresponding 
+    # points
+    if np.isnan(Xc1).any() or np.isnan(Xc2).any() :
+        mask1 = np.ma.masked_invalid(Xc1)
+        mask2 = np.ma.masked_invalid(Xc2)
+        mask = mask1.mask + mask2.mask
+        Xc1 = Xc1[np.logical_not(mask)]
+        Xc1 = np.reshape(Xc1, (2, len(Xc1)//2))
+        Xc2 = Xc2[np.logical_not(mask)]
+        Xc2 = np.reshape(Xc2, (2, len(Xc2)//2))
+        mask = mask[0]
+        x1 = x1[np.logical_not(mask)]
+        x2 = x2[np.logical_not(mask)]
+        x3 = x3[np.logical_not(mask)]
+        x = np.asarray([x1,x2,x3])
+    else :
+        mask = np.array([False])
+        
+    return (x, Xc1, Xc2)
 
 def DIC_disflow (__DIC_dict__,
                  flip = False) :
@@ -628,7 +801,6 @@ def DIC_disflow (__DIC_dict__,
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
-        # ntot = (lx2 - lx1) * (ly2 - ly1)
         linsp = np.arange(nX1)+1
         linsp = np.reshape (linsp, (1,nX1))
         X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
@@ -794,7 +966,6 @@ def DIC_compute_flow (__DIC_dict__,
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
-        # ntot = (lx2 - lx1) * (ly2 - ly1)
         linsp1 = np.arange(nX1)+1
         linsp2 = np.arange(nX2)+1
         linsp1 = np.reshape (linsp1, (1,nX1))
@@ -860,8 +1031,7 @@ def DIC_get_positions (__DIC_dict__,
 
 def DIC_fields (__DIC_dict__,
                 flip = False) :
-    """Use the DIC to calcul all the left deformed fields ans the right 
-    deformed fields.
+    """Use the DIC to calcul all the left and right displacements fields.
     
     Args:
        __DIC_dict__ : dict
@@ -873,13 +1043,13 @@ def DIC_fields (__DIC_dict__,
            
     Returns:
        U_left : numpy.ndarray
-           All the left deformed fields in x direction.
+           All the left displacements fields in x direction.
        V_left : numpy.ndarray 
-           All the left deformed fields in y direction.
+           All the left displacements fields in y direction.
        U_right : numpy.ndarray 
-           All the right deformed fields in x direction.
+           All the right displacements fields in x direction.
        V_right : numpy.ndarray
-           All the right deformed fields in y direction.
+           All the right displacements fields in y direction.
     """
     saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
@@ -887,6 +1057,7 @@ def DIC_fields (__DIC_dict__,
     name = __DIC_dict__['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
     vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
+    
     # Taking pre-calculated datas from the saving_folder
     if os.path.exists(Save_UV) :
         print('    - Taking datas from ', saving_folder)        
@@ -916,12 +1087,12 @@ def DIC_fields (__DIC_dict__,
                 Imr1 = cv2.flip(Imr1, 1)
                 Imr2 = cv2.flip(Imr2, 1)
             
-            Ul, Vl = DIC.strain_field(Iml1, 
-                                      Iml2,
-                                      vr_kwargs=vr_kwargs)
-            Ur, Vr = DIC.strain_field(Imr1, 
-                                      Imr2,
-                                      vr_kwargs=vr_kwargs)
+            Ul, Vl = DIC.displacement_field(Iml1, 
+                                            Iml2,
+                                            vr_kwargs=vr_kwargs)
+            Ur, Vr = DIC.displacement_field(Imr1, 
+                                            Imr2,
+                                            vr_kwargs=vr_kwargs)
             if i == 0 :
                 U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
                 V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
@@ -931,122 +1102,42 @@ def DIC_fields (__DIC_dict__,
             V_left[i] = Vl
             U_right[i] = Ur
             V_right[i] = Vr
-        all_UV = np.array([U_left, V_left, U_right, V_right])       
+        all_UV = np.array([U_left, V_left, U_right, V_right])
         np.save(Save_UV, all_UV)
         print('    - Saving datas in ', saving_folder)
 
     return(U_left, V_left, U_right, V_right)
 
-
-
-def camera_np_coordinates (all_X, 
-                           all_x, 
-                           x3_list) :
-    """Organising the coordinates of the calibration
+def Strain_fields (UVW) :
+    """Calcul all the strains fields from displacements fields
     
     Args:
-       all_X : numpy.ndarray
-           The corners of the pattern detect by the camera
        all_x : numpy.ndarray
-           The theorical corners of the pattern
-       x3_list : numpy.ndarray
-           List of the different z position. (Ordered the same way in the 
-           target folder)
+           x solutions
+           
     Returns:
-       x : numpy.ndarray
-           Organised real positions in 3D space
-       Xc1 : numpy.ndarray
-           Organised detected positions of camera 1
-       Xc2 : numpy.ndarray
-           Organised detected positions of camera 2
-    """
-    for i in [1, 2] :
-        print('')
-        mid = all_X.shape[0]//2    
-        all_Xi = all_X[(i-1)*mid:i*mid,:,:]
-        all_xi = all_x[i*(mid-1):i*mid,:,:]
-        sU = all_Xi.shape
-        Xref = all_xi[0]
-        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
-        x = np.empty ((sU[0] * sU[1], sU[2]+1))
-        X = np.empty ((sU[0] * sU[1], sU[2]))
-        for j in range (sU[0]) :
-            all_xi[j][:,0] = Xref[:,0]
-            all_xi[j][:,1] = Xref[:,1]
-            all_xi[j][:,2] = x3_list[j]
+       Exy : numpy.ndarray
+           strains field in %
+       Exx : numpy.ndarray
+           strains field in %
+       Eyy : numpy.ndarray
+           strains field in %
+       Eyx : numpy.ndarray
+           strains field in %
+       Ezy : numpy.ndarray
+           strains field in %
+       Ezx : numpy.ndarray
+           strains field in %
+    """    
+    Np_img, axis, nx, ny = UVW.shape
+    Exyz = np.zeros((6, Np_img, nx, ny))
+    for image in range (1, Np_img) :
+        UVWi = UVW[image]
+        U, V, W = UVWi
+        Exyz[0, image], Exyz[1, image] = np.gradient(U)
+        Exyz[2, image], Exyz[3, image] = np.gradient(V)
+        Exyz[4, image], Exyz[5, image] = np.gradient(W)
 
-            x[j*sU[1] : (j+1)*sU[1], :]  = all_xi[j]
-            X[j*sU[1] : (j+1)*sU[1], :]  = all_Xi[j]
+    Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
 
-        # Real position in space : Xref (x1, x2, x3)
-        x1 = x[:,0]
-        x2 = x[:,1]
-        x3 = x[:,2]
-        x = np.asarray([x1,x2,x3]) # reshape x
-
-        # Position detected from cameras : Ucam (X1, X2)
-        X1 = X[:,0]
-        X2 = X[:,1]
-        X = np.asarray([X1,X2]) # reshape X
-        
-        if i == 1 :
-            Xc1 = X
-        if i == 2 :
-            Xc2 = X
-    # If there is some NAN value, then delete all 2D and 3D corresponding 
-    # points
-    if np.isnan(Xc1).any() or np.isnan(Xc2).any() :
-        mask1 = np.ma.masked_invalid(Xc1)
-        mask2 = np.ma.masked_invalid(Xc2)
-        mask = mask1.mask + mask2.mask
-        Xc1 = Xc1[np.logical_not(mask)]
-        Xc1 = np.reshape(Xc1, (2, len(Xc1)//2))
-        Xc2 = Xc2[np.logical_not(mask)]
-        Xc2 = np.reshape(Xc2, (2, len(Xc2)//2))
-        mask = mask[0]
-        x1 = x1[np.logical_not(mask)]
-        x2 = x2[np.logical_not(mask)]
-        x3 = x3[np.logical_not(mask)]
-        x = np.asarray([x1,x2,x3])
-    else :
-        mask = np.array([False])
-        
-    return (x, Xc1, Xc2)
-
-
-if __name__ == '__main__' :
-    main_path = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src'    
-    saving_folder = main_path + '/results/2022_02_28_results/Test0'
-    
-    # Define the inputs
-    __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_02_28/test1',
-    'right_folder' : main_path + '/Images_example/2022_02_28/test2',
-    'name' : 'micro_calibration',
-    'saving_folder' : saving_folder,
-    'ncx' : 16,
-    'ncy' : 12,
-    'sqr' : 0.3}
-    
-    # Create the list of z plans
-    Folder = __calibration_dict__['left_folder']
-    Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = np.zeros((len(Imgs)))
-    for i in range (len(Imgs)) :
-        x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
-
-    # Chose the degrees for Soloff and direct polynomial fitting
-    Soloff_pform = 332
-    direct_pform = 4
-    
-    # Create the result folder if not exist
-    if os.path.exists(saving_folder) :
-        ()
-    else :
-        P = pathlib.Path(saving_folder)
-        pathlib.Path.mkdir(P, parents = True)    
-    
-    
-    all_X, all_x, nb_pts = pattern_detection(__calibration_dict__,
-                                             hybrid_verification = False)    
-    
+    return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)

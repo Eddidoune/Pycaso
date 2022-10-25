@@ -12,6 +12,7 @@ try :
     cpy = True
 except ImportError:
     import numpy as np
+    import numpy as numpy
     cpy = False
 import sys
 import pathlib
@@ -30,6 +31,7 @@ import math
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
+    in mm/px
     
     Args:
        X1 : numpy.ndarrayx
@@ -55,7 +57,9 @@ def magnification (X1, X2, x1, x2) :
 def Soloff_calibration (__calibration_dict__,
                         x3_list,
                         Soloff_pform,
-                        hybrid_verification = False) :
+                        hybrid_verification = False,
+                        multifolder = False,
+                        plotting = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = A111 (Resp A_pol):--> X = A.M(x)
     
@@ -74,55 +78,62 @@ def Soloff_calibration (__calibration_dict__,
            corners is show and you can decide to change any point using
            it ID (ID indicated on the image) as an input. If there is no
            bad detected corner, press ENTER to go to the next image.
-
+       multifolder : bool, optional
+           Used for specific image acquisition when all directions moved
+       plotting = Bool
+           Plot the calibration view or not
+           
     Returns:
        A111 : numpy.ndarray
            Constants of Soloff polynomial form '111'
        A_pol : numpy.ndarray
-           Constants of Soloff polynomial form chose (Soloff_pform)
+           Constants of Soloff polynomial form chose (Soloff_pforloasm)
        Magnification : int
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
-    
+    x3_list = np.array(x3_list)
     A111 = np.zeros((2, 2, 4))
-    if Soloff_pform == 111 :
+    if Soloff_pform == 111 or Soloff_pform == 1 :
         A_pol = np.zeros((2, 2, 4))
     elif Soloff_pform == 221 :
         A_pol = np.zeros((2, 2, 9))
-    elif Soloff_pform == 222 :
+    elif Soloff_pform == 222 or Soloff_pform == 2 :
         A_pol = np.zeros((2, 2, 10))
     elif Soloff_pform == 332 :
         A_pol = np.zeros((2, 2, 19))
-    elif Soloff_pform == 333 :
+    elif Soloff_pform == 333 or Soloff_pform == 3 :
         A_pol = np.zeros((2, 2, 20))
     elif Soloff_pform == 443 :
         A_pol = np.zeros((2, 2, 34))
-    elif Soloff_pform == 444 :
+    elif Soloff_pform == 444 or Soloff_pform == 4 :
         A_pol = np.zeros((2, 2, 35))
     elif Soloff_pform == 554 :
         A_pol = np.zeros((2, 2, 55))
-    elif Soloff_pform == 555 :
+    elif Soloff_pform == 555 or Soloff_pform == 5 :
         A_pol = np.zeros((2, 2, 56))    
     else :
         print ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
         sys.exit()
     
     A_0 = [A111, A_pol]
-    Soloff_pforms = [111, Soloff_pform]
+    Soloff_pforms = [1, Soloff_pform]
 
     
     # Detect points from folders
-    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                        hybrid_verification = hybrid_verification)        
+    if multifolder :
+        all_X, all_x, nb_pts = data.multifolder_pattern_detection(__calibration_dict__,
+                                                                  hybrid_verification = hybrid_verification)          
+    else :
+        all_X, all_x, nb_pts = data.pattern_detection(__calibration_dict__,
+                                                      hybrid_verification = hybrid_verification)        
 
     # Creation of the reference matrix Xref and the real position Ucam for 
     # each camera
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)     
+    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)     
 
     # Plot the references plans
-    if not cpy :
-        solvel.refplans(x, x3_list)
+    solvel.refplans(x, x3_list, plotting = plotting)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -145,7 +156,7 @@ def Soloff_calibration (__calibration_dict__,
             M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
             Ai = np.matmul(X, np.linalg.pinv(M))
             A_0[pol][camera-1] = Ai
-    
+            
             # Error of projection
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
@@ -183,7 +194,6 @@ def Soloff_identification (Xc1_identified,
            Polynomial form
        method : str, optional
            Python method used to solve it ('Least-squares' or 'curve-fit')
-
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
@@ -199,14 +209,16 @@ def Soloff_identification (Xc1_identified,
                                                             Xc2_identified, 
                                                             A_pol, 
                                                             x0, 
-                                                            Soloff_pform = Soloff_pform, 
-                                                            method = 'curve_fit')
+                                                            Soloff_pform, 
+                                                            method = method)
     return (x_solution)
-
 
 def direct_calibration (__calibration_dict__,
                         x3_list,
-                        direct_pform) :
+                        direct_pform,
+                        hybrid_verification = False,
+                        multifolder = False,
+                        plotting = False) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
     
@@ -219,13 +231,24 @@ def direct_calibration (__calibration_dict__,
                                               same way in the target folder)
        direct_pform : int
            Polynomial degree
-
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
+       multifolder : bool, optional
+           Used for specific image acquisition when all directions moved
+       plotting = Bool
+           Plot the calibration view or not
+           
     Returns:
        A : numpy.ndarray
            Constants of direct polynomial
        Magnification : int
            Magnification between reals and detected positions
     """
+    x3_list = np.array(x3_list)
     
     if direct_pform == 1 :
         direct_A = np.zeros((3, 5))
@@ -235,19 +258,27 @@ def direct_calibration (__calibration_dict__,
         direct_A = np.zeros((3, 35))
     elif direct_pform == 4 :
         direct_A = np.zeros((3, 70))
+    elif direct_pform == 5 :
+        direct_A = np.zeros((3, 121))
     else :
-        print ('Only define for polynomial degrees (1, 2, 3 or 4')
+        print ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
         sys.exit()
+    
     # Detect points from folders
-    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__)        
+    if multifolder :
+        all_X, all_x, nb_pts = data.multifolder_pattern_detection(__calibration_dict__,
+                                                                  hybrid_verification = hybrid_verification)          
+    else :
+        all_X, all_x, nb_pts = data.pattern_detection(__calibration_dict__,
+                                                      hybrid_verification = hybrid_verification)      
 
     # Creation of the reference matrix Xref and the real position Ucam for 
     # each camera i
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_Ucam, all_Xref, x3_list)
+    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)
 
     # Plot the references plans
     if not cpy :
-        solvel.refplans(x, x3_list)
+        solvel.refplans(x, x3_list, plotting = plotting)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -264,7 +295,7 @@ def direct_calibration (__calibration_dict__,
         Magnification[camera-1] = magnification (X1, X2, x1, x2)
         
         # Do the system x = Ap*M, where M is the monomial of the real 
-        # coordinates of crosses and x the image coordinates, and M the unknow
+        # coordinates of crosses, x the image coordinates, and M the unknow
         M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
         direct_A = Ap
@@ -281,7 +312,7 @@ def direct_calibration (__calibration_dict__,
               ' ; ',
               str(sgf.round(numpy.amin(proj_error), sigfigs = 3)),
               ' px')
-    return(direct_A, Magnification)    
+    return(direct_A, Magnification)  
 
 def direct_identification (Xc1_identified,
                            Xc2_identified,
@@ -299,12 +330,10 @@ def direct_identification (Xc1_identified,
            Constants of direct polynomial
        direct_pform : int
            Polynomial form
-
-
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
-    """    
+    """ 
     # Solve by direct method
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
@@ -376,13 +405,15 @@ def AI_training (X_c1,
     # Build the AI model with the AI_training_size.
     if method == 'simultaneously' :
         model, accuracy = solvel.AI_solve_simultaneously (file)
-        return(model)
+
     if method == 'independantly' :
         modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
         model = [modelx, modely, modelz]
-        return(model)
+
     else :
         print('No method ', method)
+
+    return(model)
     
 def AI_identification (X_c1,
                        X_c2,
@@ -409,253 +440,18 @@ def AI_identification (X_c1,
     # Solve on all pts
     X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
                                X_c2[:,0], X_c2[:,1]]))        
-    xAI_solution = model.predict(X)
-    xAI_solution = np.transpose(xAI_solution)
-    return (xAI_solution)
-
-
-if __name__ == '__main__' :
-    main_path = "/home/caroneddy/These/Stereo_camera/Pycaso_archives/src"    
-    saving_folder = main_path + '/results/2022_04_15_results_adrien_micromachine/501_sample'
-    
-    # Define the inputs
-    __calibration_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_501_x2',
-    'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_501_x2',
-    'name' : 'micro_calibration',
-    'saving_folder' : saving_folder,
-    'ncx' : 16,
-    'ncy' : 12,
-    'sqr' : 0.3}  #in mm
-    
-    # __pattern_dict__ = {
-    # 'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_sample_identification',
-    # 'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_sample_identification',
-    # 'name' : 'micro_identification',
-    # 'ncx' : 12,
-    # 'ncy' : 12,
-    # 'sqr' : 0.3}  #in mm
-    
-    __DIC_dict__ = {
-    'left_folder' : main_path + '/Images_example/2022_04_15_Adrien/left_sample_identification',
-    'right_folder' : main_path + '/Images_example/2022_04_15_Adrien/right_sample_identification',
-    'name' : 'micro_identification',
-    'saving_folder' : saving_folder,
-    'window' : [[200, 1800], [200, 1800]]}  #in mm
-    
-    # profilo = '/home/caroneddy/These/Stereo_camera/Pycaso_archives/src/results/2022_04_15_results_adrien_micromachine/profilo/x5_stitching5x5_tilt_cyl_removed_overlap40.npy'
     
     
-    # Create the list of z plans
-    Folder = __calibration_dict__['left_folder']
-    Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = np.zeros((len(Imgs)))
-    for i in range (len(Imgs)) :
-        x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
-    # x3_list = np.array(sorted(x3_list))
-
-    
-    # Chose the polynomial degree for the calibration fitting
-    Soloff_pform = 332
-    direct_pform = 4
-
-    # Create the result folder if not exist
-    if os.path.exists(saving_folder) :
-        ()
+    if method == 'simultaneously' :
+        xAI_solution = model.predict(X)
+        xAI_solution = np.transpose(xAI_solution)
+        
+    elif method == 'independantly' or method == 'z_dependantly' :
+        modelx, modely, modelz = model
+        xAI_solutionx = modelx.predict(X)
+        xAI_solutiony = modely.predict(X)
+        xAI_solutionz = modelz.predict(X)
+        xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz])
     else :
-        P = pathlib.Path(saving_folder)
-        pathlib.Path.mkdir(P, parents = True)
-
-    print('')
-    print('#####       ')
-    print('Start calibration')
-    print('#####       ')
-
-    all_Ucam, all_Xref, nb_pts = data.pattern_detection(__calibration_dict__)
-
-
-    
-    A111, A_pol, Magnification = Soloff_calibration (__calibration_dict__,
-                                                     x3_list,
-                                                     Soloff_pform)
-
-    print('')
-    print('#####       ')
-    print('End calibration')
-    print('#####       ')
-
-
-    print('')
-    print('#####       ')
-    print('Direct method calibration')
-    print('#####       ')
-    print('')
-
-    direct_A, Magnification = direct_calibration (__calibration_dict__,
-                                                  x3_list,
-                                                  direct_pform)
-
-    Magnification_z = np.mean (Magnification, axis = 0)
-    
-    print('')
-    print('#####       ')
-    print('Identification by DIC')
-    print('#####       ')
-    print('')
-    
-    Xleft_idc, Xright_idc = data.DIC_3D_composed_detection(__DIC_dict__,
-                                                           flip = False)
-    
-    Xleft_id, Xright_id = data.DIC_disflow(__DIC_dict__,
-                                           flip = False)
-    
-    Np_img, Npoints, Naxes = Xleft_id.shape
-    all_U, all_V, all_W = np.zeros((3, 2*Np_img, Npoints))
-    xDirect_solutions = np.zeros((Np_img, 3, Npoints))
-    xSoloff_solutions = np.zeros((Np_img, 3, Npoints))
-    xAI_solutions = np.zeros((Np_img, 3, Npoints))
-
-    for image in range (Np_img) :
-        print('')
-        print('')
-        print('Calculation of the pair of images ', image+1)
-        print('...')
-        print('...')
-        
-        X_c1 = Xleft_id[image]
-        X_c2 = Xright_id[image]
-        
-        # Create the DataFrame
-        data_c = {'X1' :  X_c1[:,0], 'Y1' :  X_c1[:,1], 'X2' :  X_c2[:,0], 'Y2' :  X_c2[:,1]}
-        df = pd.DataFrame(data = data_c)
-        
-        # Direct identification
-        t0 = time.time()
-        xDirect_solution = direct_identification (X_c1,
-                                                  X_c2,
-                                                  direct_A,
-                                                  direct_pform)
-        xD, yD, zD = xDirect_solution
-        df.insert(df.shape[1], 'xDirect', xD, True)
-        df.insert(df.shape[1], 'yDirect', yD, True)
-        df.insert(df.shape[1], 'zDirect', zD, True)
-        xDirect_solutions[image] = xDirect_solution
-        t1 = time.time()
-        print('time direct = ',t1 - t0)
-        print('end direct')
-
-        fit, er, mean_er, res = solvel.fit_plan_to_points(xDirect_solution)
-        plt.figure()
-        plt.show()
-
-        # Soloff identification
-        t0 = time.time()
-        soloff_file = saving_folder + '/xsolution_soloff200_1800' + str(image) + '.npy'
-        if os.path.exists(soloff_file) and True :
-            xSoloff_solution = np.load(soloff_file)
-        else :
-            xSoloff_solution = Soloff_identification (X_c1,
-                                                      X_c2,
-                                                      A111, 
-                                                      A_pol,
-                                                      Soloff_pform)       
-            np.save(soloff_file, xSoloff_solution)
-        t1 = time.time()
-        print('time Soloff = ',t1 - t0)
-        print('end SOLOFF')
-        # Points coordinates
-        xS, yS, zS = xSoloff_solution
-        df.insert(df.shape[1], 'xSoloff', xS, True)
-        df.insert(df.shape[1], 'ySoloff', yS, True)
-        df.insert(df.shape[1], 'zSoloff', zS, True)
-        xSoloff_solutions[image] = xSoloff_solution
-        fit, er, mean_er, res = solvel.fit_plan_to_points(xSoloff_solution)
-        plt.figure()        
-        plt.show()
-
-        
-        # Lagrangian projection on left image 
-        win = __DIC_dict__['window']
-        n_wx = win[0][1] - win[0][0]
-        n_wy = win[1][1] - win[1][0]
-        X = np.reshape(xS,(n_wx,n_wy))
-        Y = np.reshape(yS,(n_wx,n_wy))
-        Z = np.reshape(zS,(n_wx,n_wy))
-        X0,Y0=np.meshgrid(np.linspace(X.min(),X.max(),1600),
-                          np.linspace(Y.min(),Y.max(),1600))
-        # plt.figure()
-        # plt.imshow(np.gradient(Y-Y0)[1])
-        # plt.title('Gradient Y')
-        # plt.clim(-0.001,0.001)
-        # cb = plt.colorbar()
-        # cb.set_label('z in mm')
-        # plt.colorbar()
-        # plt.show()
-        
-        # plt.figure()
-        # plt.imshow(np.gradient(X-X0)[1])
-        # plt.title('Gradient X')
-        # plt.clim(-0.001,0.001)
-        # cb = plt.colorbar()
-        # cb.set_label('z in mm')
-        # plt.colorbar()
-        # plt.show()        
-        
-        # plt.figure()
-        # plt.imshow(Z)
-        # plt.title('Z projected on left camera')
-        # cb = plt.colorbar()
-        # cb.set_label('z in mm')
-        # plt.show()    
-
-
-        '''
-        # Chose the Number of Datas for Artificial Intelligence Learning
-        AI_training_size = 50000
-        # Create the .csv to make an AI identification
-        AI_file = saving_folder + '/xsolution_AIxsolution_soloff200_1800' + str(image) + '.npy'
-        
-        x_, Xc1_, Xc2_ = data.camera_np_coordinates(all_Ucam, 
-                                                    all_Xref, 
-                                                    x3_list)
-        
-        Xc1_ = np.transpose(Xc1_)
-        Xc2_ = np.transpose(Xc2_)
-        
-        t0 = time.time()
-        if os.path.exists(AI_file) and False :
-            xAI_solution = np.load(AI_file)
-        else :
-            # Train the AI with already known points
-            if image == 0 :
-                model_file = saving_folder +'/Soloff_AI_' + str(image) + '_' + str(AI_training_size) + '_points.csv'      
-                model = AI_training (X_c1,
-                                     X_c2,
-                                     xSoloff_solution,
-                                     AI_training_size = AI_training_size,
-                                     file = model_file)
-                
-                model_file2 = saving_folder +'/Soloff_AI_' + str(image) + '_ChAruco.csv'      
-                model2 = AI_training (Xc1_,
-                                      Xc2_,
-                                      x_,
-                                      AI_training_size = AI_training_size,
-                                      file = model_file2)
-            t1 = time.time()
-            print('time training = ',t1 - t0)
-
-            # Use the AI model to solve every points
-            xAI_solution = AI_identification (X_c1,
-                                              X_c2,
-                                              model)
-            xAI_solution2 = AI_identification (X_c1,
-                                               X_c2,
-                                               model2)
-            
-            np.save(AI_file, xAI_solution)
-            np.save(AI_file, xAI_solution2)
-        t2 = time.time()
-        print('time AI = ',t2 - t1)
-        print('end AI')
-        xAI, yAI, zAI = xAI_solution
-        '''
+        print('No method ', method)
+    return (xAI_solution)
