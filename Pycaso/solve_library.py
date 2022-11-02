@@ -142,7 +142,7 @@ class Direct_Polynome(dict) :
                              Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
                              Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
                              Xr25])
-
+            
         return (M)
     
    
@@ -168,6 +168,7 @@ class Soloff_Polynome(dict) :
         n = len(x1)
         if   polynomial_form == 111 or polynomial_form == 1 :
             M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
+            
         elif polynomial_form == 221 :
             x12 = x1 * x1
             x22 = x2 * x2
@@ -190,7 +191,7 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])  
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])   
             
         elif polynomial_form == 333 or polynomial_form == 3 :
             x12 = x1 * x1
@@ -202,7 +203,7 @@ class Soloff_Polynome(dict) :
             M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
                              x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
                              x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33]) 
+                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])  
             
         elif polynomial_form == 443 :
             x12 = x1 * x1
@@ -219,7 +220,7 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])  
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
             
         elif polynomial_form == 444 or polynomial_form == 4 :
             x12 = x1 * x1
@@ -237,7 +238,7 @@ class Soloff_Polynome(dict) :
                              x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
                              x14,            x13*x2,        x12*x22,    x1*x23,    x24,
                              x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])
+                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])  
             
         elif polynomial_form == 554 :
             x12 = x1 * x1
@@ -386,7 +387,7 @@ def fit_plan_to_points(point,
         xsnp = xs
         ysnp = ys
         zsnp = zs
-    
+  
     # do fit
     tmp_A = []
     tmp_b = []
@@ -410,7 +411,7 @@ def fit_plan_to_points(point,
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
             Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
-    
+
     if plotting :
         from mpl_toolkits.mplot3d import Axes3D #<-- Note the capitalization! 
         fig = plt.figure()
@@ -463,7 +464,7 @@ def fit_plans_to_points(points,
     print('Plan square max error = ', sgf.round((max(maxerror)), sigfigs =3), ' mm')
     print('Plan square mean error = ', sgf.round((np.mean(mean_error**2))**(1/2), sigfigs = 3), ' mm')
     print('Plan square mean residual = ', sgf.round((np.mean(residual**2))**(1/2), sigfigs = 3))
-    
+
     return (fit, errors, mean_error, residual)
 
 def refplans(xc1, 
@@ -979,7 +980,7 @@ def AI_solve_zdependantly (file,
                            hyperparameters_tuning = False) :  
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
-    
+
     Args:
        file : str
            Name of saving file for training
@@ -1145,6 +1146,7 @@ def AI_solve_zdependantly (file,
 def AI_HGBoost (file) :  
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
+
     Args:
        file : str
           Name of saving file for training
@@ -1243,6 +1245,7 @@ def AI_HGBoost (file) :
 def AI_LinearRegression (file) :  
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
+
     Args:
        file : str
           Name of saving file for training
@@ -1298,6 +1301,6 @@ def AI_LinearRegression (file) :
     accuracy = [accuracyx, accuracyy, accuracyz]
     
     return(model, accuracy) 
-
+          
 if __name__ == '__main__' :
     ()

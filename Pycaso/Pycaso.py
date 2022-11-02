@@ -12,22 +12,12 @@ try :
     cpy = True
 except ImportError:
     import numpy as np
-    import numpy as numpy
+    import numpy
     cpy = False
 import sys
-import pathlib
-import os
-import time
-from glob import glob
-import pandas as pd
-import cv2
 import solve_library as solvel 
 import data_library as data
-import matplotlib.pyplot as plt
-import scipy.ndimage as nd
-# from mpl_toolkits import mplot3d
 import csv
-import math
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
@@ -92,7 +82,7 @@ def Soloff_calibration (__calibration_dict__,
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
-    x3_list = np.array(x3_list)
+    x3_list = np.array(x3_list)    
     A111 = np.zeros((2, 2, 4))
     if Soloff_pform == 111 or Soloff_pform == 1 :
         A_pol = np.zeros((2, 2, 4))
@@ -160,15 +150,26 @@ def Soloff_calibration (__calibration_dict__,
             # Error of projection
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
-            print('Max ; min projection error (polynomial form ', 
-                  str(Soloff_pform),
-                  ') for camera ', 
-                  str(camera),
-                  ' = ',
-                  str(sgf.round(numpy.nanmax(proj_error), sigfigs =3)),
-                  ' ; ',
-                  str(sgf.round(numpy.nanmin(proj_error), sigfigs =3)),
-                  ' px')
+            if cpy :
+                print('Max ; min projection error (polynomial form ', 
+                    str(Soloff_pform),
+                    ') for camera ', 
+                    str(camera),
+                    ' = ',
+                    str(sgf.round(numpy.nanmax(np.asnumpy(proj_error)), sigfigs =3)),
+                    ' ; ',
+                    str(sgf.round(numpy.nanmin(np.asnumpy(proj_error)), sigfigs =3)),
+                    ' px')
+            else :
+                print('Max ; min projection error (polynomial form ', 
+                    str(Soloff_pform),
+                    ') for camera ', 
+                    str(camera),
+                    ' = ',
+                    str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+                    ' ; ',
+                    str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+                    ' px')
     A111, A_pol = A_0
     return(A111, A_pol, Magnification)
 
@@ -194,6 +195,7 @@ def Soloff_identification (Xc1_identified,
            Polynomial form
        method : str, optional
            Python method used to solve it ('Least-squares' or 'curve-fit')
+
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
@@ -210,7 +212,7 @@ def Soloff_identification (Xc1_identified,
                                                             A_pol, 
                                                             x0, 
                                                             Soloff_pform, 
-                                                            method = method)
+                                                            method = 'curve_fit')
     return (x_solution)
 
 def direct_calibration (__calibration_dict__,
@@ -279,7 +281,7 @@ def direct_calibration (__calibration_dict__,
     # Plot the references plans
     if not cpy :
         solvel.refplans(x, x3_list, plotting = plotting)
-
+        
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
 
@@ -295,7 +297,7 @@ def direct_calibration (__calibration_dict__,
         Magnification[camera-1] = magnification (X1, X2, x1, x2)
         
         # Do the system x = Ap*M, where M is the monomial of the real 
-        # coordinates of crosses, x the image coordinates, and M the unknow
+        # coordinates of crosses and x the image coordinates, and M the unknow
         M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
         direct_A = Ap
@@ -303,16 +305,28 @@ def direct_calibration (__calibration_dict__,
         # Error of projection
         xd = np.matmul(Ap,M)
         proj_error = x - xd
-        print('Max ; min projection error (polynomial form ',
-              str(direct_pform),
-              ') for camera ',
-              str(camera),
-              ' = ',
-              str(sgf.round(numpy.amax(proj_error), sigfigs = 3)),
-              ' ; ',
-              str(sgf.round(numpy.amin(proj_error), sigfigs = 3)),
-              ' px')
-    return(direct_A, Magnification)  
+        if cpy :
+            print('Max ; min projection error (polynomial form ', 
+                str(direct_pform),
+                ') for camera ', 
+                str(camera),
+                ' = ',
+                str(sgf.round(numpy.nanmax(np.asnumpy(proj_error)), sigfigs =3)),
+                ' ; ',
+                str(sgf.round(numpy.nanmin(np.asnumpy(proj_error)), sigfigs =3)),
+                ' px')
+        else :
+            print('Max ; min projection error (polynomial form ', 
+                str(direct_pform),
+                ') for camera ', 
+                str(camera),
+                ' = ',
+                str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+                ' ; ',
+                str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+                ' px')
+
+    return(direct_A, Magnification)    
 
 def direct_identification (Xc1_identified,
                            Xc2_identified,
@@ -330,10 +344,11 @@ def direct_identification (Xc1_identified,
            Constants of direct polynomial
        direct_pform : int
            Polynomial form
+
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
-    """ 
+    """    
     # Solve by direct method
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
@@ -372,7 +387,7 @@ def AI_training (X_c1,
                    
     Returns:
        model : sklearn.ensemble._forest.RandomForestRegressor
-           AI model
+           AI model or list of AI models
     """
     # Organise the list of parameters
     Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
@@ -405,14 +420,14 @@ def AI_training (X_c1,
     # Build the AI model with the AI_training_size.
     if method == 'simultaneously' :
         model, accuracy = solvel.AI_solve_simultaneously (file)
-
-    if method == 'independantly' :
-        modelx, modely, modelz, accuracyx, accuracyy, accuracyz = solvel.AI_solve_independantly (file)
+    elif method == 'independantly' :
+        modelx, modely, modelz, _, _, _ = solvel.AI_solve_independantly (file)
         model = [modelx, modely, modelz]
-
+    elif method == 'z_dependantly' :
+        modelx, modely, modelz, _, _, _ = solvel.AI_solve_independantly (file)
+        model = [modelx, modely, modelz]
     else :
         print('No method ', method)
-
     return(model)
     
 def AI_identification (X_c1,
@@ -439,13 +454,11 @@ def AI_identification (X_c1,
     """
     # Solve on all pts
     X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
-                               X_c2[:,0], X_c2[:,1]]))        
-    
-    
+                               X_c2[:,0], X_c2[:,1]]))   
+     
     if method == 'simultaneously' :
         xAI_solution = model.predict(X)
         xAI_solution = np.transpose(xAI_solution)
-        
     elif method == 'independantly' or method == 'z_dependantly' :
         modelx, modely, modelz = model
         xAI_solutionx = modelx.predict(X)

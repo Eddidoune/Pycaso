@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+from sigfig import round
 from glob import glob
 from copy import deepcopy
 import DIC
@@ -13,8 +14,13 @@ import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
-
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
+
+try : 
+    from compute_flow import compute_flow
+except ImportError:
+    print('No module named conpute_flow')
+    raise 
 
 try : 
     import cupy as np
@@ -24,7 +30,6 @@ except ImportError:
     cpy = False
 
 import cv2
-
 
 class Calibrate(dict):
     """Identification class of the corners of a chessboard by 
@@ -74,7 +79,7 @@ class Calibrate(dict):
                 for idd in self.board.ids:
                     if idd not in ids:
                         idall.append(int(idd))
-                        
+            
             print("marks ", idall, " not detected")         
             if ids is not None and len(ids) > 0:
                 ret, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
@@ -83,9 +88,12 @@ class Calibrate(dict):
                 print('---')
                 corners_list = []
                 BU = []
-                for i in range (0, len(chcorners)) :
-                    BU.append(chcorners[i][0])
-                    corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+                if ret != 0 :
+                    for i in range (0, len(chcorners)) :
+                        BU.append(chcorners[i][0])
+                        corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+                else :
+                    ()
         else :
             corners_list = False
         return (corners_list, ret) 
@@ -535,7 +543,7 @@ def pattern_detection (__dict__,
     Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
     Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
     Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
-
+    
     # Corners detection
     if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
         # Taking pre-calculated datas from the saving_folder
@@ -547,20 +555,22 @@ def pattern_detection (__dict__,
     else : # Corners detection
         print('    - Detection of the pattern in progress ...')
         # Creation of the theoretical pattern + detection of camera's pattern
-        Xref = Calibrate(__dict__).calibration_model(ncx, ncy, sqr)
-        all_x, all_X, nb_pts = Calibrate(__dict__).NAN_calibration_model(Images, 
-                                                                         Xref, 
-                                                                         __dict__,
-                                                                         hybrid_verification = hybrid_verification)
+        Xref = calibration_model(ncx, ncy, sqr)
+        all_x, all_X, nb_pts = NAN_calibration_model(Images, 
+                                                     Xref, 
+                                                     __dict__,
+                                                     hybrid_verification = hybrid_verification)
 
         if not np.any(all_X[0]):
             print('Not any point detected in all images/cameras')
         else :
-            np.save(Save_all_X, all_X)
-            np.save(Save_all_x, all_x)
-            np.save(Save_nb_pts, nb_pts)
-            print('    - Saving datas in ', saving_folder)
-            
+            if save :
+                np.save(Save_all_X, all_X)
+                np.save(Save_all_x, all_x)
+                np.save(Save_nb_pts, nb_pts)
+                print('    - Saving datas in ', saving_folder)
+
+        
     return(all_X, all_x, nb_pts)
 
 def multifolder_pattern_detection (__dict__,
@@ -660,6 +670,7 @@ def multifolder_pattern_detection (__dict__,
         
     return(all_X, all_x, nb_pts)
 
+
 def camera_np_coordinates (all_X, 
                            all_x, 
                            x3_list) :
@@ -737,7 +748,7 @@ def camera_np_coordinates (all_X,
 def DIC_disflow (__DIC_dict__,
                  flip = False) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the other ones (other left and right pictures).
+    (first left one) in the deformed ones (other left and right pictures).
     
     Args:
        __DIC_dict__ : dict
@@ -754,14 +765,15 @@ def DIC_disflow (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
     """
+    saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
     name = __DIC_dict__['name']
     window = __DIC_dict__['window']
     vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
 
-    Save_all_U = str(__DIC_dict__['saving_folder']) +"/disflow_U_" + name + ".npy"
-    Save_all_V = str(__DIC_dict__['saving_folder']) +"/disflow_V_" + name + ".npy"
+    Save_all_U = str(saving_folder) +"/disflow_U_" + name + ".npy"
+    Save_all_V = str(saving_folder) +"/disflow_V_" + name + ".npy"
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
@@ -821,8 +833,8 @@ def DIC_disflow (__DIC_dict__,
         else : 
             Xright_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id, dtype = np.float32)
-    Xright_id = np.array(Xright_id, dtype = np.float32)
+    Xleft_id = np.array(Xleft_id)
+    Xright_id = np.array(Xright_id)
     return(Xleft_id, Xright_id)
 
 def DIC_compute_flow (__DIC_dict__,
@@ -988,8 +1000,8 @@ def DIC_compute_flow (__DIC_dict__,
         else : 
             Xright_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id, dtype = np.float32)
-    Xright_id = np.array(Xright_id, dtype = np.float32)
+    Xleft_id = np.array(Xleft_id)
+    Xright_id = np.array(Xright_id)
     return (Xleft_id, Xright_id)
 
 def DIC_get_positions (__DIC_dict__,
@@ -1102,18 +1114,18 @@ def DIC_fields (__DIC_dict__,
             V_left[i] = Vl
             U_right[i] = Ur
             V_right[i] = Vr
-        all_UV = np.array([U_left, V_left, U_right, V_right])
+        all_UV = np.array([U_left, V_left, U_right, V_right])       
         np.save(Save_UV, all_UV)
         print('    - Saving datas in ', saving_folder)
 
     return(U_left, V_left, U_right, V_right)
 
-def Strain_fields (UVW) :
-    """Calcul all the strains fields from displacements fields
+def Strain_field (UVW) :
+    """Calcul all the strains field from displacements field
     
     Args:
-       all_x : numpy.ndarray
-           x solutions
+       UVW : numpy.ndarray
+           Displacements field
            
     Returns:
        Exy : numpy.ndarray
@@ -1128,16 +1140,48 @@ def Strain_fields (UVW) :
            strains field in %
        Ezx : numpy.ndarray
            strains field in %
-    """    
-    Np_img, axis, nx, ny = UVW.shape
-    Exyz = np.zeros((6, Np_img, nx, ny))
-    for image in range (1, Np_img) :
-        UVWi = UVW[image]
-        U, V, W = UVWi
-        Exyz[0, image], Exyz[1, image] = np.gradient(U)
-        Exyz[2, image], Exyz[3, image] = np.gradient(V)
-        Exyz[4, image], Exyz[5, image] = np.gradient(W)
+    """
+    axis, nx, ny = UVW.shape
+    Exyz = np.zeros((6, nx, ny))
+    U, V, W = UVW
+    Exyz[0], Exyz[1] = np.gradient(U)
+    Exyz[2], Exyz[3] = np.gradient(V)
+    Exyz[4], Exyz[5] = np.gradient(W)
 
     Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
 
+    return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
+
+def Strain_fields (UVW) :
+    """Calcul all the strains fields from displacements fields
+    
+    Args:
+       UVW : numpy.ndarray
+           Displacements fields
+           
+    Returns:
+       Exy : numpy.ndarray
+           strains fields in %
+       Exx : numpy.ndarray
+           strains fields in %
+       Eyy : numpy.ndarray
+           strains fields in %
+       Eyx : numpy.ndarray
+           strains fields in %
+       Ezy : numpy.ndarray
+           strains fields in %
+       Ezx : numpy.ndarray
+           strains fields in %
+    """
+    Np_img, axis, nx, ny = UVW.shape
+    Exy, Exx, Eyy, Eyx, Ezy, Ezx = [], [], [], [], [], []
+    for i in Np_img :
+        Exyi, Exxi, Eyyi, Eyxi, Ezyi, Ezxi = Strain_field (UVW[i])
+        Exy.append(Exyi)
+        Exx.append(Exxi)
+        Eyy.append(Eyyi)
+        Eyx.append(Eyxi)
+        Ezy.append(Ezyi)
+        Ezx.append(Ezxi)
+        
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)

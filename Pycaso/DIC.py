@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
+from scipy.stats import skew, kurtosis
+from numpy import linalg as LA
 from glob import glob
 from os import chdir
 
@@ -225,6 +227,7 @@ def strain_fields (U,
                    V,
                    W) :
     """Calcul all the strain fields between two images.
+
     Args:
         U : type = numpy.ndarray
             U displacement field (x coord)
@@ -232,6 +235,7 @@ def strain_fields (U,
             V displacement field (y coord)
         W : type : numpy.ndarray
             W displacement field (z coord)
+
     Returns:
         Exx : type = numpy.ndarray
             Exx strain field (dx/x)
