@@ -127,7 +127,7 @@ class Calibrate(dict):
 
         # Filter the image with the Hessian matrix parameters to detect the 
         # corners (points)
-        img_hess= plt.imread(im)
+        img_hess = plt.imread(im)
         HE0, HE1 = sfe.hessian_matrix_eigvals(sfe.hessian_matrix(img_hess, 9))
         HE = abs(HE0 * HE1)
         thresh = sfi.threshold_otsu(HE)
@@ -1148,8 +1148,11 @@ def Strain_field (UVW) :
     Exyz[2], Exyz[3] = np.gradient(V)
     Exyz[4], Exyz[5] = np.gradient(W)
 
-    Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
-
+    if cpy :
+        Exy, Exx, Eyy, Eyx, Ezy, Ezx = np.asnumpy(Exyz*100)
+    else :
+        Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
+            
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
 
 def Strain_fields (UVW) :

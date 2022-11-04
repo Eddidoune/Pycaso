@@ -6,9 +6,11 @@ import os
 
 try : 
     import cupy as np
+    import numpy
     cpy = True
 except ImportError:
     import numpy as np
+    import numpy
     cpy = False
     
 import matplotlib.pyplot as plt
@@ -17,6 +19,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
+
+core_number = os.cpu_count()
 
   
 class Direct_Polynome(dict) :
@@ -38,110 +42,133 @@ class Direct_Polynome(dict) :
            M : numpy.ndarray
                M = f(Xl,Xr)
         """
+        n = int(len(Xl[0]))
+        Xl = np.array(Xl)
+        Xr = np.array(Xr)
         polynomial_form = self.polynomial_form
-        Xl1, Xl2 = Xl
-        Xr1, Xr2 = Xr
-        
-        n = len(Xl1)
-        if   polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2])
 
-        elif polynomial_form == 2 :
-            Xl12 = Xl1 * Xl1
-            Xl22 = Xl2 * Xl2
-            Xr12 = Xr1 * Xr1
-            Xr22 = Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
-                             Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
+        for i in range (core_number) :
+            ni0 = i*n//core_number
+            ni1 = (i+1)*n//core_number
+            ni = ni1 - ni0
 
-        elif polynomial_form == 3 :
-            Xl12 = Xl1 * Xl1
-            Xl13 = Xl1 * Xl1 * Xl1
-            Xl22 = Xl2 * Xl2
-            Xl23 = Xl2 * Xl2 * Xl2
-            Xr12 = Xr1 * Xr1
-            Xr13 = Xr1 * Xr1 * Xr1
-            Xr22 = Xr2 * Xr2
-            Xr23 = Xr2 * Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
-                             Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                             Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                             Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                             Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23])
+            Xl1, Xl2 = Xl[:, ni0 : ni1]
+            Xr1, Xr2 = Xr[:, ni0 : ni1]
 
-        elif polynomial_form == 4 :
-            Xl12 = Xl1 * Xl1
-            Xl13 = Xl1 * Xl1 * Xl1
-            Xl14 = Xl1 * Xl1 * Xl1 * Xl1
-            Xl22 = Xl2 * Xl2
-            Xl23 = Xl2 * Xl2 * Xl2
-            Xl24 = Xl2 * Xl2 * Xl2 * Xl2
-            Xr12 = Xr1 * Xr1
-            Xr13 = Xr1 * Xr1 * Xr1
-            Xr14 = Xr1 * Xr1 * Xr1 * Xr1
-            Xr22 = Xr2 * Xr2
-            Xr23 = Xr2 * Xr2 * Xr2
-            Xr24 = Xr2 * Xr2 * Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
-                             Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                             Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                             Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                             Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
-                             Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
-                             Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
-                             Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
-                             Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
-                             Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
-                             Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
-
-        elif polynomial_form == 5 :
-            Xl12 = Xl1 * Xl1
-            Xl13 = Xl1 * Xl1 * Xl1
-            Xl14 = Xl1 * Xl1 * Xl1 * Xl1
-            Xl15 = Xl1 * Xl1 * Xl1 * Xl1 * Xl1
-            Xl22 = Xl2 * Xl2
-            Xl23 = Xl2 * Xl2 * Xl2
-            Xl24 = Xl2 * Xl2 * Xl2 * Xl2
-            Xl25 = Xl2 * Xl2 * Xl2 * Xl2 * Xl2
-            Xr12 = Xr1 * Xr1
-            Xr13 = Xr1 * Xr1 * Xr1
-            Xr14 = Xr1 * Xr1 * Xr1 * Xr1
-            Xr15 = Xr1 * Xr1 * Xr1 * Xr1 * Xr1
-            Xr22 = Xr2 * Xr2
-            Xr23 = Xr2 * Xr2 * Xr2
-            Xr24 = Xr2 * Xr2 * Xr2 * Xr2
-            Xr25 = Xr2 * Xr2 * Xr2 * Xr2 * Xr2
-            M = np.asarray ([np.ones((n)),   Xl1,           Xl2,            Xr1,            Xr2,
-                             Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                             Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                             Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                             Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                             Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                             Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
-                             Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
-                             Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
-                             Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
-                             Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
-                             Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
-                             Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24,
-                             Xl15,           Xl14*Xl2,      Xl14*Xr1,       Xl14*Xr2,       Xl13*Xl22,
-                             Xl13*Xl2*Xr1,   Xl13*Xl2*Xr2,  Xl13*Xr12,      Xl13*Xr1*Xr2,   Xl13*Xr22,
-                             Xl2*Xl23,       Xl2*Xl22*Xr1,  Xl2*Xl22*Xr2,   Xl2*Xl2*Xr12,   Xl2*Xl2*Xr1*Xr2,
-                             Xl2*Xl2*Xr22,   Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                             Xl1*Xl24,       Xl1*Xl23*Xr1,  Xl1*Xl23*Xr2,   Xl1*Xl22*Xr12,  Xl1*Xl22*Xr1*Xr2,
-                             Xl1*Xl22*Xr22,  Xl1*Xl2*Xr13,  Xl1*Xl2*Xr12*Xr2,Xl1*Xl2*Xr1*Xr22,Xl1*Xl2*Xr23,
-                             Xl25,           Xl24*Xr1,      Xl24*Xr2,       Xl23*Xr12,      Xl23*Xr1*Xr2,
-                             Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
-                             Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
-                             Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
-                             Xr25])
+            if   polynomial_form == 1 :
+                if i == 0 :
+                    M = np.zeros((5, n))
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2])
+    
+            elif polynomial_form == 2 :
+                if i == 0 :
+                    M = np.zeros((15, n))
+                Xl12 = Xl1 * Xl1
+                Xl22 = Xl2 * Xl2
+                Xr12 = Xr1 * Xr1
+                Xr22 = Xr2 * Xr2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
+                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
+                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
+    
+            elif polynomial_form == 3 :
+                if i == 0 :
+                    M = np.zeros((35, n))
+                Xl12 = Xl1 * Xl1
+                Xl13 = Xl1 * Xl1 * Xl1
+                Xl22 = Xl2 * Xl2
+                Xl23 = Xl2 * Xl2 * Xl2
+                Xr12 = Xr1 * Xr1
+                Xr13 = Xr1 * Xr1 * Xr1
+                Xr22 = Xr2 * Xr2
+                Xr23 = Xr2 * Xr2 * Xr2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
+                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
+                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
+                                 Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
+                                 Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
+                                 Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
+                                 Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23])
+    
+            elif polynomial_form == 4 :
+                if i == 0 :
+                    M = np.zeros((70, n))
+                Xl12 = Xl1 * Xl1
+                Xl13 = Xl1 * Xl1 * Xl1
+                Xl14 = Xl1 * Xl1 * Xl1 * Xl1
+                Xl22 = Xl2 * Xl2
+                Xl23 = Xl2 * Xl2 * Xl2
+                Xl24 = Xl2 * Xl2 * Xl2 * Xl2
+                Xr12 = Xr1 * Xr1
+                Xr13 = Xr1 * Xr1 * Xr1
+                Xr14 = Xr1 * Xr1 * Xr1 * Xr1
+                Xr22 = Xr2 * Xr2
+                Xr23 = Xr2 * Xr2 * Xr2
+                Xr24 = Xr2 * Xr2 * Xr2 * Xr2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
+                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
+                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
+                                 Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
+                                 Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
+                                 Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
+                                 Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
+                                 Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
+                                 Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
+                                 Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
+                                 Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
+                                 Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
+                                 Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
+                                 Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
+    
+            elif polynomial_form == 5 :
+                if i == 0 :
+                    M = np.zeros((121, n))
+                Xl12 = Xl1 * Xl1
+                Xl13 = Xl1 * Xl1 * Xl1
+                Xl14 = Xl1 * Xl1 * Xl1 * Xl1
+                Xl15 = Xl1 * Xl1 * Xl1 * Xl1 * Xl1
+                Xl22 = Xl2 * Xl2
+                Xl23 = Xl2 * Xl2 * Xl2
+                Xl24 = Xl2 * Xl2 * Xl2 * Xl2
+                Xl25 = Xl2 * Xl2 * Xl2 * Xl2 * Xl2
+                Xr12 = Xr1 * Xr1
+                Xr13 = Xr1 * Xr1 * Xr1
+                Xr14 = Xr1 * Xr1 * Xr1 * Xr1
+                Xr15 = Xr1 * Xr1 * Xr1 * Xr1 * Xr1
+                Xr22 = Xr2 * Xr2
+                Xr23 = Xr2 * Xr2 * Xr2
+                Xr24 = Xr2 * Xr2 * Xr2 * Xr2
+                Xr25 = Xr2 * Xr2 * Xr2 * Xr2 * Xr2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
+                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
+                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
+                                 Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
+                                 Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
+                                 Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
+                                 Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
+                                 Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
+                                 Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
+                                 Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
+                                 Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
+                                 Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
+                                 Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
+                                 Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24,
+                                 Xl15,           Xl14*Xl2,      Xl14*Xr1,       Xl14*Xr2,       Xl13*Xl22,
+                                 Xl13*Xl2*Xr1,   Xl13*Xl2*Xr2,  Xl13*Xr12,      Xl13*Xr1*Xr2,   Xl13*Xr22,
+                                 Xl2*Xl23,       Xl2*Xl22*Xr1,  Xl2*Xl22*Xr2,   Xl2*Xl2*Xr12,   Xl2*Xl2*Xr1*Xr2,
+                                 Xl2*Xl2*Xr22,   Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
+                                 Xl1*Xl24,       Xl1*Xl23*Xr1,  Xl1*Xl23*Xr2,   Xl1*Xl22*Xr12,  Xl1*Xl22*Xr1*Xr2,
+                                 Xl1*Xl22*Xr22,  Xl1*Xl2*Xr13,  Xl1*Xl2*Xr12*Xr2,Xl1*Xl2*Xr1*Xr22,Xl1*Xl2*Xr23,
+                                 Xl25,           Xl24*Xr1,      Xl24*Xr2,       Xl23*Xr12,      Xl23*Xr1*Xr2,
+                                 Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
+                                 Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
+                                 Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
+                                 Xr25])
             
         return (M)
     
@@ -163,132 +190,167 @@ class Soloff_Polynome(dict) :
            M : numpy.ndarray
                M = f(x)
         """
+        n = int(len(x[0]))
+        x = np.array(x)
         polynomial_form = self.polynomial_form
-        x1,x2,x3 = x
-        n = len(x1)
-        if   polynomial_form == 111 or polynomial_form == 1 :
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3])
-            
-        elif polynomial_form == 221 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x12,
-                             x1 *x2,         x22,       x1*x3,     x2*x3])   
-            
-        elif polynomial_form == 222 or polynomial_form == 2 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,        x2,        x3,         x1**2,
-                             x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])  
-            
-        elif polynomial_form == 332 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            x13 = x1 * x1 * x1
-            x23 = x2 * x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
-                             x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
-                             x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])   
-            
-        elif polynomial_form == 333 or polynomial_form == 3 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            x13 = x1 * x1 * x1
-            x23 = x2 * x2 * x2
-            x33 = x3 * x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,        x2,         x3,        x12,
-                             x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
-                             x13,            x12*x2,    x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])  
-            
-        elif polynomial_form == 443 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            x13 = x1 * x1 * x1
-            x23 = x2 * x2 * x2
-            x33 = x3 * x3 * x3
-            x14 = x1 * x1 * x1 * x1
-            x24 = x2 * x2 * x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
-                             x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
-                             x13,            x12*x2,        x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
-                             x14,            x13*x2,        x12*x22,    x1*x23,    x24,
-                             x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
-            
-        elif polynomial_form == 444 or polynomial_form == 4 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            x13 = x1 * x1 * x1
-            x23 = x2 * x2 * x2
-            x33 = x3 * x3 * x3
-            x14 = x1 * x1 * x1 * x1
-            x24 = x2 * x2 * x2 * x2
-            x34 = x3 * x3 * x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,            x2,         x3,        x12,
-                             x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
-                             x13,            x12*x2,        x1*x22,     x23,       x12*x3,
-                             x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
-                             x14,            x13*x2,        x12*x22,    x1*x23,    x24,
-                             x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])  
-            
-        elif polynomial_form == 554 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            x13 = x1 * x1 * x1
-            x23 = x2 * x2 * x2
-            x33 = x3 * x3 * x3
-            x14 = x1 * x1 * x1 * x1
-            x24 = x2 * x2 * x2 * x2
-            x34 = x3 * x3 * x3 * x3
-            x15 = x1 * x1 * x1 * x1 * x1
-            x25 = x2 * x2 * x2 * x2 * x2
-            M = np.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
-                             x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
-                             x13,            x12*x2,        x1*x22,         x23,            x12*x3,
-                             x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
-                             x14,            x13*x2,        x12*x22,        x1*x23,         x24,
-                             x13*x3,         x12*x2*x3,     x1*x22*x3,      x23*x3,         x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,         x2*x33,         x34,
-                             x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
-                             x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
-                             x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
-                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])  
-            
-        elif polynomial_form == 555 or polynomial_form == 5 :
-            x12 = x1 * x1
-            x22 = x2 * x2
-            x32 = x3 * x3
-            x13 = x1 * x1 * x1
-            x23 = x2 * x2 * x2
-            x33 = x3 * x3 * x3
-            x14 = x1 * x1 * x1 * x1
-            x24 = x2 * x2 * x2 * x2
-            x34 = x3 * x3 * x3 * x3
-            x15 = x1 * x1 * x1 * x1 * x1
-            x25 = x2 * x2 * x2 * x2 * x2
-            x35 = x3 * x3 * x3 * x3 * x3
-            M = np.asarray ([np.ones((n)),   x1,            x2,             x3,             x12,
-                             x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
-                             x13,            x12*x2,        x1*x22,         x23,            x12*x3,
-                             x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
-                             x14,            x13*x2,        x12*x22,        x1*x23,         x24,
-                             x13*x3,         x12*x2*x3,     x1*x22*x3,      x23*x3,         x12*x32,
-                             x1*x2*x32,      x22*x32,       x1*x33,         x2*x33,         x34,
-                             x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
-                             x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
-                             x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
-                             x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34,
-                             x35])
+
+        for i in range (core_number) :
+            ni0 = i*n//core_number
+            ni1 = (i+1)*n//core_number
+            ni = ni1 - ni0
+
+            x1,x2,x3 = x[:, ni0 : ni1]
+
+            if   polynomial_form == 111 or polynomial_form == 1 :
+                if i == 0 :
+                    M = np.zeros((4, n))
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,        x2,        x3])
+                
+            elif polynomial_form == 221 :
+                if i == 0 :
+                    M = np.zeros((9, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,        x2,        x3,         x12,
+                                 x1 *x2,         x22,       x1*x3,     x2*x3])   
+                
+            elif polynomial_form == 222 or polynomial_form == 2 :
+                if i == 0 :
+                    M = np.zeros((10, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,        x2,        x3,         x1**2,
+                                 x1 *x2,         x2**2,     x1*x3,     x2*x3,      x32])  
+                
+            elif polynomial_form == 332 :
+                if i == 0 :
+                    M = np.zeros((19, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                x13 = x1 * x1 * x1
+                x23 = x2 * x2 * x2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,        x2,         x3,        x12,
+                                 x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
+                                 x13,            x12*x2,    x1*x22,     x23,       x12*x3,
+                                 x1*x2*x3,       x22*x3,    x1*x32,     x2*x32])   
+                
+            elif polynomial_form == 333 or polynomial_form == 3 :
+                if i == 0 :
+                    M = np.zeros((20, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                x13 = x1 * x1 * x1
+                x23 = x2 * x2 * x2
+                x33 = x3 * x3 * x3
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,        x2,         x3,        x12,
+                                 x1 *x2,         x22,       x1*x3,      x2*x3,     x32,
+                                 x13,            x12*x2,    x1*x22,     x23,       x12*x3,
+                                 x1*x2*x3,       x22*x3,    x1*x32,     x2*x32,    x33])  
+                
+            elif polynomial_form == 443 :
+                if i == 0 :
+                    M = np.zeros((34, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                x13 = x1 * x1 * x1
+                x23 = x2 * x2 * x2
+                x33 = x3 * x3 * x3
+                x14 = x1 * x1 * x1 * x1
+                x24 = x2 * x2 * x2 * x2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,            x2,         x3,        x12,
+                                 x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
+                                 x13,            x12*x2,        x1*x22,     x23,       x12*x3,
+                                 x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
+                                 x14,            x13*x2,        x12*x22,    x1*x23,    x24,
+                                 x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
+                                 x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
+                
+            elif polynomial_form == 444 or polynomial_form == 4 :
+                if i == 0 :
+                    M = np.zeros((35, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                x13 = x1 * x1 * x1
+                x23 = x2 * x2 * x2
+                x33 = x3 * x3 * x3
+                x14 = x1 * x1 * x1 * x1
+                x24 = x2 * x2 * x2 * x2
+                x34 = x3 * x3 * x3 * x3
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,            x2,         x3,        x12,
+                                 x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
+                                 x13,            x12*x2,        x1*x22,     x23,       x12*x3,
+                                 x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
+                                 x14,            x13*x2,        x12*x22,    x1*x23,    x24,
+                                 x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
+                                 x1*x2*x32,      x22*x32,       x1*x33,     x2*x33,    x34])  
+                
+            elif polynomial_form == 554 :
+                if i == 0 :
+                    M = np.zeros((105, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                x13 = x1 * x1 * x1
+                x23 = x2 * x2 * x2
+                x33 = x3 * x3 * x3
+                x14 = x1 * x1 * x1 * x1
+                x24 = x2 * x2 * x2 * x2
+                x34 = x3 * x3 * x3 * x3
+                x15 = x1 * x1 * x1 * x1 * x1
+                x25 = x2 * x2 * x2 * x2 * x2
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,            x2,             x3,             x12,
+                                 x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
+                                 x13,            x12*x2,        x1*x22,         x23,            x12*x3,
+                                 x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
+                                 x14,            x13*x2,        x12*x22,        x1*x23,         x24,
+                                 x13*x3,         x12*x2*x3,     x1*x22*x3,      x23*x3,         x12*x32,
+                                 x1*x2*x32,      x22*x32,       x1*x33,         x2*x33,         x34,
+                                 x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
+                                 x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
+                                 x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
+                                 x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34])  
+                
+            elif polynomial_form == 555 or polynomial_form == 5 :
+                if i == 0 :
+                    M = np.zeros((106, n))
+                x12 = x1 * x1
+                x22 = x2 * x2
+                x32 = x3 * x3
+                x13 = x1 * x1 * x1
+                x23 = x2 * x2 * x2
+                x33 = x3 * x3 * x3
+                x14 = x1 * x1 * x1 * x1
+                x24 = x2 * x2 * x2 * x2
+                x34 = x3 * x3 * x3 * x3
+                x15 = x1 * x1 * x1 * x1 * x1
+                x25 = x2 * x2 * x2 * x2 * x2
+                x35 = x3 * x3 * x3 * x3 * x3
+                M[:,ni0 : ni1] = np.asarray (
+                                [np.ones((ni)),   x1,            x2,             x3,             x12,
+                                 x1 *x2,         x22,           x1*x3,          x2*x3,          x32,
+                                 x13,            x12*x2,        x1*x22,         x23,            x12*x3,
+                                 x1*x2*x3,       x22*x3,        x1*x32,         x2*x32,         x33,
+                                 x14,            x13*x2,        x12*x22,        x1*x23,         x24,
+                                 x13*x3,         x12*x2*x3,     x1*x22*x3,      x23*x3,         x12*x32,
+                                 x1*x2*x32,      x22*x32,       x1*x33,         x2*x33,         x34,
+                                 x15,            x14*x2,        x13*x22,        x12*x23,        x1*x24,
+                                 x25,            x14*x3,        x13*x2*x3,      x12*x22*x3,     x1*x23*x3, 
+                                 x24*x3,         x13*x32,       x12*x2*x32,     x1*x22*x32,     x24*x32,   
+                                 x12*x33,        x1*x2*x33,     x22*x33,        x1*x34,         x2*x34,
+                                 x35])
             
         return (M)
 
@@ -391,22 +453,22 @@ def fit_plan_to_points(point,
     # do fit
     tmp_A = []
     tmp_b = []
-    for i in range(len(xs)):
-        tmp_A.append([xs[i], ys[i], 1])
-        tmp_b.append(zs[i])
-    b = np.matrix(tmp_b).T
-    A = np.matrix(tmp_A)
+    for i in range(len(xsnp)):
+        tmp_A.append([xsnp[i], ysnp[i], 1])
+        tmp_b.append(zsnp[i])
+    b = numpy.matrix(tmp_b).T
+    A = numpy.matrix(tmp_A)
     
     # Manual solution
     fit = (A.T * A).I * A.T * b
     errors = b - A * fit
-    residual = np.linalg.norm(errors)
-    mean_error = np.mean (abs(errors))
+    residual = numpy.linalg.norm(errors)
+    mean_error = numpy.mean (abs(errors))
     errors = np.reshape(errors, (len(errors)))
     
     # plot plan
-    X,Y = np.meshgrid(np.linspace(np.min(xs), np.max(xs), 10),
-                      np.linspace(np.min(ys), np.max(ys), 10))
+    X,Y = numpy.meshgrid(numpy.linspace(numpy.min(xsnp), numpy.max(xsnp), 10),
+                         numpy.linspace(numpy.min(ysnp), numpy.max(ysnp), 10))
     Z = np.zeros(X.shape)
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
@@ -456,14 +518,14 @@ def fit_plans_to_points(points,
         fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
                                                                         title = title,
                                                                         plotting = plotting)
-        maxerror.append(np.max(abs(errori)))
+        maxerror.append(numpy.max(abs(errori)))
         errors.append(errori)
     if plotting :
         plt.figure()
         plt.show()    
-    print('Plan square max error = ', sgf.round((max(maxerror)), sigfigs =3), ' mm')
-    print('Plan square mean error = ', sgf.round((np.mean(mean_error**2))**(1/2), sigfigs = 3), ' mm')
-    print('Plan square mean residual = ', sgf.round((np.mean(residual**2))**(1/2), sigfigs = 3))
+    print('Plan square max error = ', np.round((numpy.max(maxerror)), 3), ' mm')
+    print('Plan square mean error = ', np.round((numpy.mean(mean_error**2))**(1/2),  3), ' mm')
+    print('Plan square mean residual = ', np.round((numpy.mean(residual**2))**(1/2),  3))
 
     return (fit, errors, mean_error, residual)
 
@@ -605,9 +667,6 @@ def Levenberg_Marquardt_solving (Xc1_identified,
         except ImportError:
             jlib = False    
     
-        
-    core_number = os.cpu_count()
-
     N = len(x0[0])    
     Xdetected = np.array([Xc1_identified[:,0], 
                           Xc1_identified[:,1], 
