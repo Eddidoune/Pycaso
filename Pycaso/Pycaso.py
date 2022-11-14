@@ -7,13 +7,11 @@ Created on Fri Nov 26 09:19:07 2021
 """
 import sigfig as sgf
 try : 
-    import cupy as np
-    import numpy
+    import cupy 
     cpy = True
 except ImportError:
-    import numpy as np
-    import numpy
     cpy = False
+import numpy as np
 import sys
 import solve_library as solvel 
 import data_library as data
@@ -150,26 +148,15 @@ def Soloff_calibration (__calibration_dict__,
             # Error of projection
             Xd = np.matmul(Ai,M)
             proj_error = X - Xd
-            if cpy :
-                print('Max ; min projection error (polynomial form ', 
-                    str(Soloff_pform),
-                    ') for camera ', 
-                    str(camera),
-                    ' = ',
-                    str(sgf.round(numpy.nanmax(np.asnumpy(proj_error)), sigfigs =3)),
-                    ' ; ',
-                    str(sgf.round(numpy.nanmin(np.asnumpy(proj_error)), sigfigs =3)),
-                    ' px')
-            else :
-                print('Max ; min projection error (polynomial form ', 
-                    str(Soloff_pform),
-                    ') for camera ', 
-                    str(camera),
-                    ' = ',
-                    str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
-                    ' ; ',
-                    str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
-                    ' px')
+            print('Max ; min projection error (polynomial form ', 
+                str(Soloff_pform),
+                ') for camera ', 
+                str(camera),
+                ' = ',
+                str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+                ' ; ',
+                str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+                ' px')
     A111, A_pol = A_0
     return(A111, A_pol, Magnification)
 
@@ -279,8 +266,7 @@ def direct_calibration (__calibration_dict__,
     x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)
 
     # Plot the references plans
-    if not cpy :
-        solvel.refplans(x, x3_list, plotting = plotting)
+    solvel.refplans(x, x3_list, plotting = plotting)
         
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -305,26 +291,15 @@ def direct_calibration (__calibration_dict__,
         # Error of projection
         xd = np.matmul(Ap,M)
         proj_error = x - xd
-        if cpy :
-            print('Max ; min projection error (polynomial form ', 
-                str(direct_pform),
-                ') for camera ', 
-                str(camera),
-                ' = ',
-                str(sgf.round(numpy.nanmax(np.asnumpy(proj_error)), sigfigs =3)),
-                ' ; ',
-                str(sgf.round(numpy.nanmin(np.asnumpy(proj_error)), sigfigs =3)),
-                ' px')
-        else :
-            print('Max ; min projection error (polynomial form ', 
-                str(direct_pform),
-                ') for camera ', 
-                str(camera),
-                ' = ',
-                str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
-                ' ; ',
-                str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
-                ' px')
+        print('Max ; min projection error (polynomial form ', 
+            str(direct_pform),
+            ') for camera ', 
+            str(camera),
+            ' = ',
+            str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+            ' ; ',
+            str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+            ' px')
 
     return(direct_A, Magnification)    
 

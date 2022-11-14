@@ -23,11 +23,11 @@ except ImportError:
     raise 
 
 try : 
-    import cupy as np
+    import cupy 
     cpy = True
 except ImportError:
-    import numpy as np
     cpy = False
+import numpy as np
 
 import cv2
 
@@ -918,30 +918,7 @@ def DIC_compute_flow (__DIC_dict__,
                 im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
             t1 = time.time()
-            all_U[i+1], all_V[i+1] = compute_flow(im0_left, 
-                                                  im, 
-                                                  optical_flow_parameters["pyram_levels"], 
-                                                  optical_flow_parameters["factor"], 
-                                                  optical_flow_parameters["ordre_inter"],
-                                                  optical_flow_parameters["lmbda"], 
-                                                  optical_flow_parameters["size_median_filter"],
-                                                  optical_flow_parameters["max_linear_iter"], 
-                                                  optical_flow_parameters["max_iter"], 
-                                                  optical_flow_parameters["lambda2"], 
-                                                  optical_flow_parameters["lambda3"], 
-                                                  optical_flow_parameters["Mask"], 
-                                                  optical_flow_parameters["LO_filter"])
-            t2 = time.time()
-            print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
-        # Left0/right camera composed correlations 
-        for i, image in enumerate(Images[(int(N/2)+1):]):
-            im = cv2.imread(image, 0)
-            if flip :
-                im = cv2.flip(im, 1)
-            print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
-            t1 = time.time()
-            # Right0/right camera correlation
-            u, v = compute_flow(im0_right, 
+            U, V = compute_flow(im0_left, 
                                 im, 
                                 optical_flow_parameters["pyram_levels"], 
                                 optical_flow_parameters["factor"], 
@@ -954,21 +931,49 @@ def DIC_compute_flow (__DIC_dict__,
                                 optical_flow_parameters["lambda3"], 
                                 optical_flow_parameters["Mask"], 
                                 optical_flow_parameters["LO_filter"])
+            try :
+                import cupy
+                U = cupy.asnumpy(U)
+                V = cupy.asnumpy(V)
+            except ImportError:
+                ()  
+            all_U[i+1], all_V[i+1] = U, V
             t2 = time.time()
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
-            u = u.astype(np.float32)
-            v = v.astype(np.float32)
-            # Convert to numpy for cv2
-            if cpy :
-                u = np.asnumpy(u)
-                v = np.asnumpy(v)
-                x = np.asnumpy(x)
-                y = np.asnumpy(y)
-                all_U = np.asnumpy(all_U)
-                all_V = np.asnumpy(all_V)
+        # Left0/right camera composed correlations 
+        for i, image in enumerate(Images[(int(N/2)+1):]):
+            im = cv2.imread(image, 0)
+            if flip :
+                im = cv2.flip(im, 1)
+            print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
+            t1 = time.time()
+            # Right0/right camera correlation    
+            Ur, Vr = compute_flow(im0_right, 
+                                  im, 
+                                  optical_flow_parameters["pyram_levels"], 
+                                  optical_flow_parameters["factor"], 
+                                  optical_flow_parameters["ordre_inter"],
+                                  optical_flow_parameters["lmbda"], 
+                                  optical_flow_parameters["size_median_filter"],
+                                  optical_flow_parameters["max_linear_iter"], 
+                                  optical_flow_parameters["max_iter"], 
+                                  optical_flow_parameters["lambda2"], 
+                                  optical_flow_parameters["lambda3"], 
+                                  optical_flow_parameters["Mask"], 
+                                  optical_flow_parameters["LO_filter"])
+            try :
+                import cupy
+                Ur = cupy.asnumpy(Ur)
+                Vr = cupy.asnumpy(Vr)
+            except ImportError:
+                ()
+            Ur = Ur.astype(np.float32)
+            Vr = Vr.astype(np.float32)
+            t2 = time.time()
+            print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
             # Composition of transformations
-            all_U[int(N/2)+i+1] = all_U[int(N/2)] + cv2.remap(u, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
-            all_V[int(N/2)+i+1] = all_V[int(N/2)] + cv2.remap(v, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
+            all_U[int(N/2)+i+1] = all_U[int(N/2)] + cv2.remap(Ur, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
+            all_V[int(N/2)+i+1] = all_V[int(N/2)] + cv2.remap(Vr, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
         print('Saving data to\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
@@ -1148,10 +1153,7 @@ def Strain_field (UVW) :
     Exyz[2], Exyz[3] = np.gradient(V)
     Exyz[4], Exyz[5] = np.gradient(W)
 
-    if cpy :
-        Exy, Exx, Eyy, Eyx, Ezy, Ezx = np.asnumpy(Exyz*100)
-    else :
-        Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
+    Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
             
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
 

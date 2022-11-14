@@ -5,13 +5,11 @@ import pandas as pd
 import os
 
 try : 
-    import cupy as np
-    import numpy
+    import cupy as cupy
     cpy = True
 except ImportError:
-    import numpy as np
-    import numpy
     cpy = False
+import numpy as np
     
 import matplotlib.pyplot as plt
 import scipy.optimize as sopt
@@ -437,48 +435,37 @@ def fit_plan_to_points(point,
     Returns:
        plot points + associated plan
     """
-    xs, ys, zs = point 
+    xs, ys, zs = point
     
-    try : 
-        import cupy as np
-        xsnp = np.asnumpy(xs)
-        ysnp = np.asnumpy(ys)
-        zsnp = np.asnumpy(zs)
-    except ImportError:
-        import numpy as np
-        xsnp = xs
-        ysnp = ys
-        zsnp = zs
-  
     # do fit
     tmp_A = []
     tmp_b = []
-    for i in range(len(xsnp)):
-        tmp_A.append([xsnp[i], ysnp[i], 1])
-        tmp_b.append(zsnp[i])
-    b = numpy.matrix(tmp_b).T
-    A = numpy.matrix(tmp_A)
+    for i in range(len(xs)):
+        tmp_A.append([xs[i], ys[i], 1])
+        tmp_b.append(zs[i])
+    b = np.matrix(tmp_b).T
+    A = np.matrix(tmp_A)
     
     # Manual solution
     fit = (A.T * A).I * A.T * b
     errors = b - A * fit
-    residual = numpy.linalg.norm(errors)
-    mean_error = numpy.mean (abs(errors))
+    residual = np.linalg.norm(errors)
+    mean_error = np.mean (abs(errors))
     errors = np.reshape(errors, (len(errors)))
     
     # plot plan
-    X,Y = numpy.meshgrid(numpy.linspace(numpy.min(xsnp), numpy.max(xsnp), 10),
-                         numpy.linspace(numpy.min(ysnp), numpy.max(ysnp), 10))
+    X,Y = np.meshgrid(np.linspace(np.min(xs), np.max(xs), 10),
+                      np.linspace(np.min(ys), np.max(ys), 10))
     Z = np.zeros(X.shape)
     for r in range(X.shape[0]):
         for c in range(X.shape[1]):
-            Z[r,c] = fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2]
+            Z[r,c] = int(fit[0] * X[r,c] + fit[1] * Y[r,c] + fit[2])
 
     if plotting :
         from mpl_toolkits.mplot3d import Axes3D #<-- Note the capitalization! 
         fig = plt.figure()
         ax = Axes3D(fig)
-        ax.scatter(xsnp, ysnp, zsnp, color='b')
+        ax.scatter(xs, ys, zs, color='b')
         ax.plot_wireframe(X,Y,Z, color='k')
         if title :
             ax.set_title(title)
@@ -518,14 +505,14 @@ def fit_plans_to_points(points,
         fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
                                                                         title = title,
                                                                         plotting = plotting)
-        maxerror.append(numpy.max(abs(errori)))
+        maxerror.append(np.max(abs(errori)))
         errors.append(errori)
     if plotting :
         plt.figure()
         plt.show()    
-    print('Plan square max error = ', np.round((numpy.max(maxerror)), 3), ' mm')
-    print('Plan square mean error = ', np.round((numpy.mean(mean_error**2))**(1/2),  3), ' mm')
-    print('Plan square mean residual = ', np.round((numpy.mean(residual**2))**(1/2),  3))
+    print('Plan square max error = ', np.round((np.max(maxerror)), 3), ' mm')
+    print('Plan square mean error = ', np.round((np.mean(mean_error**2))**(1/2), 3), ' mm')
+    print('Plan square mean residual = ', np.round((np.mean(residual**2))**(1/2), 3))
 
     return (fit, errors, mean_error, residual)
 
