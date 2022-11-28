@@ -746,7 +746,8 @@ def camera_np_coordinates (all_X,
     return (x, Xc1, Xc2)
 
 def DIC_disflow (__DIC_dict__,
-                 flip = False) :
+                 flip = False,
+                 image_ids = False) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the deformed ones (other left and right pictures).
     
@@ -757,6 +758,8 @@ def DIC_disflow (__DIC_dict__,
        flip : bool, optional
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
+       image_ids : list, optional
+           Define the list of images you want to compare in the left and right folders
            
     Returns:
        Xleft_id : numpy.ndarrayleft_sample_identification
@@ -768,15 +771,19 @@ def DIC_disflow (__DIC_dict__,
     saving_folder = __DIC_dict__['saving_folder']
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
-    name = __DIC_dict__['name']
     window = __DIC_dict__['window']
     vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
-
-    Save_all_U = str(saving_folder) +"/disflow_U_" + name + ".npy"
-    Save_all_V = str(saving_folder) +"/disflow_V_" + name + ".npy"
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
+    if image_ids :
+        Images_left_cut = []
+        Images_right_cut = []
+        for i in image_ids :
+            Images_left_cut.append(Images_left[i])
+            Images_right_cut.append(Images_right[i])
+        Images_left = Images_left_cut
+        Images_right = Images_right_cut
     Images = Images_left
     N = len(Images)
     for i in range (N) :
@@ -784,8 +791,13 @@ def DIC_disflow (__DIC_dict__,
     [lx1, lx2], [ly1, ly2] = window
     N = len(Images)
 
-    # Corners detection
     print('    - DIC in progress ...')
+    name = __DIC_dict__['name']
+    if image_ids :
+        for i in image_ids :
+            name = name + str(i)
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         all_U = np.load(Save_all_U)
@@ -838,7 +850,8 @@ def DIC_disflow (__DIC_dict__,
     return(Xleft_id, Xright_id)
 
 def DIC_compute_flow (__DIC_dict__,
-                      flip = False):
+                      flip = False,
+                      image_ids = False):
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
     
@@ -849,6 +862,8 @@ def DIC_compute_flow (__DIC_dict__,
        flip : bool, optional
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
+       image_ids : list, optional
+           Define the list of images you want to compare in the left and right folders
            
     Returns:
        Xleft_id : numpy.ndarray
@@ -864,10 +879,7 @@ def DIC_compute_flow (__DIC_dict__,
         sys.exit()
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
-    name = __DIC_dict__['name']
     window = __DIC_dict__['window']
-    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
-    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
@@ -888,13 +900,27 @@ def DIC_compute_flow (__DIC_dict__,
 
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
+    if image_ids :
+        Images_left_cut = []
+        Images_right_cut = []
+        for i in image_ids :
+            Images_left_cut.append(Images_left[i])
+            Images_right_cut.append(Images_right[i])
+        Images_left = Images_left_cut
+        Images_right = Images_right_cut
     Images = Images_left
     N = len(Images)
     for i in range (N) :
         Images.append(Images_right[i]) 
     [lx1, lx2], [ly1, ly2] = window
     N = len(Images)
-    
+
+    name = __DIC_dict__['name']
+    if image_ids :
+        for i in image_ids :
+            name = name + str(i)
+    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         all_U = np.load(Save_all_U)
@@ -1011,6 +1037,7 @@ def DIC_compute_flow (__DIC_dict__,
 
 def DIC_get_positions (__DIC_dict__,
                        flip = False,
+                       image_ids = False,
                        method = 'compute_flow') :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
@@ -1022,6 +1049,10 @@ def DIC_get_positions (__DIC_dict__,
        flip : bool, optional
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
+       image_ids : list, optional
+           Define the list of images you want to compare in the left and right folders
+       method : str
+           DIC method between compute_flow and disflow
            
     Returns:
        Xleft_id : numpy.ndarrayleft_sample_identification
@@ -1038,10 +1069,12 @@ def DIC_get_positions (__DIC_dict__,
             method = 'disflow'
     if method == 'disflow' :
         return (DIC_disflow(__DIC_dict__,
-                            flip = flip))
+                            flip = flip,
+                            image_ids = image_ids))
     if method == 'compute_flow' :
         return (DIC_compute_flow(__DIC_dict__,
-                                 flip = flip))
+                                 flip = flip,
+                                 image_ids = image_ids))
     else :
         print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
         raise
