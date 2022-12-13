@@ -14,6 +14,9 @@ import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
+from skimage.filters import threshold_otsu, threshold_local, rank
+from skimage.morphology import disk
+from skimage.util import img_as_ubyte
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 
 try : 
@@ -670,6 +673,41 @@ def multifolder_pattern_detection (__dict__,
         
     return(all_X, all_x, nb_pts)
 
+def hybrid_mask_creation (image,
+                          ROI = False,
+                          kernel = 5,
+                          gate = 5) :
+    """Create a mask with the function Otsu from skimage
+    
+    Args:
+       image : numpy.ndarray
+           Difference between direct and Soloff methods
+       ROI : str, optional
+           Region Of Interest
+       kernel : int, optional
+           Size of smoothing filter
+       gate : int, optional
+           Output value (in µm) where the mask is True
+           
+    Returns:
+       inside_mask : numpy.ndarray
+           Mask of bad 
+       outside_mask : numpy.ndarray
+           Mask of bad 
+    """           
+    kernel = np.ones((kernel,kernel),np.float32)/kernel**2
+    image_smooth = cv2.filter2D(image,-1,kernel)
+    if ROI :
+        x1, x2 = ROI[0]
+        y1, y2 = ROI[1]
+        image_crop = image_smooth * 0
+        image_crop[x1:x2,y1:y2] = image_smooth[x1:x2,y1:y2]
+    else :
+        image_crop = image_smooth
+
+    inside_mask = np.ma.masked_inside(image_smooth*1000, -gate, gate)
+    return (inside_mask.mask)
+
 
 def camera_np_coordinates (all_X, 
                            all_x, 
@@ -847,6 +885,9 @@ def DIC_disflow (__DIC_dict__,
     
     Xleft_id = np.array(Xleft_id)
     Xright_id = np.array(Xright_id)
+    nim, npts, naxis = Xleft_id.shape
+    Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return(Xleft_id, Xright_id)
 
 def DIC_compute_flow (__DIC_dict__,
@@ -879,7 +920,7 @@ def DIC_compute_flow (__DIC_dict__,
         sys.exit()
     left_folder = __DIC_dict__['left_folder']
     right_folder = __DIC_dict__['right_folder']
-    window = __DIC_dict__['window']
+    ROI = __DIC_dict__['window']
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
@@ -912,7 +953,7 @@ def DIC_compute_flow (__DIC_dict__,
     N = len(Images)
     for i in range (N) :
         Images.append(Images_right[i]) 
-    [lx1, lx2], [ly1, ly2] = window
+    [lx1, lx2], [ly1, ly2] = ROI
     N = len(Images)
 
     name = __DIC_dict__['name']
@@ -974,18 +1015,18 @@ def DIC_compute_flow (__DIC_dict__,
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
             t1 = time.time()
             # Right0/right camera correlation    
-            Ur, Vr = compute_flow(im0_right, 
-                                  im, 
-                                  optical_flow_parameters["pyram_levels"], 
-                                  optical_flow_parameters["factor"], 
+            Ur, Vr = compute_flow(im0_right,
+                                  im,
+                                  optical_flow_parameters["pyram_levels"],
+                                  optical_flow_parameters["factor"],
                                   optical_flow_parameters["ordre_inter"],
-                                  optical_flow_parameters["lmbda"], 
+                                  optical_flow_parameters["lmbda"],
                                   optical_flow_parameters["size_median_filter"],
-                                  optical_flow_parameters["max_linear_iter"], 
-                                  optical_flow_parameters["max_iter"], 
-                                  optical_flow_parameters["lambda2"], 
-                                  optical_flow_parameters["lambda3"], 
-                                  optical_flow_parameters["Mask"], 
+                                  optical_flow_parameters["max_linear_iter"],
+                                  optical_flow_parameters["max_iter"],
+                                  optical_flow_parameters["lambda2"],
+                                  optical_flow_parameters["lambda3"],
+                                  optical_flow_parameters["Mask"],
                                   optical_flow_parameters["LO_filter"])
             try :
                 import cupy
@@ -1033,6 +1074,9 @@ def DIC_compute_flow (__DIC_dict__,
     
     Xleft_id = np.array(Xleft_id)
     Xright_id = np.array(Xright_id)
+    nim, npts, naxis = Xleft_id.shape
+    Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return (Xleft_id, Xright_id)
 
 def DIC_get_positions (__DIC_dict__,

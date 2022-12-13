@@ -16,6 +16,7 @@ import sys
 import solve_library as solvel 
 import data_library as data
 import csv
+import cv2
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
@@ -187,20 +188,27 @@ def Soloff_identification (Xc1_identified,
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
     """
-    
+    if len(Xc1_identified.shape) == 3 : 
+        modif_22_12_09 = True
+        nx, ny, naxis = Xc1_identified.shape
+        Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
+        Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
+        
     # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
     # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
     x0 = solvel.least_square_method (Xc1_identified, Xc2_identified, A111)
     
     # Solve the polynomials constants ai with curve-fit method (Levenberg 
     # Marcquardt)
-    x_solution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
-                                                            Xc2_identified, 
-                                                            A_pol, 
-                                                            x0, 
-                                                            Soloff_pform, 
-                                                            method = 'curve_fit')
-    return (x_solution)
+    xsolution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
+                                                           Xc2_identified, 
+                                                           A_pol, 
+                                                           x0, 
+                                                           Soloff_pform, 
+                                                           method = 'curve_fit')
+    if modif_22_12_09 :
+        xsolution = xsolution.reshape((3, nx, ny))
+    return (xsolution)
 
 def direct_calibration (__calibration_dict__,
                         x3_list,
@@ -325,6 +333,11 @@ def direct_identification (Xc1_identified,
            Identification in the 3D space of the detected points
     """    
     # Solve by direct method
+    if len(Xc1_identified.shape) == 3 : 
+        modif_22_12_09 = True
+        nx, ny, naxis = Xc1_identified.shape
+        Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
+        Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
     Xl = np.zeros((2,len(Xl1)))
@@ -334,7 +347,158 @@ def direct_identification (Xc1_identified,
     
     M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xl, Xr)
     xsolution = np.matmul(direct_A,M)
+    if modif_22_12_09 :
+        xsolution = xsolution.reshape((3, nx, ny))
     return(xsolution)
+
+def hybrid_identification(Xc1_identified,
+                          Xc2_identified,
+                          direct_A,
+                          direct_pform,
+                          A111, 
+                          A_pol,
+                          Soloff_pform,
+                          mask,
+                          method = 'curve_fit') :
+    """Identification of the points detected on both cameras left and right 
+    into the global 3D-space using direct method and Soloff method when direct
+    can't do it well.
+    
+    Args:
+       Xc1_identified : numpy.ndarray
+           Points identified on the left camera
+       Xc2_identified : numpy.ndarray
+           Points identified on the right camera
+       direct_A : numpy.ndarray
+           Constants of direct polynomial
+       direct_pform : int
+           Polynomial form
+       A111 : numpy.ndarray
+           Constants of Soloff polynomial form '111'
+       A_pol : numpy.ndarray
+           Constants of Soloff polynomial form chose (polynomial_form)
+       Soloff_pform : int
+           Polynomial form
+       mask : boolean, optional
+           Mask used to replace on direct method
+       method : str, optional
+           Python method used to solve it ('Least-squares' or 'curve-fit')
+           
+    Returns:
+       direct_mask : numpy.ndarray
+           Identification in the 3D space of the detected points
+    """    
+    xsolution = direct_identification (Xc1_identified,
+                                       Xc2_identified,
+                                       direct_A,
+                                       direct_pform)
+    
+    # mask1 = np.array([np.invert(mask), np.invert(mask), np.invert(mask)])
+    # xsolution_direct_part = np.ma.MaskedArray(xsolution, mask=mask1)
+    
+    mask2 = np.empty((mask.shape[0],mask.shape[1],2))
+    mask2[:,:,0], mask2[:,:,1] = mask, mask
+    
+    Xc1_identified_crop = np.ma.MaskedArray(Xc1_identified, mask=mask2)
+    Xc2_identified_crop = np.ma.MaskedArray(Xc2_identified, mask=mask2)
+    
+    xSoloff = Soloff_identification (Xc1_identified_crop,
+                                     Xc2_identified_crop,
+                                     A111, 
+                                     A_pol,
+                                     Soloff_pform,
+                                     method = method)
+    
+    
+    
+    for i in range (len(xSoloff[0])) :
+        for j in range (len(xSoloff[0,i])) :
+            if xSoloff[0, i, j] == float("NAN") :
+                ()
+            else : 
+                xsolution[:, i, j] = xSoloff[:, i, j]
+    
+    return(xsolution, mask)
+    
+
+def hybrid_mask (Xc1_identified,
+                 Xc2_identified,
+                 direct_A,
+                 direct_pform,
+                 A111, 
+                 A_pol,
+                 Soloff_pform,
+                 method = 'curve_fit',
+                 ROI = False,
+                 kernel = 5,
+                 mask = np.array([False]),
+                 gate = 5) :
+    """Identification of the points detected on both cameras left and right 
+    into the global 3D-space using direct and Soloff methods. Detect the
+    positions where directe method is not efficient and define the related mask.
+    
+    Args:
+       Xc1_identified : numpy.ndarray
+           Points identified on the left camera
+       Xc2_identified : numpy.ndarray
+           Points identified on the right camera
+       direct_A : numpy.ndarray
+           Constants of direct polynomial
+       direct_pform : int
+           Polynomial form
+       A111 : numpy.ndarray
+           Constants of Soloff polynomial form '111'
+       A_pol : numpy.ndarray
+           Constants of Soloff polynomial form chose (polynomial_form)
+       Soloff_pform : int
+           Polynomial form
+       method : str, optional
+           Python method used to solve it ('Least-squares' or 'curve-fit')
+       ROI : boolean, optional
+           Region Of Interest
+       kernel : int, optional
+           Size of smoothing filter
+       mask : boolean, optional
+           Mask used to replace on direct method
+       gate : int, optional
+           Output value (in µm) where the mask is True
+           
+    Returns:
+       direct_mask : numpy.ndarray
+           Identification in the 3D space of the detected points
+    """        
+    if not mask.any() :
+        xdirect = direct_identification (Xc1_identified,
+                                         Xc2_identified,
+                                         direct_A,
+                                         direct_pform)
+
+        xSoloff = Soloff_identification (Xc1_identified,
+                                         Xc2_identified,
+                                         A111, 
+                                         A_pol,
+                                         Soloff_pform,
+                                         method = method)
+        
+        image = xdirect[2] - xSoloff[2]
+        
+        mask = data.hybrid_mask_creation(image,
+                                         ROI = ROI,
+                                         kernel = kernel,
+                                         gate = gate)
+    
+    xsolution = hybrid_identification(Xc1_identified,
+                                      Xc2_identified,
+                                      direct_A,
+                                      direct_pform,
+                                      A111, 
+                                      A_pol,
+                                      Soloff_pform,
+                                      mask,
+                                      method = method)
+
+    return(xsolution, mask)
+    
 
 def AI_training (X_c1,
                  X_c2,

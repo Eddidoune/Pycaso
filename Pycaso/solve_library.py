@@ -17,6 +17,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
+import math
 
 core_number = os.cpu_count()
 
@@ -373,7 +374,7 @@ class Soloff_Polynome(dict) :
         Xc = np.matmul(a, M)
         Xc = Xc.reshape(4*len(x[0]))
         return (Xc)
-    
+
     def polynomial_LM_LS (self, x, X, a) :
         """Definition of the functionnal F (for least_squares method)
         
@@ -577,38 +578,44 @@ def least_square_method (Xc1_identified,
     J_ = np.linalg.inv(J)
     
     for i in range (N) :
-        X1c1, X2c1 = Xc1_identified[i,0], Xc1_identified[i,1]
-        X1c2, X2c2 = Xc2_identified[i,0], Xc2_identified[i,1]
-        X = np.array([X1c1-a1c1[0], X2c1-a2c1[0], X1c2-a1c2[0], X2c2-a2c2[0]])
-        XA = np.matmul(X, A)
-        x0i = np.matmul(J_, XA)
-        x0[:, i] = x0i
+        if type(Xc1_identified[i,0]) == np.ma.core.MaskedConstant :
+            x0[:, i] = float("NAN")
+        else :
+            X1c1, X2c1 = Xc1_identified[i,0], Xc1_identified[i,1]
+            X1c2, X2c2 = Xc2_identified[i,0], Xc2_identified[i,1]
+            X = np.array([X1c1-a1c1[0], X2c1-a2c1[0], X1c2-a1c2[0], X2c2-a2c2[0]])
+            XA = np.matmul(X, A)
+            x0i = np.matmul(J_, XA)
+            x0[:, i] = x0i
     
     return (x0)    
 
-def xopt_mlib (Xtuple) :
+def xopt_mlib (xtuple) :
     """Multiprocessing function used on the next function Levenberg_Marquardt_solving.
     
     Args:
-        Xtuple : list
+        xtuple : list
             List of arguments for multiprocessing
            
     Returns:
         xopt : numpy.ndarray
             Solution of the LM resolution
     """
-    Xdetected, x0_part, Soloff_pform, A0 = Xtuple
+    Xdetected, x0_part, Soloff_pform, A0 = xtuple
     Ns = Xdetected.shape[1]
     xopt = np.zeros((3*Ns))
     Xdetected_part = Xdetected
     for i in range (Xdetected_part.shape[1]) :
         X0i = Xdetected_part[:,i]
         x0i = x0_part[:,i]
-        xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
-                                    A0, 
-                                    X0i, 
-                                    p0 = x0i, 
-                                    method ='lm')
+        if math.isnan(x0i[0]) :
+            xopti = np.array([float("NAN"), float("NAN"), float("NAN")])
+        else :
+            xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
+                                        A0, 
+                                        X0i, 
+                                        p0 = x0i, 
+                                        method ='lm')
         xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
     return (xopt)
 
@@ -678,7 +685,7 @@ def Levenberg_Marquardt_solving (Xc1_identified,
                 sl = slices[i]
                 Xti = Xdetected[:, sl]
                 x0i = x0[:,sl]
-                xtuple.append((Xti, x0i,Soloff_pform, A0))
+                xtuple.append((Xti, x0i, Soloff_pform, A0))
             xopt_parallel = p.map(xopt_mlib, xtuple)
             
         for part in range (len(xopt_parallel)) :
