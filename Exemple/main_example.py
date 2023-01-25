@@ -64,7 +64,7 @@ if __name__ == '__main__' :
     direct_A, Mag = pcs.direct_calibration (__calibration_dict__,
                                             x3_list,
                                             direct_pform)
-    
+    sys.exit()
     print('')
     print('#####       ')
     print('Soloff method - Start calibration')

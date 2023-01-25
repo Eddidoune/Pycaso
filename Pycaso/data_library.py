@@ -690,11 +690,11 @@ def hybrid_mask_creation (image,
            Output value (in µm) where the mask is True
            
     Returns:
-       inside_mask : numpy.ndarray
-           Mask of bad 
-       outside_mask : numpy.ndarray
-           Mask of bad 
-    """           
+       mask_median : list
+           Mask used to replace on direct method + the median of the difference
+           between Soloff and direct solutions
+    """      
+    median = np.median(image)     
     kernel = np.ones((kernel,kernel),np.float32)/kernel**2
     image_smooth = cv2.filter2D(image,-1,kernel)
     if ROI :
@@ -706,7 +706,8 @@ def hybrid_mask_creation (image,
         image_crop = image_smooth
 
     inside_mask = np.ma.masked_inside(image_smooth*1000, -gate, gate)
-    return (inside_mask.mask)
+    mask_median = [inside_mask.mask, median]
+    return (mask_median)
 
 
 def camera_np_coordinates (all_X, 

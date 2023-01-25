@@ -17,6 +17,7 @@ import solve_library as solvel
 import data_library as data
 import csv
 import cv2
+import math
 
 def magnification (X1, X2, x1, x2) :
     """Calculation of the magnification between reals and detected positions
@@ -358,7 +359,7 @@ def hybrid_identification(Xc1_identified,
                           A111, 
                           A_pol,
                           Soloff_pform,
-                          mask,
+                          mask_median,
                           method = 'curve_fit') :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space using direct method and Soloff method when direct
@@ -379,8 +380,9 @@ def hybrid_identification(Xc1_identified,
            Constants of Soloff polynomial form chose (polynomial_form)
        Soloff_pform : int
            Polynomial form
-       mask : boolean, optional
-           Mask used to replace on direct method
+       mask_median : list
+           Mask used to replace on direct method + the median of the difference
+           between Soloff and direct solutions
        method : str, optional
            Python method used to solve it ('Least-squares' or 'curve-fit')
            
@@ -388,19 +390,19 @@ def hybrid_identification(Xc1_identified,
        direct_mask : numpy.ndarray
            Identification in the 3D space of the detected points
     """    
+    mask, median = mask_median
     xsolution = direct_identification (Xc1_identified,
                                        Xc2_identified,
                                        direct_A,
                                        direct_pform)
+    xsolution = xsolution - median
+    mask_crop = np.empty((mask.shape[0],mask.shape[1],2))
+    mask_crop[:,:,0], mask_crop[:,:,1] = mask, mask
     
-    # mask1 = np.array([np.invert(mask), np.invert(mask), np.invert(mask)])
-    # xsolution_direct_part = np.ma.MaskedArray(xsolution, mask=mask1)
-    
-    mask2 = np.empty((mask.shape[0],mask.shape[1],2))
-    mask2[:,:,0], mask2[:,:,1] = mask, mask
-    
-    Xc1_identified_crop = np.ma.MaskedArray(Xc1_identified, mask=mask2)
-    Xc2_identified_crop = np.ma.MaskedArray(Xc2_identified, mask=mask2)
+    Xc1_identified_crop = np.ma.MaskedArray(Xc1_identified, 
+                                            mask=mask_crop)
+    Xc2_identified_crop = np.ma.MaskedArray(Xc2_identified, 
+                                            mask=mask_crop)
     
     xSoloff = Soloff_identification (Xc1_identified_crop,
                                      Xc2_identified_crop,
@@ -413,12 +415,12 @@ def hybrid_identification(Xc1_identified,
     
     for i in range (len(xSoloff[0])) :
         for j in range (len(xSoloff[0,i])) :
-            if xSoloff[0, i, j] == float("NAN") :
+            if math.isnan(xSoloff[0, i, j]) :
                 ()
             else : 
                 xsolution[:, i, j] = xSoloff[:, i, j]
     
-    return(xsolution, mask)
+    return(xsolution, mask_median)
     
 
 def hybrid_mask (Xc1_identified,
@@ -431,7 +433,7 @@ def hybrid_mask (Xc1_identified,
                  method = 'curve_fit',
                  ROI = False,
                  kernel = 5,
-                 mask = np.array([False]),
+                 mask_median = np.array([False]),
                  gate = 5) :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space using direct and Soloff methods. Detect the
@@ -458,16 +460,20 @@ def hybrid_mask (Xc1_identified,
            Region Of Interest
        kernel : int, optional
            Size of smoothing filter
-       mask : boolean, optional
-           Mask used to replace on direct method
+       mask_median : list
+           Mask used to replace on direct method + the median of the difference
+           between Soloff and direct solutions
        gate : int, optional
            Output value (in µm) where the mask is True
            
     Returns:
-       direct_mask : numpy.ndarray
-           Identification in the 3D space of the detected points
+       xsolution : numpy.ndarray
+           Solution
+       mask_median : list
+           Mask used to replace on direct method + the median of the difference
+           between Soloff and direct solutions
     """        
-    if not mask.any() :
+    if len(mask_median) == 1 :
         xdirect = direct_identification (Xc1_identified,
                                          Xc2_identified,
                                          direct_A,
@@ -482,22 +488,22 @@ def hybrid_mask (Xc1_identified,
         
         image = xdirect[2] - xSoloff[2]
         
-        mask = data.hybrid_mask_creation(image,
-                                         ROI = ROI,
-                                         kernel = kernel,
-                                         gate = gate)
+        mask_median = data.hybrid_mask_creation(image,
+                                                ROI = ROI,
+                                                kernel = kernel,
+                                                gate = gate)
     
-    xsolution = hybrid_identification(Xc1_identified,
-                                      Xc2_identified,
-                                      direct_A,
-                                      direct_pform,
-                                      A111, 
-                                      A_pol,
-                                      Soloff_pform,
-                                      mask,
-                                      method = method)
+    xsolution, mask_median = hybrid_identification(Xc1_identified,
+                                                   Xc2_identified,
+                                                   direct_A,
+                                                   direct_pform,
+                                                   A111, 
+                                                   A_pol,
+                                                   Soloff_pform,
+                                                   mask_median,
+                                                   method = method)
 
-    return(xsolution, mask)
+    return(xsolution, mask_median)
     
 
 def AI_training (X_c1,
