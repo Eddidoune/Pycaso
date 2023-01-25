@@ -7,7 +7,20 @@ import cv2
 def ChAruco_board (ncx,
                    ncy,
                    pixel_factor = 1) :
-
+    """Create the image for ChAruco board
+    
+    Args:
+       ncx : int
+           number of cases along x axis
+       ncy : int
+           number of cases along y axis
+       pixel_factor : int
+           Define the number of pixel per ChAruco pixel
+           
+    Returns:
+       ChAruco_Board_build_img : numpy.ndarray
+           ChAruco image
+    """
     dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000)
     n = ncx * ncy / 2
     ChAruco_Board_img = []
