@@ -160,6 +160,157 @@ def Soloff_calibration (__calibration_dict__,
     A111, A_pol = A_0
     return(A111, A_pol, Magnification)
 
+
+def Soloff_calibration2 (x3_list,
+                         Soloff_pform,
+                         left_folder = 'left_calibration',
+                         right_folder = 'right_calibration',
+                         name = 'calibration',
+                         saving_folder = 'results',
+                         ncx = 16,
+                         ncy = 12,
+                         sqr = 0.3,
+                         hybrid_verification = False,
+                         multifolder = False,
+                         plotting = False) :
+    """Calculation of the magnification between reals and detected positions 
+    and the calibration parameters A = A111 (Resp A_pol):--> X = A.M(x)
+    
+    Args:
+       x3_list : numpy.ndarray
+           List of the different z position. (WARNING : Should be order the 
+                                              same way in the target folder)
+       Soloff_pform : int
+           Polynomial form
+       left_folder : str, optional
+           Left calibration images folder
+       right_folder : str, optional
+           Right calibration images folder
+       name : str, optional
+           Name to save
+       saving_folder : str, optional
+           Folder to save
+       ncx = int, optional
+           The number of squares for the chessboard through x direction
+       ncy = int, optional
+           The number of squares for the chessboard through y direction
+       sqr = float, optional
+           Size of a square (in mm)
+       hybrid_verification : bool, optional
+           If True, verify each pattern detection and propose to pick 
+           manually the bad detected corners. The image with all detected
+           corners is show and you can decide to change any point using
+           it ID (ID indicated on the image) as an input. If there is no
+           bad detected corner, press ENTER to go to the next image.
+       multifolder : bool, optional
+           Used for specific image acquisition when all directions moved
+       plotting = Bool
+           Plot the calibration view or not
+           
+    Returns:
+       A111 : numpy.ndarray
+           Constants of Soloff polynomial form '111'
+       A_pol : numpy.ndarray
+           Constants of Soloff polynomial form chose (Soloff_pforloasm)
+       Magnification : int
+           Magnification between reals and detected positions 
+           [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
+    """
+    x3_list = np.array(x3_list)    
+    A111 = np.zeros((2, 2, 4))
+    if Soloff_pform == 111 or Soloff_pform == 1 :
+        A_pol = np.zeros((2, 2, 4))
+    elif Soloff_pform == 221 :
+        A_pol = np.zeros((2, 2, 9))
+    elif Soloff_pform == 222 or Soloff_pform == 2 :
+        A_pol = np.zeros((2, 2, 10))
+    elif Soloff_pform == 332 :
+        A_pol = np.zeros((2, 2, 19))
+    elif Soloff_pform == 333 or Soloff_pform == 3 :
+        A_pol = np.zeros((2, 2, 20))
+    elif Soloff_pform == 443 :
+        A_pol = np.zeros((2, 2, 34))
+    elif Soloff_pform == 444 or Soloff_pform == 4 :
+        A_pol = np.zeros((2, 2, 35))
+    elif Soloff_pform == 554 :
+        A_pol = np.zeros((2, 2, 55))
+    elif Soloff_pform == 555 or Soloff_pform == 5 :
+        A_pol = np.zeros((2, 2, 56))    
+    else :
+        raise('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
+    
+    A_0 = [A111, A_pol]
+    Soloff_pforms = [1, Soloff_pform]
+
+    
+    # Detect points from folders
+    if multifolder :
+        all_X, all_x, nb_pts = data.multifolder_pattern_detection(left_folder = left_folder,
+                                                                  right_folder = right_folder,
+                                                                  name = name,
+                                                                  saving_folder = saving_folder,
+                                                                  ncx = ncx,
+                                                                  ncy = ncy,
+                                                                  sqr = sqr,
+                                                                  hybrid_verification = hybrid_verification)          
+    else :
+        all_X, all_x, nb_pts = data.pattern_detection(left_folder = left_folder,
+                                                      right_folder = right_folder,
+                                                      name = name,
+                                                      saving_folder = saving_folder,
+                                                      ncx = ncx,
+                                                      ncy = ncy,
+                                                      sqr = sqr,
+                                                      hybrid_verification = hybrid_verification)        
+
+    # Creation of the reference matrix Xref and the real position Ucam for 
+    # each camera
+    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, x3_list)     
+
+    # Plot the references plans
+    solvel.refplans(x, x3_list, plotting = plotting)
+
+    # Calcul of the Soloff polynome's constants. X = A . M
+    Magnification = np.zeros((2, 2))
+    for camera in [1, 2] :
+        if camera == 1 :
+            X = Xc1
+        elif camera == 2 :
+            X = Xc2
+        x1, x2, x3 = x
+        X1, X2 = X
+        
+        # Compute the magnification (same for each cam as set up is symetric)
+        Magnification[camera-1] = magnification (X1, X2, x1, x2)
+        
+        for pol in range (len (A_0)) :
+            # Do the system X = Ai*M, where M is the monomial of the real 
+            # coordinates of crosses and X the image coordinates, and M the 
+            # unknow (polynomial form aab)
+            Soloff_pform = Soloff_pforms[pol]
+            M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
+            Ai = np.matmul(X, np.linalg.pinv(M))
+            A_0[pol][camera-1] = Ai
+            
+            # Error of projection
+            Xd = np.matmul(Ai,M)
+            proj_error = X - Xd
+            print('Max ; min projection error (polynomial form ', 
+                str(Soloff_pform),
+                ') for camera ', 
+                str(camera),
+                ' = ',
+                str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+                ' ; ',
+                str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+                ' px')
+    A111, A_pol = A_0
+    return(A111, A_pol, Magnification)
+
+
+
+
+
 def Soloff_identification (Xc1_identified,
                            Xc2_identified,
                            A111, 

@@ -30,298 +30,271 @@ import numpy as np
 
 import cv2
 
-class Calibrate(dict):
-    """Identification class of the corners of a chessboard by 
-        Charuco's method"""
-    def __init__(self, 
-                 _dict_):
-        self._dict_ = _dict_
-        # ncx, ncy, sqr, mrk = pattern_cst(pattern)
-        self.ncx = _dict_['ncx']
-        self.ncy = _dict_['ncy']
-        self.sqr = _dict_['sqr']
-        self.mrk = self.sqr / 2
-        self.dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
-        self.parameters = cv2.aruco.DetectorParameters_create()
-        self.parameters.adaptiveThreshWinSizeMax = 300
-        self.board = cv2.aruco.CharucoBoard_create(
-            self.ncx,
-            self.ncy,
-            self.sqr,
-            self.mrk,
-            self.dictionary)
+def calibrate(im,
+              ncx = 16,
+              ncy = 12,
+              sqr = 0.3):
+    """ Detection of the corners
     
-    def calibrate(self, 
-                  im):
-        """ Detection of the corners
+    Args:
+        im : str
+            Image path to detect
         
-        Args:
-            im : str
-                Image path to detect
-            
-        Returns:
-            corners_list : list (Dim = N * 3)
-                List of the detected corners 
-        """
-        if len (im) < 20 :
-            print("=> Calculation of the image ...", str(im))
-        else :
-            print("=> Calculation of the image ...", str(im[-20:]))
-        img = cv2.imread(im, 0)        
-        corners, ids, rip = cv2.aruco.detectMarkers(img, 
-                                                    self.dictionary, 
-                                                    parameters=self.parameters)
+    Returns:
+        corners_list : list (Dim = N * 3)
+            List of the detected corners 
+    """
+    mrk = sqr / 2
+    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+    parameters = cv2.aruco.DetectorParameters_create()
+    parameters.adaptiveThreshWinSizeMax = 300
+    board = cv2.aruco.CharucoBoard_create(ncx,
+                                          ncy,
+                                          sqr,
+                                          mrk,
+                                          dictionary)
+    if len (im) < 20 :
+        print("=> Calculation of the image ...", str(im))
+    else :
+        print("=> Calculation of the image ...", str(im[-20:]))
+    img = cv2.imread(im, 0)        
+    corners, ids, rip = cv2.aruco.detectMarkers(img, 
+                                                dictionary, 
+                                                parameters = parameters)
+    
+    idall = []
+    if len(corners) != 0 :
+        if len(corners) < len(board.ids):
+            for idd in board.ids:
+                if idd not in ids:
+                    idall.append(int(idd))
         
-        idall = []
-        if len(corners) != 0 :
-            if len(corners) < len(self.board.ids):
-                for idd in self.board.ids:
-                    if idd not in ids:
-                        idall.append(int(idd))
+        print("marks ", idall, " not detected")         
+        if ids is not None and len(ids) > 0:
+            ret, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
+                corners, ids, img, board)
+            print(len(corners), ' marks detected. ', ret, ' points detected')
+            print('---')
+            corners_list = []
+            BU = []
+            if ret != 0 :
+                for i in range (0, len(chcorners)) :
+                    BU.append(chcorners[i][0])
+                    corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+            else :
+                ()
+    else :
+        corners_list = False
+    return (corners_list, ret) 
+
+def complete_missing_points (corners_list, 
+                             im, 
+                             ncx = 16,
+                             ncy = 12,
+                             sqr = 0.3,
+                             hybrid_verification = False) :  
+    """ Detection of the corners with Hessian invariants filtering
+    
+    Args:
+        corners_list : numpy.array
+            Array of the detected points (automatically with ChAruco) 
+        im : str
+            Image path to detect
+        hybrid_verification : bool, optional
+            If True, verify each pattern detection and propose to pick 
+            manually the bad detected corners. The image with all detected
+            corners is show and you can decide to change any point using
+            it ID (ID indicated on the image) as an input. If there is no
+            bad detected corner, press ENTER to go to the next image.
+        
+    Returns:
+        corners_list_opt : list (Dim = N * 3)
+            List of the detected corners (automatically with ChAruco and 
+                                          Hessian invariants + manually)
+    """                        
+    corners_list = np.asarray(corners_list)
+    x, y, ids = np.transpose(corners_list)
+    img = cv2.imread(im, 0)
+
+    # Filter the image with the Hessian matrix parameters to detect the 
+    # corners (points)
+    img_hess = plt.imread(im)
+    HE0, HE1 = sfe.hessian_matrix_eigvals(sfe.hessian_matrix(img_hess, 9))
+    HE = abs(HE0 * HE1)
+    thresh = sfi.threshold_otsu(HE)
+    bin_im = HE > thresh
+    
+    # Plot the already detected points
+    if hybrid_verification :
+        fig0, ax = plt.subplots()
+        plt.imshow(img_hess, cmap='gray')
+        plt.scatter(x,y, c='r')
+        for name, txt in enumerate(ids):
+            ax.annotate(txt, (x[name], y[name]))
+    
+    # Choose 2 points A and B already detected that could create 
+    # the referential
+    nx, ny = ncx-1, ncy-1
+    n_corners = nx*ny
+    corners_list_opt = np.zeros((n_corners, 3))
+    pts_list = np.arange(n_corners)
+    pts_list = np.reshape(pts_list, (ny,nx))
+    ptA = corners_list[0]
+    xA, yA, idA = ptA
+    lineA, columnA = np.where(pts_list==idA)
+    # Recreate the function numpy.delete for cupy
+    def delete_arr (arr0, obj, axis) :
+        nxarr, nyarr = arr0.shape
+        obj = int(obj)
+        if axis == 0 :
+            arr1 = arr0[:obj]
+            arr2 = arr0[obj+1:]
+            arrt = np.append(arr1, arr2)
+            arrt = arrt.reshape((nxarr-1,nyarr))
+        elif axis == 1 :
+            arr1 = np.transpose(arr0[:,:obj])
+            arr2 = np.transpose(arr0[:,obj+1:])
+            arrt = np.append(arr1, arr2)
+            arrt = arrt.reshape((nyarr-1,nxarr))
+            arrt = np.transpose(arrt)
+        return(arrt)
+
+    pts_list_cut = delete_arr(pts_list, lineA, 0)
+    pts_list_cut = delete_arr(pts_list_cut, columnA, 1)
+    pts_list_cut = np.ravel(pts_list_cut)
+    ptB = []
+    out_of_range_points = 0
+    for pt in pts_list_cut :
+        if np.any(corners_list[:,2] == pt) :
+            lineB, columnB = np.where(pts_list == pt)
+            line, column = np.where(corners_list == pt)
+            ptB = corners_list[line]
+            xB, yB, idB = ptB[0]
+            break
+        
+    if np.any(ptB) :
+        # Define the referencial coordinates of the pattern grid
+        nx = columnB - columnA
+        ny = lineB - lineA
+        dx = xB - xA
+        dy = yB - yA
+        dP = math.sqrt(dx**2 + dy**2)
+        l = dP / math.sqrt(nx**2 + ny**2)
+        alpha = math.atan(-dy/dx)
+        if dx < 0 :
+            alpha += math.pi
+        alpha2 = math.atan(ny/nx)
+        if nx < 0 :
+            alpha2 += math.pi
+        alpha1 = alpha - alpha2
+        xx = l * math.cos(alpha1)
+        xy = - l * math.sin(alpha1)
+        yy = - l * math.cos(alpha1)
+        yx = - l * math.sin(alpha1)
+    
+        # Define the origine point
+        d0x = columnA * xx + lineA * yx
+        d0y = columnA * xy + lineA * yy
+        x0 = xA - d0x
+        y0 = yA - d0y
+    
+        # Find the holes
+        for id_ in np.ravel(pts_list) :
+            # Find the missing point
+            line2, column2 = np.where(pts_list == id_)
+            dix = column2 * xx + line2 * yx
+            diy = column2 * xy + line2 * yy
+            xi = int(x0 + dix)
+            yi = int(y0 + diy)
+            d = int(l//4)
             
-            print("marks ", idall, " not detected")         
-            if ids is not None and len(ids) > 0:
-                ret, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
-                    corners, ids, img, self.board)
-                print(len(corners), ' marks detected. ', ret, ' points detected')
-                print('---')
-                corners_list = []
-                BU = []
-                if ret != 0 :
-                    for i in range (0, len(chcorners)) :
-                        BU.append(chcorners[i][0])
-                        corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
+            # Find the missing point, if on the screen
+            xm, ym = img.shape
+            if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
+                out_of_range_points += 1
+                bary, barx = np.nan, np.nan
+            else :
+                # Try Hessian detection and pick the biggest binary 
+                # area
+                bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
+                label_img=label(clear_border(bin_im_win))
+                regions = regionprops(label_img)
+                areas = []
+                for region in (regions):
+                    areas.append(region.area)
+                if any (areas) :
+                    max_area = max(areas)
+                    max_i = areas.index(max_area)
+                    region = regions[max_i]
+                    bary, barx = region.centroid
                 else :
-                    ()
-        else :
-            corners_list = False
-        return (corners_list, ret) 
-    
-    def complete_missing_points (self, 
-                                 corners_list, 
-                                 im, 
-                                 hybrid_verification = False) :  
-        """ Detection of the corners with Hessian invariants filtering
-        
-        Args:
-            corners_list : numpy.array
-                Array of the detected points (automatically with ChAruco) 
-            im : str
-                Image path to detect
-            hybrid_verification : bool, optional
-                If True, verify each pattern detection and propose to pick 
-                manually the bad detected corners. The image with all detected
-                corners is show and you can decide to change any point using
-                it ID (ID indicated on the image) as an input. If there is no
-                bad detected corner, press ENTER to go to the next image.
-            
-        Returns:
-            corners_list_opt : list (Dim = N * 3)
-                List of the detected corners (automatically with ChAruco and 
-                                              Hessian invariants + manually)
-        """                        
-        corners_list = np.asarray(corners_list)
-        x, y, ids = np.transpose(corners_list)
-        img = cv2.imread(im, 0)
-
-        # Filter the image with the Hessian matrix parameters to detect the 
-        # corners (points)
-        img_hess = plt.imread(im)
-        HE0, HE1 = sfe.hessian_matrix_eigvals(sfe.hessian_matrix(img_hess, 9))
-        HE = abs(HE0 * HE1)
-        thresh = sfi.threshold_otsu(HE)
-        bin_im = HE > thresh
-        
-        # Plot the already detected points
-        if hybrid_verification :
-            fig0, ax = plt.subplots()
-            plt.imshow(img_hess, cmap='gray')
-            plt.scatter(x,y, c='r')
-            for name, txt in enumerate(ids):
-                ax.annotate(txt, (x[name], y[name]))
-        
-        # Choose 2 points A and B already detected that could create 
-        # the referential
-        nx, ny = self.ncx-1, self.ncy-1
-        n_corners = nx*ny
-        corners_list_opt = np.zeros((n_corners, 3))
-        pts_list = np.arange(n_corners)
-        pts_list = np.reshape(pts_list, (ny,nx))
-        ptA = corners_list[0]
-        xA, yA, idA = ptA
-        lineA, columnA = np.where(pts_list==idA)
-        # Recreate the function numpy.delete for cupy
-        def delete_arr (arr0, obj, axis) :
-            nxarr, nyarr = arr0.shape
-            obj = int(obj)
-            if axis == 0 :
-                arr1 = arr0[:obj]
-                arr2 = arr0[obj+1:]
-                arrt = np.append(arr1, arr2)
-                arrt = arrt.reshape((nxarr-1,nyarr))
-            elif axis == 1 :
-                arr1 = np.transpose(arr0[:,:obj])
-                arr2 = np.transpose(arr0[:,obj+1:])
-                arrt = np.append(arr1, arr2)
-                arrt = arrt.reshape((nyarr-1,nxarr))
-                arrt = np.transpose(arrt)
-            return(arrt)
-
-        pts_list_cut = delete_arr(pts_list, lineA, 0)
-        pts_list_cut = delete_arr(pts_list_cut, columnA, 1)
-        pts_list_cut = np.ravel(pts_list_cut)
-        ptB = []
-        out_of_range_points = 0
-        for pt in pts_list_cut :
-            if np.any(corners_list[:,2] == pt) :
-                lineB, columnB = np.where(pts_list == pt)
-                line, column = np.where(corners_list == pt)
-                ptB = corners_list[line]
-                xB, yB, idB = ptB[0]
-                break
-            
-        if np.any(ptB) :
-            # Define the referencial coordinates of the pattern grid
-            nx = columnB - columnA
-            ny = lineB - lineA
-            dx = xB - xA
-            dy = yB - yA
-            dP = math.sqrt(dx**2 + dy**2)
-            l = dP / math.sqrt(nx**2 + ny**2)
-            alpha = math.atan(-dy/dx)
-            if dx < 0 :
-                alpha += math.pi
-            alpha2 = math.atan(ny/nx)
-            if nx < 0 :
-                alpha2 += math.pi
-            alpha1 = alpha - alpha2
-            xx = l * math.cos(alpha1)
-            xy = - l * math.sin(alpha1)
-            yy = - l * math.cos(alpha1)
-            yx = - l * math.sin(alpha1)
-        
-            # Define the origine point
-            d0x = columnA * xx + lineA * yx
-            d0y = columnA * xy + lineA * yy
-            x0 = xA - d0x
-            y0 = yA - d0y
-        
-            # Find the holes
-            for id_ in np.ravel(pts_list) :
-                # Find the missing point
-                line2, column2 = np.where(pts_list == id_)
-                dix = column2 * xx + line2 * yx
-                diy = column2 * xy + line2 * yy
-                xi = int(x0 + dix)
-                yi = int(y0 + diy)
-                d = int(l//4)
-                
-                # Find the missing point, if on the screen
-                xm, ym = img.shape
-                if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
-                    out_of_range_points += 1
                     bary, barx = np.nan, np.nan
+            y_dot = bary + yi - d
+            x_dot = barx + xi - d
+            
+            arr = np.array([float(x_dot), float(y_dot), float(id_)])
+            if hybrid_verification :
+                plt.annotate(id_, (x_dot, y_dot))
+                plt.scatter(x_dot, y_dot, c='b', label = 'Hessian')
+
+            corners_list_opt[id_] = arr
+
+        while hybrid_verification :
+            plt.pause(0.001)
+            print('')
+            print('Choose a bad detected corner if any. If None is, press Enter')
+            txt = input()
+            if txt =='' :
+                print('End correction')
+                plt.close()
+                break
+            else :
+                if any (txt) in corners_list_opt[:,2] :
+                    # If the Hessian detection is bad, manualy detection
+                    # missing_points = [0, 0]
+                    def onclick(event):
+                        global missing_points
+                        missing_points = [event.xdata, event.ydata]
+                        plt.close()
+                    id_ = int(txt)
+                    line2, column2 = np.where(pts_list == id_)
+                    dix = column2 * xx + line2 * yx
+                    diy = column2 * xy + line2 * yy
+                    xi = int(x0 + dix)
+                    yi = int(y0 + diy)
+                    fig, ax = plt.subplots()
+                    plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)], cmap='gray')
+                    fig.canvas.mpl_connect('button_press_event', onclick)
+                    plt.title('Click on the missing corner')
+                    plt.show()
+                    plt.waitforbuttonpress()
+                    plt.pause(0.001)
+                    xi = xi+missing_points[0]-d
+                    yi = yi+missing_points[1]-d
+                    fig, ax = plt.subplots()
+                    plt.imshow(img[int(yi-10):int(yi+10), int(xi-10):int(xi+10)], cmap='gray')
+                    fig.canvas.mpl_connect('button_press_event', onclick)
+                    plt.title('Click again')
+                    plt.show()
+                    plt.waitforbuttonpress()
+                    xi = xi+missing_points[0]-10
+                    yi = yi+missing_points[1]-10
+                    arr = np.array([xi, yi, id_])
+                    print('arr ', arr)
+                    # print(corners_list)
+                    corners_list_opt[id_] = arr
+                    fig0
+                    plt.scatter(xi,yi,c='g')
                 else :
-                    # Try Hessian detection and pick the biggest binary 
-                    # area
-                    bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
-                    label_img=label(clear_border(bin_im_win))
-                    regions = regionprops(label_img)
-                    areas = []
-                    for region in (regions):
-                        areas.append(region.area)
-                    if any (areas) :
-                        max_area = max(areas)
-                        max_i = areas.index(max_area)
-                        region = regions[max_i]
-                        bary, barx = region.centroid
-                    else :
-                        bary, barx = np.nan, np.nan
-                y_dot = bary + yi - d
-                x_dot = barx + xi - d
+                    print('No corner with the id ', txt, ' chose another one')
+
                 
-                arr = np.array([float(x_dot), float(y_dot), float(id_)])
-                if hybrid_verification :
-                    plt.annotate(id_, (x_dot, y_dot))
-                    plt.scatter(x_dot, y_dot, c='b', label = 'Hessian')
+    else :
+        print('Impossible to detect manualy corners of image : ', im)
+        corners_list_opt = False
+    print (out_of_range_points, ' points out of the image or to close to the border')
+    return (corners_list_opt)
 
-                corners_list_opt[id_] = arr
-
-                # if np.any(corners_list[:,2] == id_) :
-                #     print('Diff ChAruco - Hessian : ', corners_list[id_] - corners_list_opt[id_])
-                # else : 
-                #     corners_list = np.insert(corners_list, 
-                #                             id_, 
-                #                             arr, 
-                #                             axis=0)
-
-                         
-            # Plot the points of interest
-            # if hybrid_verification :
-            #     plt.scatter(x0,y0, c='g')
-            #     plt.scatter(x0 + xx, y0 + xy, c='c')
-            #     plt.scatter(x0 + yx, y0 + yy, c='c')
-            #     plt.scatter(xA, yA, c='m')
-            #     plt.scatter(xB, yB, c='y')           
-            #     plt.imsave('Temp_plot.png', corners_list_opt)
-            #     plt.ion()
-            #     plt.show()
-            while hybrid_verification :
-                plt.pause(0.001)
-                print('')
-                print('Choose a bad detected corner if any. If None is, press Enter')
-                txt = input()
-                if txt =='' :
-                    print('End correction')
-                    plt.close()
-                    break
-                else :
-                    if any (txt) in corners_list_opt[:,2] :
-                        # If the Hessian detection is bad, manualy detection
-                        # missing_points = [0, 0]
-                        def onclick(event):
-                            global missing_points
-                            missing_points = [event.xdata, event.ydata]
-                            plt.close()
-                        id_ = int(txt)
-                        line2, column2 = np.where(pts_list == id_)
-                        dix = column2 * xx + line2 * yx
-                        diy = column2 * xy + line2 * yy
-                        xi = int(x0 + dix)
-                        yi = int(y0 + diy)
-                        fig, ax = plt.subplots()
-                        plt.imshow(img[int(yi-d):int(yi+d), int(xi-d):int(xi+d)], cmap='gray')
-                        fig.canvas.mpl_connect('button_press_event', onclick)
-                        plt.title('Click on the missing corner')
-                        plt.show()
-                        plt.waitforbuttonpress()
-                        plt.pause(0.001)
-                        xi = xi+missing_points[0]-d
-                        yi = yi+missing_points[1]-d
-                        fig, ax = plt.subplots()
-                        plt.imshow(img[int(yi-10):int(yi+10), int(xi-10):int(xi+10)], cmap='gray')
-                        fig.canvas.mpl_connect('button_press_event', onclick)
-                        plt.title('Click again')
-                        plt.show()
-                        plt.waitforbuttonpress()
-                        xi = xi+missing_points[0]-10
-                        yi = yi+missing_points[1]-10
-                        arr = np.array([xi, yi, id_])
-                        print('arr ', arr)
-                        # print(corners_list)
-                        corners_list_opt[id_] = arr
-                        fig0
-                        plt.scatter(xi,yi,c='g')
-                    else :
-                        print('No corner with the id ', txt, ' chose another one')
-
-                    
-        else :
-            print('Impossible to detect manualy corners of image : ', im)
-            corners_list_opt = False
-        print (out_of_range_points, ' points out of the image or to close to the border')
-        return (corners_list_opt)
-   
 def calibration_model(nx, 
                       ny, 
                       l) : 
@@ -348,7 +321,9 @@ def calibration_model(nx,
 
 def cut_calibration_model (List_images, 
                            Xref, 
-                           __dict__) :
+                           ncx = 16,
+                           ncy = 12,
+                           sqr = 0.3) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, delete it on all the others 
         images. 
@@ -359,8 +334,12 @@ def cut_calibration_model (List_images,
             List of the detected corners
         Xref : list
             List of the real corners
-        pattern : str
-            Name of the pattern used ('macro' or 'micro')
+        ncx = int, optional
+            The number of squares for the chessboard through x direction
+        ncy = int, optional
+            The number of squares for the chessboard through y direction
+        sqr = float, optional
+            Size of a square (in mm)
         
     Returns:
         all_x : list (Dim = Nimages * N * 3)
@@ -378,7 +357,10 @@ def cut_calibration_model (List_images,
     nb_pts = np.zeros(M)
     print('M ', M)
     for i in range (0, M) :
-        B, pts = Calibrate(__dict__).calibrate(sorted(glob(List_images[i]))[0])
+        B, pts = calibrate(sorted(glob(List_images[i]))[0],
+                           ncx = ncx,
+                           ncy = ncy,
+                           sqr = sqr)
         Ucam_init.append(B)
         nb_pts[i] = pts
         N = len(B)
@@ -443,7 +425,9 @@ def cut_calibration_model (List_images,
 
 def NAN_calibration_model (Images, 
                            Xref, 
-                           __dict__,
+                           ncx = 16,
+                           ncy = 12,
+                           sqr = 0.3,
                            hybrid_verification = False) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, replace the points with NAN. 
@@ -453,6 +437,12 @@ def NAN_calibration_model (Images,
             List of the detected corners
         Xref : list
             List of the real corners
+        ncx = int, optional
+            The number of squares for the chessboard through x direction
+        ncy = int, optional
+            The number of squares for the chessboard through y direction
+        sqr = float, optional
+            Size of a square (in mm)
         pattern : str
             Name of the pattern used ('macro' or 'micro')
         hybrid_verification : bool, optional
@@ -478,12 +468,18 @@ def NAN_calibration_model (Images,
     all_X = np.zeros((M, Nall, 3))
     for i in range (0, M) :
         im = sorted(glob(Images[i]))[0]
-        corners_list, pts = Calibrate(__dict__).calibrate(im)
+        corners_list, pts = calibrate(im,
+                                      ncx = ncx,
+                                      ncy = ncy,
+                                      sqr = sqr)
         nb_pts[i] = pts
         if any (corners_list) :
-            corners_list = Calibrate(__dict__).complete_missing_points(corners_list, 
-                                                                       im,
-                                                                       hybrid_verification = hybrid_verification)
+            corners_list = complete_missing_points(corners_list, 
+                                                   im,
+                                                   ncx = ncx,
+                                                   ncy = ncy,
+                                                   sqr = sqr,
+                                                   hybrid_verification = hybrid_verification)
         else :
             corners_list = np.empty((Nall, 3))
             corners_list[:] = np.nan
@@ -500,14 +496,32 @@ def NAN_calibration_model (Images,
     nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_x, all_X, nb_pts)
 
-def pattern_detection (__dict__,
+def pattern_detection (left_folder = 'left_calibration',
+                       right_folder = 'right_calibration',
+                       name = 'calibration',
+                       saving_folder = 'results',
+                       ncx = 16,
+                       ncy = 12,
+                       sqr = 0.3,
                        hybrid_verification = False,
                        save = True) :
     """Detect the corners of Charucco's pattern.
     
     Args:
-       __dict__ : dict
-           Pattern properties define in a dict.
+       left_folder : str, optional
+           Left calibration images folder
+       right_folder : str, optional
+           Right calibration images folder
+       name : str, optional
+           Name to save
+       saving_folder : str, optional
+           Folder to save
+       ncx = int, optional
+           The number of squares for the chessboard through x direction
+       ncy = int, optional
+           The number of squares for the chessboard through y direction
+       sqr = float, optional
+           Size of a square (in mm)
        hybrid_verification : bool, optional
            If True, verify each pattern detection and propose to pick 
            manually the bad detected corners. The image with all detected
@@ -527,13 +541,6 @@ def pattern_detection (__dict__,
            The theorical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
-    saving_folder = __dict__['saving_folder']
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
-    ncx = __dict__['ncx']
-    ncy = __dict__['ncy']
-    sqr = __dict__['sqr']
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
     Images = Images_left
@@ -558,7 +565,9 @@ def pattern_detection (__dict__,
         Xref = calibration_model(ncx, ncy, sqr)
         all_x, all_X, nb_pts = NAN_calibration_model(Images, 
                                                      Xref, 
-                                                     __dict__,
+                                                     ncx = ncx,
+                                                     ncy = ncy,
+                                                     sqr = sqr,
                                                      hybrid_verification = hybrid_verification)
 
         if not np.any(all_X[0]):
@@ -573,15 +582,31 @@ def pattern_detection (__dict__,
         
     return(all_X, all_x, nb_pts)
 
-
-
-def multifolder_pattern_detection (__dict__,
+def multifolder_pattern_detection (left_folder = 'left_calibration',
+                                   right_folder = 'right_calibration',
+                                   name = 'calibration',
+                                   saving_folder = 'results',
+                                   ncx = 16,
+                                   ncy = 12,
+                                   sqr = 0.3,
                                    hybrid_verification = False) :
     """Detect the corners of Charucco's pattern in multiple folders.
     
     Args:
-       __dict__ : dict
-           Pattern properties define in a dict.
+       left_folder : str, optional
+           Left calibration images folder
+       right_folder : str, optional
+           Right calibration images folder
+       name : str, optional
+           Name to save
+       saving_folder : str, optional
+           Folder to save
+       ncx = int, optional
+           The number of squares for the chessboard through x direction
+       ncy = int, optional
+           The number of squares for the chessboard through y direction
+       sqr = float, optional
+           Size of a square (in mm)
        hybrid_verification : bool, optional
            If True, verify each pattern detection and propose to pick 
            manually the bad detected corners. The image with all detected
@@ -599,13 +624,6 @@ def multifolder_pattern_detection (__dict__,
            The theorical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
-    saving_folder = __dict__['saving_folder']
-    left_folder = __dict__['left_folder']
-    right_folder = __dict__['right_folder']
-    name = __dict__['name']
-    ncx = __dict__['ncx']
-    ncy = __dict__['ncy']
-    sqr = __dict__['sqr']
     nxy = len(sorted(glob(str(left_folder) + '/*')))
     nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(left_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
     npts = (ncx-1)*(ncy-1)
@@ -628,15 +646,13 @@ def multifolder_pattern_detection (__dict__,
             dx = imx[len(left_folder)+2:]
             for j, imy in enumerate(sorted(glob(str(imx) + '/*'))) :
                 dy = imy[len(imx)+2:]
-                __dict__n = {
-                            'left_folder' : left_folder + imy[len(left_folder):],
-                            'right_folder' : right_folder + imy[len(left_folder):],
-                            'name' : name,
-                            'saving_folder' : saving_folder,
-                            'ncx' : ncx,
-                            'ncy' : ncy,
-                            'sqr' : sqr}
-                all_X, all_x, nb_pts = pattern_detection (__dict__n,
+                all_X, all_x, nb_pts = pattern_detection (left_folder = left_folder + imy[len(left_folder):],
+                                                          right_folder = right_folder + imy[len(left_folder):],
+                                                          name = name,
+                                                          saving_folder = saving_folder,
+                                                          ncx = ncx,
+                                                          ncy = ncy,
+                                                          sqr = sqr,
                                                           hybrid_verification = hybrid_verification,
                                                           save = False)
                 all_x[:,:,0] += float(dx)
