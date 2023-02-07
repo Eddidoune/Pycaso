@@ -1,5 +1,5 @@
-numpy				>=1.21.0
-open CV			>=4.5.3.56
-matplotlib			>=3.5.1
-sigfig				>=1.3.1
-scikit-image		>=0.18.3
+numpy					>=1.21.0
+opencv-python		>=4.5.3.56
+matplotlib				>=3.5.1
+sigfig						>=1.3.1
+scikit-image			>=0.18.3

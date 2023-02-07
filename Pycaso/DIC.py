@@ -1,11 +1,5 @@
-
-import matplotlib.pyplot as plt
 import cv2
 import numpy as np
-from scipy.stats import skew, kurtosis
-from numpy import linalg as LA
-from glob import glob
-from os import chdir
 
 default = dict(
     alpha = 3,

@@ -12,7 +12,6 @@ try :
 except ImportError:
     cpy = False
 import numpy as np
-import sys
 import solve_library as solvel 
 import data_library as data
 import csv
@@ -103,8 +102,7 @@ def Soloff_calibration (__calibration_dict__,
     elif Soloff_pform == 555 or Soloff_pform == 5 :
         A_pol = np.zeros((2, 2, 56))    
     else :
-        print ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
-        sys.exit()
+        raise ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
     
     A_0 = [A111, A_pol]
     Soloff_pforms = [1, Soloff_pform]
@@ -194,7 +192,10 @@ def Soloff_identification (Xc1_identified,
         nx, ny, naxis = Xc1_identified.shape
         Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
         Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
-        
+    elif len(Xc1_identified.shape) == 2 : 
+        modif_22_12_09 = False
+    else :
+        raise('Error, X_ci shape different than 2 or 3')    
     # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
     # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
     x0 = solvel.least_square_method (Xc1_identified, Xc2_identified, A111)
@@ -259,8 +260,7 @@ def direct_calibration (__calibration_dict__,
     elif direct_pform == 5 :
         direct_A = np.zeros((3, 121))
     else :
-        print ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
-        sys.exit()
+        raise ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
     
     # Detect points from folders
     if multifolder :
@@ -339,6 +339,10 @@ def direct_identification (Xc1_identified,
         nx, ny, naxis = Xc1_identified.shape
         Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
         Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
+    elif len(Xc1_identified.shape) == 2 : 
+        modif_22_12_09 = False
+    else :
+        raise('Error, X_ci shape different than 2 or 3')
     Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
     Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
     Xl = np.zeros((2,len(Xl1)))
@@ -422,7 +426,6 @@ def hybrid_identification(Xc1_identified,
     
     return(xsolution, mask_median)
     
-
 def hybrid_mask (Xc1_identified,
                  Xc2_identified,
                  direct_A,
@@ -505,7 +508,6 @@ def hybrid_mask (Xc1_identified,
 
     return(xsolution, mask_median)
     
-
 def AI_training (X_c1,
                  X_c2,
                  xSoloff_solution,
@@ -535,10 +537,17 @@ def AI_training (X_c1,
            AI model or list of AI models
     """
     # Organise the list of parameters
-    Xl0, Yl0 = X_c1[:,0], X_c1[:,1]
-    Xr0, Yr0 = X_c2[:,0], X_c2[:,1]
+    if len(X_c1.shape) == 3 :
+        Xl0, Yl0 = np.ravel(X_c1[:,:,0]), np.ravel(X_c1[:,:,1])
+        Xr0, Yr0 = np.ravel(X_c2[:,:,0]), np.ravel(X_c2[:,:,1])
+    elif len(X_c1.shape) == 2 :
+        Xl0, Yl0 = np.ravel(X_c1[:,0]), np.ravel(X_c1[:,1])
+        Xr0, Yr0 = np.ravel(X_c2[:,0]), np.ravel(X_c2[:,1])
     xS, yS, zS = xSoloff_solution
-    N = X_c1.shape[0]
+    xS = np.ravel(xS)
+    yS = np.ravel(yS)
+    zS = np.ravel(zS)
+    N = Xl0.shape[0]
     if AI_training_size > N :
         print('AI_training_size reduced to size ', N)
         AI_training_size = N
@@ -598,8 +607,14 @@ def AI_identification (X_c1,
            3D space coordinates identified with AI method.
     """
     # Solve on all pts
-    X = np.transpose(np.array([X_c1[:,0], X_c1[:,1], 
-                               X_c2[:,0], X_c2[:,1]]))   
+    if len(X_c1.shape) == 3 :
+        Xl0, Yl0 = np.ravel(X_c1[:,:,0]), np.ravel(X_c1[:,:,1])
+        Xr0, Yr0 = np.ravel(X_c2[:,:,0]), np.ravel(X_c2[:,:,1])
+    elif len(X_c1.shape) == 2 :
+        Xl0, Yl0 = np.ravel(X_c1[:,0]), np.ravel(X_c1[:,1])
+        Xr0, Yr0 = np.ravel(X_c2[:,0]), np.ravel(X_c2[:,1])
+    X = np.transpose(np.array([Xl0, Yl0, 
+                               Xr0, Yr0]))   
      
     if method == 'simultaneously' :
         xAI_solution = model.predict(X)
@@ -612,4 +627,7 @@ def AI_identification (X_c1,
         xAI_solution = np.array([xAI_solutionx, xAI_solutiony, xAI_solutionz])
     else :
         print('No method ', method)
+    if len(X_c1.shape) == 3 :
+        nx, ny, __ = X_c1.shape
+        xAI_solution = xAI_solution.reshape(3, nx, ny)
     return (xAI_solution)

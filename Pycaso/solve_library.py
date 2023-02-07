@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sigfig as sgf
 import pandas as pd
 import os
 
@@ -709,7 +708,8 @@ def Levenberg_Marquardt_solving (Xc1_identified,
                                             method ='lm')
                 xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
             return (xopt)
-        xopt_parallel = Parallel(n_jobs=8)(delayed(xopt_solve)(Xdetected, sl) for sl in slices)
+        
+        xopt_parallel = Parallel(n_jobs = core_number)(delayed(xopt_solve)(Xdetected, sl) for sl in slices)
         
         for part in range (len(xopt_parallel)) :
             sl = slices[part]
@@ -764,7 +764,7 @@ def AI_solve_simultaneously (file,
        max_depth, 
        bootstrap,
        hyperparameters_tuning : 
-          More information on the link :
+          Used to find the best hyperparameters. More information on the link :
           https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
            
            
@@ -873,7 +873,7 @@ def AI_solve_independantly (file,
        max_depth, 
        bootstrap,
        hyperparameters_tuning : 
-          More information on the link :
+          Used to find the best hyperparameters. More information on the link :
           https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
            
     Returns:
@@ -1045,7 +1045,7 @@ def AI_solve_zdependantly (file,
        max_depth, 
        bootstrap,
        hyperparameters_tuning : 
-          More information on the link :
+          Used to find the best hyperparameters. More information on the link :
           https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
            
            

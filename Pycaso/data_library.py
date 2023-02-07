@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from sigfig import round
 from glob import glob
 from copy import deepcopy
 import DIC
 import math
 import matplotlib.pyplot as plt
 import sys
-import pathlib
 import os
 import time
 import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
-from skimage.filters import threshold_otsu, threshold_local, rank
-from skimage.morphology import disk
-from skimage.util import img_as_ubyte
+
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 
 try : 
@@ -473,6 +469,7 @@ def NAN_calibration_model (Images,
             Array of the detected corners
             
     """    
+    
     M = len(Images)
     
     # First, detect the holes = missing points
@@ -575,6 +572,8 @@ def pattern_detection (__dict__,
 
         
     return(all_X, all_x, nb_pts)
+
+
 
 def multifolder_pattern_detection (__dict__,
                                    hybrid_verification = False) :
@@ -708,7 +707,6 @@ def hybrid_mask_creation (image,
     inside_mask = np.ma.masked_inside(image_smooth*1000, -gate, gate)
     mask_median = [inside_mask.mask, median]
     return (mask_median)
-
 
 def camera_np_coordinates (all_X, 
                            all_x, 

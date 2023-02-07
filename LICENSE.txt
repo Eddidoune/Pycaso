@@ -1,9 +1,19 @@
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --time=24:00:00
-#SBATCH --job-name=my_serial_job
-#SBATCH --mem=1536M
+**Licensing**: Pycaso is distributed under CC BY-NC-ND 4.0 LICENSE as descripted below.
 
-module load python/3.9.1
+-----------------------------------------------  XXXXXXXX LICENSE XXXXXXXX  ---------------------------------------------------
 
-python3.9 AI.py
+Copyright <2023> <Eddy Caron, Jean-Francois Witz, Christophe Cuvier, Arnaud Beaurain, Vincent Magnier, Ahmed El Bartali, 
+Elsevier - SoftwareX, 
+"PYCASO : Python module for calibration of cameras by soloff’s method">
+
+This software can be :
+- Red, printed and downloaded
+- Redistributed or republished
+- Translated for private use (Not for distribution)
+- Downloaded for text and data mining purposes
+- Reused portions or extracts from the article in other works
+
+This software can't be :
+- Sold or re-used for commercial purposes
+
+-----------------------------------------------  XXXXXXXX LICENSE XXXXXXXX  ---------------------------------------------------
