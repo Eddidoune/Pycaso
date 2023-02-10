@@ -50,139 +50,20 @@ def magnification (X1 : np.ndarray,
     Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
     return (Magnification)
 
-def Soloff_calibration (__calibration_dict__ : dict,
-                        z_list : np.ndarray, 
+def Soloff_calibration (z_list : np.ndarray,
                         Soloff_pform : int,
-                        hybrid_verification : bool = False ,
+                        left_folder : str = 'left_calibration',
+                        right_folder : str = 'right_calibration',
+                        name : str = 'calibration',
+                        saving_folder : str = 'results',
+                        ncx : int = 16,
+                        ncy : int = 12,
+                        sqr : float = 0.3,
+                        hybrid_verification : bool = False,
                         multifolder : bool = False,
                         plotting : bool = False) -> (np.ndarray, 
                                                      np.ndarray, 
                                                      np.ndarray):
-    """Calculation of the magnification between reals and detected positions 
-    and the calibration parameters A = Soloff_constants0 (Resp Soloff_constants):--> X = A.M(x)
-    
-    Args:
-       __calibration_dict__ : dict
-           Calibration properties define in a dict. Including 'left_folder', 
-           'right_folder', 'name', 'ncx', 'ncy', 'sqr'
-       z_list : numpy.ndarray
-           List of the different z position. (WARNING : Should be order the 
-                                              same way in the target folder)
-       Soloff_pform : int
-           Polynomial form
-       hybrid_verification : bool, optional
-           If True, verify each pattern detection and propose to pick 
-           manually the bad detected corners. The image with all detected
-           corners is show and you can decide to change any point using
-           it ID (ID indicated on the image) as an input. If there is no
-           bad detected corner, press ENTER to go to the next image.
-       multifolder : bool, optional
-           Used for specific image acquisition when all directions moved
-       plotting = Bool
-           Plot the calibration view or not
-           
-    Returns:
-       Soloff_constants0 : numpy.ndarray
-           Constants of Soloff polynomial form '111'
-       Soloff_constants : numpy.ndarray
-           Constants of Soloff polynomial form chose (Soloff_pforloasm)
-       Magnification : numpy.ndarray
-           Magnification between reals and detected positions 
-           [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
-    """
-    z_list = np.array(z_list)    
-    Soloff_constants0 = np.zeros((2, 2, 4))
-    if Soloff_pform == 111 or Soloff_pform == 1 :
-        Soloff_constants = np.zeros((2, 2, 4))
-    elif Soloff_pform == 221 :
-        Soloff_constants = np.zeros((2, 2, 9))
-    elif Soloff_pform == 222 or Soloff_pform == 2 :
-        Soloff_constants = np.zeros((2, 2, 10))
-    elif Soloff_pform == 332 :
-        Soloff_constants = np.zeros((2, 2, 19))
-    elif Soloff_pform == 333 or Soloff_pform == 3 :
-        Soloff_constants = np.zeros((2, 2, 20))
-    elif Soloff_pform == 443 :
-        Soloff_constants = np.zeros((2, 2, 34))
-    elif Soloff_pform == 444 or Soloff_pform == 4 :
-        Soloff_constants = np.zeros((2, 2, 35))
-    elif Soloff_pform == 554 :
-        Soloff_constants = np.zeros((2, 2, 55))
-    elif Soloff_pform == 555 or Soloff_pform == 5 :
-        Soloff_constants = np.zeros((2, 2, 56))    
-    else :
-        raise ('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
-    
-    A_0 = [Soloff_constants0, Soloff_constants]
-    Soloff_pforms = [1, Soloff_pform]
-
-    
-    # Detect points from folders
-    if multifolder :
-        all_X, all_x, nb_pts = data.multifolder_pattern_detection(__calibration_dict__,
-                                                                  hybrid_verification = hybrid_verification)          
-    else :
-        all_X, all_x, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                      hybrid_verification = hybrid_verification)        
-
-    # Creation of the reference matrix Xref and the real position Ucam for 
-    # each camera
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_list)     
-
-    # Plot the references plans
-    solvel.refplans(x, z_list, plotting = plotting)
-
-    # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
-    for camera in [1, 2] :
-        if camera == 1 :
-            X = Xc1
-        elif camera == 2 :
-            X = Xc2
-        x1, x2, x3 = x
-        X1, X2 = X
-        
-        # Compute the magnification (same for each cam as set up is symetric)
-        Magnification[camera-1] = magnification (X1, X2, x1, x2)
-        
-        for pol in range (len (A_0)) :
-            # Do the system X = Ai*M, where M is the monomial of the real 
-            # coordinates of crosses and X the image coordinates, and M the 
-            # unknow (polynomial form aab)
-            Soloff_pform = Soloff_pforms[pol]
-            M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
-            Ai = np.matmul(X, np.linalg.pinv(M))
-            A_0[pol][camera-1] = Ai
-            
-            # Error of projection
-            Xd = np.matmul(Ai,M)
-            proj_error = X - Xd
-            print('Max ; min projection error (polynomial form ', 
-                str(Soloff_pform),
-                ') for camera ', 
-                str(camera),
-                ' = ',
-                str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
-                ' ; ',
-                str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
-                ' px')
-    Soloff_constants0, Soloff_constants = A_0
-    return(Soloff_constants0, Soloff_constants, Magnification)
-
-def Soloff_calibration2 (z_list : np.ndarray,
-                         Soloff_pform : int,
-                         left_folder : str = 'left_calibration',
-                         right_folder : str = 'right_calibration',
-                         name : str = 'calibration',
-                         saving_folder : str = 'results',
-                         ncx : int = 16,
-                         ncy : int = 12,
-                         sqr : float = 0.3,
-                         hybrid_verification : bool = False,
-                         multifolder : bool = False,
-                         plotting : bool = False) -> (np.ndarray, 
-                                                      np.ndarray, 
-                                                      np.ndarray):
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = Soloff_constants0 (Resp Soloff_constants):--> X = A.M(x)
     
@@ -369,120 +250,19 @@ def Soloff_identification (Xc1_identified : np.ndarray,
         xsolution = xsolution.reshape((3, nx, ny))
     return (xsolution)
 
-def direct_calibration (__calibration_dict__ : dict,
-                        z_list : np.ndarray,
+def direct_calibration (z_list : np.ndarray,
                         direct_pform : int,
+                        left_folder : str = 'left_calibration',
+                        right_folder : str = 'right_calibration',
+                        name : str = 'calibration',
+                        saving_folder : str = 'results',
+                        ncx : int = 16,
+                        ncy : int = 12,
+                        sqr : float = 0.3,
                         hybrid_verification : bool = False,
                         multifolder : bool = False,
                         plotting : bool = False) -> (np.ndarray, 
                                                      np.ndarray) :
-    """Calculation of the magnification between reals and detected positions 
-    and the calibration parameters A:--> x = A.M(X)
-    
-    Args:
-       __calibration_dict__ : dict
-           Calibration properties define in a dict. Including 'left_folder', 
-           'right_folder', 'name', 'ncx', 'ncy', 'sqr'
-       z_list : numpy.ndarray
-           List of the different z position. (WARNING : Should be order the 
-                                              same way in the target folder)
-       direct_pform : int
-           Polynomial degree
-       hybrid_verification : bool, optional
-           If True, verify each pattern detection and propose to pick 
-           manually the bad detected corners. The image with all detected
-           corners is show and you can decide to change any point using
-           it ID (ID indicated on the image) as an input. If there is no
-           bad detected corner, press ENTER to go to the next image.
-       multifolder : bool, optional
-           Used for specific image acquisition when all directions moved
-       plotting = Bool
-           Plot the calibration view or not
-           
-    Returns:
-       direct_constants : numpy.ndarray
-           Constants of direct polynomial
-       Magnification : numpy.ndarray
-           Magnification between reals and detected positions
-    """
-    z_list = np.array(z_list)
-    
-    if direct_pform == 1 :
-        direct_constants = np.zeros((3, 5))
-    elif direct_pform == 2 :
-        direct_constants = np.zeros((3, 15))
-    elif direct_pform == 3 :
-        direct_constants = np.zeros((3, 35))
-    elif direct_pform == 4 :
-        direct_constants = np.zeros((3, 70))
-    elif direct_pform == 5 :
-        direct_constants = np.zeros((3, 121))
-    else :
-        raise ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
-    
-    # Detect points from folders
-    if multifolder :
-        all_X, all_x, nb_pts = data.multifolder_pattern_detection(__calibration_dict__,
-                                                                  hybrid_verification = hybrid_verification)          
-    else :
-        all_X, all_x, nb_pts = data.pattern_detection(__calibration_dict__,
-                                                      hybrid_verification = hybrid_verification)      
-
-    # Creation of the reference matrix Xref and the real position Ucam for 
-    # each camera i
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_list)
-
-    # Plot the references plans
-    solvel.refplans(x, z_list, plotting = plotting)
-        
-    # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
-
-    for camera in [1, 2] :
-        if camera == 1 :
-            X = Xc1
-        elif camera == 2 :
-            X = Xc2
-        x1, x2, x3 = x
-        X1, X2 = X
-        
-        # Compute the magnification (same for each cam as set up is symetric)
-        Magnification[camera-1] = magnification (X1, X2, x1, x2)
-        
-        # Do the system x = Ap*M, where M is the monomial of the real 
-        # coordinates of crosses and x the image coordinates, and M the unknow
-        M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
-        Ap = np.matmul(x, np.linalg.pinv(M))
-        direct_constants = Ap
-
-        # Error of projection
-        xd = np.matmul(Ap,M)
-        proj_error = x - xd
-        print('Max ; min projection error (polynomial form ', 
-            str(direct_pform),
-            ') for camera ', 
-            str(camera),
-            ' = ',
-            str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
-            ' ; ',
-            str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
-            ' px')
-
-    return(direct_constants, Magnification)    
-
-def direct_calibration2 (z_list : np.ndarray,
-                         direct_pform : int,
-                         left_folder : str = 'left_calibration',
-                         right_folder : str = 'right_calibration',
-                         name : str = 'calibration',
-                         saving_folder : str = 'results',
-                         ncx : int = 16,
-                         ncy : int = 12,
-                         sqr : float = 0.3,
-                         hybrid_verification : bool = False,
-                         multifolder : bool = False,
-                         plotting : bool = False) -> (np.ndarray, 
-                                                      np.ndarray) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
     

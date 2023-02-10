@@ -61,17 +61,17 @@ if __name__ == '__main__' :
     print('Direct method - Start calibration')
     print('#####       ')
     print('')
-    direct_A, Mag = pcs.direct_calibration2 (z_list,
-                                             direct_pform,
-                                             **calibration_dict)
+    direct_A, Mag = pcs.direct_calibration (z_list,
+                                            direct_pform,
+                                            **calibration_dict)
 
     print('')
     print('#####       ')
     print('Soloff method - Start calibration')
     print('#####       ')  
-    A111, A_pol, Mag = pcs.Soloff_calibration2 (z_list,
-                                                Soloff_pform,
-                                                **calibration_dict)
+    A111, A_pol, Mag = pcs.Soloff_calibration (z_list,
+                                               Soloff_pform,
+                                               **calibration_dict)
     
     print('')
     print('#####       ')
