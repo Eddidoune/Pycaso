@@ -166,16 +166,17 @@ def getresidue(ima,
     residue=ima-remap.astype('float32') 
     return residue
 
-def displacement_field (Im1, 
-                        Im2, 
-                        window = [False],
-                        vr_kwargs=dict()) :
+def displacement_field (Im1 : str, 
+                        Im2 : str, 
+                        window : list = [False],
+                        vr_kwargs=dict()) -> (np.ndarray,
+                                              np.ndarray) :
     """Calcul the displacement field between two images.
 
     Args:
-        image_1 : type = class 'str'
+        Im1 : str
             reference image      
-        image_2 : type = class 'str'
+        Im2 : str
             image you want to compare with the image_2
         window : type = list
             The ZOI of the images
@@ -183,9 +184,9 @@ def displacement_field (Im1,
             Correlations parameters
 
     Returns:
-        U : type = numpy.ndarray
+        U : type = np.ndarray
             U displacement field (x coord)
-        V : type : numpy.ndarray
+        V : type : np.ndarray
             V displacement field (y coord)
         
     """    
@@ -217,31 +218,36 @@ def displacement_field (Im1,
 
     return (U,V)
 
-def strain_fields (U, 
-                   V,
-                   W) :
+def strain_fields (U : np.ndarray, 
+                   V : np.ndarray,
+                   W : np.ndarray) -> (np.ndarray,
+                                       np.ndarray,
+                                       np.ndarray,
+                                       np.ndarray,
+                                       np.ndarray,
+                                       np.ndarray) :
     """Calcul all the strain fields between two images.
 
     Args:
-        U : type = numpy.ndarray
+        U : type = np.ndarray
             U displacement field (x coord)
-        V : type : numpy.ndarray
+        V : type : np.ndarray
             V displacement field (y coord)
-        W : type : numpy.ndarray
+        W : type : np.ndarray
             W displacement field (z coord)
 
     Returns:
-        Exx : type = numpy.ndarray
+        Exx : type = np.ndarray
             Exx strain field (dx/x)
-        Exy : type = numpy.ndarray
+        Exy : type = np.ndarray
             Exx strain field (dx/y)
-        Eyx : type = numpy.ndarray
+        Eyx : type = np.ndarray
             Exx strain field (dy/x)
-        Eyy : type = numpy.ndarray
+        Eyy : type = np.ndarray
             Exx strain field (dy/y)        
-        Ezx : type = numpy.ndarray
+        Ezx : type = np.ndarray
             Exx strain field (dz/x)
-        Ezy : type = numpy.ndarray
+        Ezy : type = np.ndarray
             Exx strain field (dz/y)          
     """  
     Exy,Exx = np.gradient(U)

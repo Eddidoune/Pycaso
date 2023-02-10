@@ -12,6 +12,7 @@ import numpy as np
     
 import matplotlib.pyplot as plt
 import scipy.optimize as sopt
+import sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import HistGradientBoostingRegressor
@@ -26,7 +27,9 @@ class Direct_Polynome(dict) :
         self._dict_ = _dict_
         self.polynomial_form = _dict_['polynomial_form']
 
-    def pol_form (self, Xl, Xr) :
+    def pol_form (self, 
+                  Xl : np.ndarray,
+                  Xr : np.ndarray) -> np.ndarray :
         """Create the matrix M = f(Xl,Xr) with f the polynomial function of 
         degree n
         
@@ -176,7 +179,8 @@ class Soloff_Polynome(dict) :
         self._dict_ = _dict_
         self.polynomial_form = _dict_['polynomial_form']
 
-    def pol_form (self, x) :
+    def pol_form (self, 
+                  x : np.ndarray) -> np.ndarray :
         """Create the matrix M = f(x) with f the polynomial function of degree 
         (aab : a for x1, x2 and b for x3)
         
@@ -419,9 +423,12 @@ class Soloff_Polynome(dict) :
         return(X)    
 
 
-def fit_plan_to_points(point,
-                       title = False,
-                       plotting = False) :
+def fit_plan_to_points(point : np.ndarray,
+                       title : bool = False,
+                       plotting : bool = False) -> (np.ndarray,
+                                                    np.matrix,
+                                                    np.float64,
+                                                    np.float64) :
     """Plot the median plan from a serie of points
     
     Args:
@@ -429,11 +436,18 @@ def fit_plan_to_points(point,
            Real points x(x1, x2, x3)       
        title : str
            Title of the plotted figure
-       plotting = Bool
+       plotting : bool
            Plot the result or not
             
     Returns:
-       plot points + associated plan
+       fit : np.ndarray
+           Constant of plan equation
+       errors : np.matrix
+           Distance from median plan for each points
+       mean_error : np.float64
+           Mean of 'error'
+       residual : np.float64
+           Norm : residual = np.linalg.norm(errors)
     """
     xs, ys, zs = point
     
@@ -477,9 +491,12 @@ def fit_plan_to_points(point,
     
     return (fit, errors, mean_error, residual)
 
-def fit_plans_to_points(points, 
-                        title = False,
-                        plotting = False):
+def fit_plans_to_points(points : np.ndarray, 
+                        title : bool = False,
+                        plotting : bool = False) -> (np.ndarray,
+                                                     np.matrix,
+                                                     np.float64,
+                                                     np.float64) :
     """Plot the medians plans from series of points
     
     Args:
@@ -491,7 +508,14 @@ def fit_plans_to_points(points,
            Plot the result or not
             
     Returns:
-       plot points + associated plans
+       fit : np.ndarray
+           Constant of plan equation
+       errors : np.matrix
+           Distance from median plan for each points
+       mean_error : np.float64
+           Mean of 'error'
+       residual : np.float64
+           Norm : residual = np.linalg.norm(errors)
     """
     # plot raw data
     l = len (points)
@@ -516,17 +540,17 @@ def fit_plans_to_points(points,
 
     return (fit, errors, mean_error, residual)
 
-def refplans(xc1, 
-             z_list,
-             plotting = False) :
+def refplans(xc1 : np.ndarray, 
+             z_list : np.ndarray,
+             plotting: bool = False) :
     """Plot the medians plans from references points
     
     Args:
-       xc1 : numpy.ndarray (shape = 3,n)
+       xc1 : np.ndarray (shape = 3,n)
            Real points x(x1, x2, x3)       
-       z_list : numpy.ndarray
+       z_list : np.ndarray
            List of the different plans coordinates
-       plotting = Bool
+       plotting = bool
            Plot the result or not
             
     Returns:
@@ -548,22 +572,22 @@ def refplans(xc1,
                         title = 'Calibration plans',
                         plotting = plotting)
 
-def least_square_method (Xc1_identified, 
-                         Xc2_identified, 
-                         Soloff_constants0) :
+def least_square_method (Xc1_identified : np.ndarray, 
+                         Xc2_identified : np.ndarray, 
+                         Soloff_constants0 : np.ndarray) -> np.ndarray :
     """Resolve by least square method the system A . x = X for each points 
     detected and both cameras
     
     Args:
-       Xc1_identified : numpy.ndarray
+       Xc1_identified : np.ndarray
            Real positions of camera 1
-       Xc2_identified : numpy.ndarray
+       Xc2_identified : np.ndarray
            Real positions of camera 2
-       Soloff_constants0 : numpy.ndarray
+       Soloff_constants0 : np.ndarray
            Constants of the first order calibration polynome
            
     Returns:
-       x0 : numpy.ndarray
+       x0 : np.ndarray
            Solution x = xsol of the system 
     """
     N = len (Xc1_identified)
@@ -589,7 +613,7 @@ def least_square_method (Xc1_identified,
     
     return (x0)    
 
-def xopt_mlib (xtuple) :
+def xopt_mlib (xtuple : list) -> np.ndarray:
     """Multiprocessing function used on the next function Levenberg_Marquardt_solving.
     
     Args:
@@ -597,7 +621,7 @@ def xopt_mlib (xtuple) :
             List of arguments for multiprocessing
            
     Returns:
-        xopt : numpy.ndarray
+        xopt : np.ndarray
             Solution of the LM resolution
     """
     Xdetected, x0_part, Soloff_pform, A0 = xtuple
@@ -618,23 +642,25 @@ def xopt_mlib (xtuple) :
         xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
     return (xopt)
 
-def Levenberg_Marquardt_solving (Xc1_identified, 
-                                 Xc2_identified, 
-                                 A, 
-                                 x0, 
-                                 Soloff_pform, 
-                                 method = 'curve_fit') :
+def Levenberg_Marquardt_solving (Xc1_identified : np.ndarray, 
+                                 Xc2_identified : np.ndarray, 
+                                 A : np.ndarray, 
+                                 x0 : np.ndarray, 
+                                 Soloff_pform : int, 
+                                 method : str = 'curve_fit') -> (np.ndarray,
+                                                                 np.ndarray,
+                                                                 np.ndarray) :
     """Resolve by Levenberg-Marcquardt method the system A . x = X for each 
     points detected and both cameras
     
     Args:
-        Xc1_identified : numpy.ndarray
+        Xc1_identified : np.ndarray
             Real positions of camera 1
-        Xc2_identified : numpy.ndarray
+        Xc2_identified : np.ndarray
             Real positions of camera 2
-        A : numpy.ndarray
+        A : np.ndarray
             Constants of the calibration polynome
-        x0 : numpy.ndarray
+        x0 : np.ndarray
             Initial guess
         Soloff_pform : int
             Polynomial form
@@ -642,11 +668,11 @@ def Levenberg_Marquardt_solving (Xc1_identified,
             Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
            
     Returns:
-        xopt : numpy.ndarray
+        xopt : np.ndarray
             Solution of the LM resolution
-        Xcalculated : numpy.ndarray
+        Xcalculated : np.ndarray
             Solution calculated
-        Xdetected : numpy.ndarray
+        Xdetected : np.ndarray
             Solution detected (Xc1_identified, Xc2_identified)
     """   
     try : 
@@ -741,15 +767,16 @@ def Levenberg_Marquardt_solving (Xc1_identified,
     
     return (xopt, Xcalculated, Xdetected)
 
-def AI_solve_simultaneously (file,
-                             n_estimators=800, 
-                             min_samples_leaf=1, 
-                             min_samples_split=2, 
-                             random_state=1, 
-                             max_features='sqrt',
-                             max_depth=100,
-                             bootstrap='true',
-                             hyperparameters_tuning = False) :  
+def AI_solve_simultaneously (file : str,
+                             n_estimators : int = 800, 
+                             min_samples_leaf : int = 1, 
+                             min_samples_split : int = 2, 
+                             random_state : int = 1, 
+                             max_features : str = 'sqrt',
+                             max_depth : int = 100,
+                             bootstrap : str = 'true',
+                             hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
+                                                                        int) :  
     """Calculation of the AI model between all inputs (Xl and Xr) and 
     outputs (x,y and z)
     
@@ -849,15 +876,16 @@ def AI_solve_simultaneously (file,
     accuracy = evaluate(model, X2, Y2)
     return(model, accuracy)
 
-def AI_solve_independantly (file,
-                            n_estimators=800, 
-                            min_samples_leaf=1, 
-                            min_samples_split=2, 
-                            random_state=1, 
-                            max_features='sqrt',
-                            max_depth=100,
-                            bootstrap='true',
-                            hyperparameters_tuning = False) :  
+def AI_solve_independantly (file : str,
+                            n_estimators : int = 800, 
+                            min_samples_leaf : int = 1, 
+                            min_samples_split : int = 2, 
+                            random_state : int = 1, 
+                            max_features : str = 'sqrt',
+                            max_depth : int = 100,
+                            bootstrap : str = 'true',
+                            hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
+                                                                       int) :  
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
 
@@ -1022,15 +1050,16 @@ def AI_solve_independantly (file,
            accuracyy,
            accuracyz)
 
-def AI_solve_zdependantly (file,
-                           n_estimators=800, 
-                           min_samples_leaf=1, 
-                           min_samples_split=2, 
-                           random_state=1, 
-                           max_features='sqrt',
-                           max_depth=100,
-                           bootstrap='true',
-                           hyperparameters_tuning = False) :  
+def AI_solve_zdependantly (file : str,
+                           n_estimators : int = 800, 
+                           min_samples_leaf : int = 1, 
+                           min_samples_split : int = 2, 
+                           random_state : int = 1, 
+                           max_features : str = 'sqrt',
+                           max_depth : int = 100,
+                           bootstrap : str = 'true',
+                           hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
+                                                                      int) :    
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
 
@@ -1196,7 +1225,8 @@ def AI_solve_zdependantly (file,
            accuracyy,
            accuracyz)
 
-def AI_HGBoost (file) :  
+def AI_HGBoost (file : str) -> (list,
+                                list) :  
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
 
@@ -1295,7 +1325,8 @@ def AI_HGBoost (file) :
     
     return(model, accuracy) 
     
-def AI_LinearRegression (file) :  
+def AI_LinearRegression (file : str) -> (list,
+                                         list) : 
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
     output (x,y or z)
 

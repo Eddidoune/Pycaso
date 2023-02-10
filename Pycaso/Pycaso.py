@@ -12,12 +12,20 @@ try :
 except ImportError:
     cpy = False
 import numpy as np
+import sklearn
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
 import solve_library as solvel 
 import data_library as data
 import csv
 import math
 
-def magnification (X1, X2, x1, x2) :
+def magnification (X1 : np.ndarray, 
+                   X2 : np.ndarray,
+                   x1 : np.ndarray,
+                   x2 : np.ndarray) -> np.ndarray :
     """Calculation of the magnification between reals and detected positions
     in mm/px
     
@@ -42,12 +50,14 @@ def magnification (X1, X2, x1, x2) :
     Magnification = np.asarray([Delta_x1/Delta_X1, Delta_x2/Delta_X2]) 
     return (Magnification)
 
-def Soloff_calibration (__calibration_dict__,
-                        z_list,
-                        Soloff_pform,
-                        hybrid_verification = False,
-                        multifolder = False,
-                        plotting = False) :
+def Soloff_calibration (__calibration_dict__ : dict,
+                        z_list : np.ndarray, 
+                        Soloff_pform : int,
+                        hybrid_verification : bool = False ,
+                        multifolder : bool = False,
+                        plotting : bool = False) -> (np.ndarray, 
+                                                     np.ndarray, 
+                                                     np.ndarray):
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = Soloff_constants0 (Resp Soloff_constants):--> X = A.M(x)
     
@@ -159,19 +169,20 @@ def Soloff_calibration (__calibration_dict__,
     Soloff_constants0, Soloff_constants = A_0
     return(Soloff_constants0, Soloff_constants, Magnification)
 
-
-def Soloff_calibration2 (z_list,
-                         Soloff_pform,
-                         left_folder = 'left_calibration',
-                         right_folder = 'right_calibration',
-                         name = 'calibration',
-                         saving_folder = 'results',
-                         ncx = 16,
-                         ncy = 12,
-                         sqr = 0.3,
-                         hybrid_verification = False,
-                         multifolder = False,
-                         plotting = False) :
+def Soloff_calibration2 (z_list : np.ndarray,
+                         Soloff_pform : int,
+                         left_folder : str = 'left_calibration',
+                         right_folder : str = 'right_calibration',
+                         name : str = 'calibration',
+                         saving_folder : str = 'results',
+                         ncx : int = 16,
+                         ncy : int = 12,
+                         sqr : float = 0.3,
+                         hybrid_verification : bool = False,
+                         multifolder : bool = False,
+                         plotting : bool = False) -> (np.ndarray, 
+                                                      np.ndarray, 
+                                                      np.ndarray):
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A = Soloff_constants0 (Resp Soloff_constants):--> X = A.M(x)
     
@@ -306,12 +317,12 @@ def Soloff_calibration2 (z_list,
     Soloff_constants0, Soloff_constants = A_0
     return(Soloff_constants0, Soloff_constants, Magnification)
 
-def Soloff_identification (Xc1_identified,
-                           Xc2_identified,
-                           Soloff_constants0, 
-                           Soloff_constants,
-                           Soloff_pform,
-                           method = 'curve_fit') :
+def Soloff_identification (Xc1_identified : np.ndarray,
+                           Xc2_identified : np.ndarray,
+                           Soloff_constants0 : np.ndarray, 
+                           Soloff_constants : np.ndarray,
+                           Soloff_pform : int,
+                           method : str = 'curve_fit') -> np.ndarray :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -358,12 +369,13 @@ def Soloff_identification (Xc1_identified,
         xsolution = xsolution.reshape((3, nx, ny))
     return (xsolution)
 
-def direct_calibration (__calibration_dict__,
-                        z_list,
-                        direct_pform,
-                        hybrid_verification = False,
-                        multifolder = False,
-                        plotting = False) :
+def direct_calibration (__calibration_dict__ : dict,
+                        z_list : np.ndarray,
+                        direct_pform : int,
+                        hybrid_verification : bool = False,
+                        multifolder : bool = False,
+                        plotting : bool = False) -> (np.ndarray, 
+                                                     np.ndarray) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
     
@@ -458,18 +470,19 @@ def direct_calibration (__calibration_dict__,
 
     return(direct_constants, Magnification)    
 
-def direct_calibration2 (z_list,
-                         direct_pform,
-                         left_folder = 'left_calibration',
-                         right_folder = 'right_calibration',
-                         name = 'calibration',
-                         saving_folder = 'results',
-                         ncx = 16,
-                         ncy = 12,
-                         sqr = 0.3,
-                         hybrid_verification = False,
-                         multifolder = False,
-                         plotting = False) :
+def direct_calibration2 (z_list : np.ndarray,
+                         direct_pform : int,
+                         left_folder : str = 'left_calibration',
+                         right_folder : str = 'right_calibration',
+                         name : str = 'calibration',
+                         saving_folder : str = 'results',
+                         ncx : int = 16,
+                         ncy : int = 12,
+                         sqr : float = 0.3,
+                         hybrid_verification : bool = False,
+                         multifolder : bool = False,
+                         plotting : bool = False) -> (np.ndarray, 
+                                                      np.ndarray) :
     """Calculation of the magnification between reals and detected positions 
     and the calibration parameters A:--> x = A.M(X)
     
@@ -587,10 +600,10 @@ def direct_calibration2 (z_list,
 
     return(direct_constants, Magnification)    
 
-def direct_identification (Xc1_identified,
-                           Xc2_identified,
-                           direct_constants,
-                           direct_pform) :
+def direct_identification (Xc1_identified : np.ndarray,
+                           Xc2_identified : np.ndarray,
+                           direct_constants : np.ndarray,
+                           direct_pform : int) -> np.ndarray :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -631,15 +644,15 @@ def direct_identification (Xc1_identified,
         xsolution = xsolution.reshape((3, nx, ny))
     return(xsolution)
 
-def hybrid_identification(Xc1_identified,
-                          Xc2_identified,
-                          direct_constants,
-                          direct_pform,
-                          Soloff_constants0, 
-                          Soloff_constants,
-                          Soloff_pform,
-                          mask_median,
-                          method = 'curve_fit') :
+def hybrid_identification(Xc1_identified : np.ndarray,
+                          Xc2_identified : np.ndarray,
+                          direct_constants : np.ndarray,
+                          direct_pform : int,
+                          Soloff_constants0 : np.ndarray, 
+                          Soloff_constants : np.ndarray,
+                          Soloff_pform : int,
+                          mask_median : list,
+                          method : str = 'curve_fit') -> np.ndarray :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space using direct method and Soloff method when direct
     can't do it well.
@@ -701,18 +714,19 @@ def hybrid_identification(Xc1_identified,
     
     return(xsolution, mask_median)
     
-def hybrid_mask (Xc1_identified,
-                 Xc2_identified,
-                 direct_constants,
-                 direct_pform,
-                 Soloff_constants0, 
-                 Soloff_constants,
-                 Soloff_pform,
-                 method = 'curve_fit',
-                 ROI = False,
-                 kernel = 5,
-                 mask_median = np.array([False]),
-                 gate = 5) :
+def hybrid_mask (Xc1_identified : np.ndarray,
+                 Xc2_identified : np.ndarray,
+                 direct_constants : np.ndarray,
+                 direct_pform : int,
+                 Soloff_constants0 : np.ndarray, 
+                 Soloff_constants : np.ndarray,
+                 Soloff_pform : int,
+                 method : str = 'curve_fit',
+                 ROI : bool = False,
+                 kernel : int = 5,
+                 mask_median : np.ndarray = np.array([False]),
+                 gate : int = 5) -> (np.ndarray,
+                                     list) :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space using direct and Soloff methods. Detect the
     positions where directe method is not efficient and define the related mask.
@@ -783,12 +797,12 @@ def hybrid_mask (Xc1_identified,
 
     return(xsolution, mask_median)
     
-def AI_training (X_c1,
-                 X_c2,
-                 xSoloff_solution,
-                 AI_training_size = 1000,
-                 file = 'Soloff_AI_training.csv',
-                 method = 'simultaneously') :
+def AI_training (X_c1 : np.ndarray,
+                 X_c2 : np.ndarray,
+                 xSoloff_solution : np.ndarray,
+                 AI_training_size : int = 1000,
+                 file : str = 'Soloff_AI_training.csv',
+                 method : str = 'simultaneously') -> sklearn.ensemble._forest.RandomForestRegressor :
     """Training the AI metamodel with already known datas.
     
     Args:
@@ -859,10 +873,10 @@ def AI_training (X_c1,
         print('No method ', method)
     return(model)
     
-def AI_identification (X_c1,
-                       X_c2,
-                       model,
-                       method = 'simultaneously') :
+def AI_identification (X_c1 : np.ndarray,
+                       X_c2 : np.ndarray,
+                       model : sklearn.ensemble._forest.RandomForestRegressor,
+                       method : str = 'simultaneously') -> np.ndarray:
     """Calculation of the 3D points with AI model.
     
     Args:

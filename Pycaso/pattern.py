@@ -4,9 +4,9 @@ from matplotlib import pyplot as plt
 import numpy as np
 import cv2
 
-def ChAruco_board (ncx,
-                   ncy,
-                   pixel_factor = 1) :
+def ChAruco_board (ncx : int,
+                   ncy : int,
+                   pixel_factor : int = 1) -> np.ndarray :
     """Create the image for ChAruco board
     
     Args:
@@ -18,7 +18,7 @@ def ChAruco_board (ncx,
            Define the number of pixel per ChAruco pixel
            
     Returns:
-       ChAruco_Board_build_img : numpy.ndarray
+       ChAruco_Board_build_img : np.ndarray
            ChAruco image
     """
     dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000)

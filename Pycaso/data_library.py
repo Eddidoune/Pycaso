@@ -30,16 +30,22 @@ import numpy as np
 
 import cv2
 
-def calibrate(im,
-              ncx = 16,
-              ncy = 12,
-              sqr = 0.3):
+def calibrate(im : str ,
+              ncx : int = 16,
+              ncy : int = 12,
+              sqr : float = 0.3):
     """ Detection of the corners
     
     Args:
         im : str
             Image path to detect
-        
+        ncx : int, optional
+            The number of squares for the chessboard through x direction
+        ncy : int, optional
+            The number of squares for the chessboard through y direction
+        sqr : float, optional
+            Size of a square (in mm)
+           
     Returns:
         corners_list : list (Dim = N * 3)
             List of the detected corners 
@@ -87,12 +93,12 @@ def calibrate(im,
         corners_list = False
     return (corners_list, ret) 
 
-def complete_missing_points (corners_list, 
-                             im, 
-                             ncx = 16,
-                             ncy = 12,
-                             sqr = 0.3,
-                             hybrid_verification = False) :  
+def complete_missing_points (corners_list : np.ndarray, 
+                             im : str, 
+                             ncx : int = 16,
+                             ncy : int = 12,
+                             sqr : float = 0.3,
+                             hybrid_verification : bool = False) -> list :  
     """ Detection of the corners with Hessian invariants filtering
     
     Args:
@@ -100,13 +106,20 @@ def complete_missing_points (corners_list,
             Array of the detected points (automatically with ChAruco) 
         im : str
             Image path to detect
+        ncx : int, optional
+            The number of squares for the chessboard through x direction
+        ncy : int, optional
+            The number of squares for the chessboard through y direction
+        sqr : float, optional
+            Size of a square (in mm)
         hybrid_verification : bool, optional
             If True, verify each pattern detection and propose to pick 
             manually the bad detected corners. The image with all detected
             corners is show and you can decide to change any point using
             it ID (ID indicated on the image) as an input. If there is no
             bad detected corner, press ENTER to go to the next image.
-        
+
+           
     Returns:
         corners_list_opt : list (Dim = N * 3)
             List of the detected corners (automatically with ChAruco and 
@@ -319,11 +332,12 @@ def calibration_model(nx,
             Xref.append([(nx-(j+1))*l, (i+1)*l, j+(ny-1)*i])
     return Xref
 
-def cut_calibration_model (List_images, 
-                           Xref, 
-                           ncx = 16,
-                           ncy = 12,
-                           sqr = 0.3) :
+def cut_calibration_model (List_images : list , 
+                           Xref : list , 
+                           ncx : int = 16,
+                           ncy : int = 12,
+                           sqr : float = 0.3) -> (np.ndarray,
+                                                  np.ndarray) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, delete it on all the others 
         images. 
@@ -342,9 +356,9 @@ def cut_calibration_model (List_images,
             Size of a square (in mm)
         
     Returns:
-        all_x : list (Dim = Nimages * N * 3)
+        all_x : np.ndarray (Dim = Nimages * N * 3)
             List of the real corners
-        all_X : list (Dim = Nimages * N * 3)
+        all_X : np.ndarray (Dim = Nimages * N * 3)
             List of the detected corners
             
     """    
@@ -423,12 +437,13 @@ def cut_calibration_model (List_images,
     nb_pts = nb_pts.reshape((2, M//2))
     return (all_x, all_X, nb_pts)
 
-def NAN_calibration_model (Images, 
-                           Xref, 
-                           ncx = 16,
-                           ncy = 12,
-                           sqr = 0.3,
-                           hybrid_verification = False) :
+def NAN_calibration_model (Images : list , 
+                           Xref : list , 
+                           ncx : int = 16,
+                           ncy : int = 12,
+                           sqr : float = 0.3,
+                           hybrid_verification : bool = False) -> (np.ndarray,
+                                                                   np.ndarray) :
     """ Group all of the images detected and filter the points not detected. 
         For each corners not detected on an image, replace the points with NAN. 
     
@@ -453,9 +468,9 @@ def NAN_calibration_model (Images,
             bad detected corner, press ENTER to go to the next image.
         
     Returns:
-        all_x : np.array (Dim = Nimages * N * 3)
+        all_x : np.ndarray (Dim = Nimages * N * 3)
             Array of the real corners
-        all_X : np.array (Dim = Nimages * N * 3)
+        all_X : np.ndarray (Dim = Nimages * N * 3)
             Array of the detected corners
             
     """    
@@ -496,15 +511,16 @@ def NAN_calibration_model (Images,
     nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_x, all_X, nb_pts)
 
-def pattern_detection (left_folder = 'left_calibration',
-                       right_folder = 'right_calibration',
-                       name = 'calibration',
-                       saving_folder = 'results',
-                       ncx = 16,
-                       ncy = 12,
-                       sqr = 0.3,
-                       hybrid_verification = False,
-                       save = True) :
+def pattern_detection (left_folder : str = 'left_calibration',
+                       right_folder : str = 'right_calibration',
+                       name : str = 'calibration',
+                       saving_folder : str = 'results',
+                       ncx : int = 16,
+                       ncy : int = 12,
+                       sqr : float = 0.3,
+                       hybrid_verification : bool = False,
+                       save : bool = True) -> (np.ndarray,
+                                               np.ndarray) :
     """Detect the corners of Charucco's pattern.
     
     Args:
@@ -582,14 +598,15 @@ def pattern_detection (left_folder = 'left_calibration',
         
     return(all_X, all_x, nb_pts)
 
-def multifolder_pattern_detection (left_folder = 'left_calibration',
-                                   right_folder = 'right_calibration',
-                                   name = 'calibration',
-                                   saving_folder = 'results',
-                                   ncx = 16,
-                                   ncy = 12,
-                                   sqr = 0.3,
-                                   hybrid_verification = False) :
+def multifolder_pattern_detection (left_folder : str = 'left_calibration',
+                                   right_folder : str = 'right_calibration',
+                                   name : str = 'calibration',
+                                   saving_folder : str = 'results',
+                                   ncx : int = 16,
+                                   ncy : int = 12,
+                                   sqr : float = 0.3,
+                                   hybrid_verification : bool = False) -> (np.ndarray,
+                                                                           np.ndarray) :
     """Detect the corners of Charucco's pattern in multiple folders.
     
     Args:
@@ -688,10 +705,10 @@ def multifolder_pattern_detection (left_folder = 'left_calibration',
         
     return(all_X, all_x, nb_pts)
 
-def hybrid_mask_creation (image,
-                          ROI = False,
-                          kernel = 5,
-                          gate = 5) :
+def hybrid_mask_creation (image : np.ndarray,
+                          ROI : bool = False,
+                          kernel : int = 5,
+                          gate : int = 5) -> list :
     """Create a mask with the function Otsu from skimage
     
     Args:
@@ -724,9 +741,11 @@ def hybrid_mask_creation (image,
     mask_median = [inside_mask.mask, median]
     return (mask_median)
 
-def camera_np_coordinates (all_X, 
-                           all_x, 
-                           z_list) :
+def camera_np_coordinates (all_X : np.ndarray, 
+                           all_x : np.ndarray, 
+                           z_list : np.ndarray) -> (np.ndarray,
+                                                    np.ndarray,
+                                                    np.ndarray) :
     """Organising the coordinates of the calibration
     
     Args:
@@ -798,9 +817,10 @@ def camera_np_coordinates (all_X,
         
     return (x, Xc1, Xc2)
 
-def DIC_disflow (DIC_dict,
-                 flip = False,
-                 image_ids = False) :
+def DIC_disflow (DIC_dict : dict,
+                 flip : bool = False,
+                 image_ids : list = [False]) -> (np.ndarray,
+                                                 np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the deformed ones (other left and right pictures).
     
@@ -815,7 +835,7 @@ def DIC_disflow (DIC_dict,
            Define the list of images you want to compare in the left and right folders
            
     Returns:
-       Xleft_id : numpy.ndarrayleft_sample_identification
+       Xleft_id : numpy.ndarray
            All the points of the left pictures (1 point per pixel) in an array 
            arrange with their positions. 
        Xright_id : numpy.ndarray
@@ -828,7 +848,7 @@ def DIC_disflow (DIC_dict,
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
-    if image_ids :
+    if any (image_ids) :
         Images_left_cut = []
         Images_right_cut = []
         for i in image_ids :
@@ -845,7 +865,7 @@ def DIC_disflow (DIC_dict,
 
     print('    - DIC in progress ...')
     name = DIC_dict['name']
-    if image_ids :
+    if any (image_ids) :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
@@ -904,9 +924,10 @@ def DIC_disflow (DIC_dict,
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return(Xleft_id, Xright_id)
 
-def DIC_compute_flow (DIC_dict,
-                      flip = False,
-                      image_ids = False):
+def DIC_compute_flow (DIC_dict : dict,
+                      flip : bool = False,
+                      image_ids : list = [False]) -> (np.ndarray,
+                                                      np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
     
@@ -955,7 +976,7 @@ def DIC_compute_flow (DIC_dict,
 
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
-    if image_ids :
+    if any (image_ids) :
         Images_left_cut = []
         Images_right_cut = []
         for i in image_ids :
@@ -971,7 +992,7 @@ def DIC_compute_flow (DIC_dict,
     N = len(Images)
 
     name = DIC_dict['name']
-    if image_ids :
+    if any (image_ids) :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
@@ -1093,10 +1114,11 @@ def DIC_compute_flow (DIC_dict,
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return (Xleft_id, Xright_id)
 
-def DIC_get_positions (DIC_dict,
-                       flip = False,
-                       image_ids = False,
-                       method = 'compute_flow') :
+def DIC_get_positions (DIC_dict : dict,
+                       flip : bool= False,
+                       image_ids : list = [False],
+                       method : str = 'compute_flow') -> (np.ndarray,
+                                                          np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
     
@@ -1113,7 +1135,7 @@ def DIC_get_positions (DIC_dict,
            DIC method between compute_flow and disflow
            
     Returns:
-       Xleft_id : numpy.ndarrayleft_sample_identification
+       Xleft_id : numpy.ndarray
            All the points of the left pictures (1 point per pixel) in an array 
            arrange with their positions. 
        Xright_id : numpy.ndarray
@@ -1137,14 +1159,15 @@ def DIC_get_positions (DIC_dict,
         print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
         raise
 
-def DIC_get_positions2 (left_folder = 'left_identification',
-                       right_folder = 'right_identification',
-                       name = 'identification',
-                       saving_folder = 'results',
-                       window = [False],
-                       flip = False,
-                       image_ids = False,
-                       method = 'compute_flow') :
+def DIC_get_positions2 (left_folder : str = 'left_identification',
+                       right_folder : str = 'right_identification',
+                       name : str = 'identification',
+                       saving_folder : str = 'results',
+                       window : list = [False],
+                       flip : bool = False,
+                       image_ids : bool = False,
+                       method : str = 'compute_flow') ->(np.ndarray,
+                                                         np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
     
@@ -1168,7 +1191,7 @@ def DIC_get_positions2 (left_folder = 'left_identification',
            DIC method between compute_flow and disflow
            
     Returns:
-       Xleft_id : numpy.ndarrayleft_sample_identification
+       Xleft_id : numpy.ndarray
            All the points of the left pictures (1 point per pixel) in an array 
            arrange with their positions. 
        Xright_id : numpy.ndarray
@@ -1199,8 +1222,11 @@ def DIC_get_positions2 (left_folder = 'left_identification',
         print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
         raise
 
-def DIC_fields (DIC_dict,
-                flip = False) :
+def DIC_fields (DIC_dict : dict,
+                flip : bool = False) -> (np.ndarray,
+                                         np.ndarray,
+                                         np.ndarray,
+                                         np.ndarray) :
     """Use the DIC to calcul all the left and right displacements fields.
     
     Args:
@@ -1278,7 +1304,12 @@ def DIC_fields (DIC_dict,
 
     return(U_left, V_left, U_right, V_right)
 
-def Strain_field (UVW) :
+def Strain_field (UVW : np.ndarray) -> (np.ndarray,
+                                        np.ndarray,
+                                        np.ndarray,
+                                        np.ndarray,
+                                        np.ndarray,
+                                        np.ndarray):
     """Calcul all the strains field from displacements field
     
     Args:
@@ -1310,7 +1341,12 @@ def Strain_field (UVW) :
             
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
 
-def Strain_fields (UVW) :
+def Strain_fields (UVW : np.ndarray) -> (np.ndarray,
+                                         np.ndarray,
+                                         np.ndarray,
+                                         np.ndarray,
+                                         np.ndarray,
+                                         np.ndarray) :
     """Calcul all the strains fields from displacements fields
     
     Args:
