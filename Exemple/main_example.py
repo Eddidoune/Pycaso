@@ -20,7 +20,7 @@ import data_library as data
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__' :    
-    saving_folder = 'results/main_expl_300_1700'
+    saving_folder = 'results/main_expl2_300_1700'
     # Define the inputs
     calibration_dict = {
     'left_folder' : 'Images_example/left_calibration',
@@ -41,9 +41,9 @@ if __name__ == '__main__' :
     # Create the list of z plans
     Folder = calibration_dict['left_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
-    x3_list = np.zeros((len(Imgs)))
+    z_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
-        x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
+        z_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
     
     # Chose the degrees for Soloff and direct polynomial fitting
     Soloff_pform = 332
@@ -61,16 +61,15 @@ if __name__ == '__main__' :
     print('Direct method - Start calibration')
     print('#####       ')
     print('')
-    sys.exit()
-    direct_A, Mag = pcs.direct_calibration (calibration_dict,
-                                            x3_list,
-                                            direct_pform)
+    direct_A, Mag = pcs.direct_calibration2 (z_list,
+                                             direct_pform,
+                                             **calibration_dict)
 
     print('')
     print('#####       ')
     print('Soloff method - Start calibration')
     print('#####       ')  
-    A111, A_pol, Mag = pcs.Soloff_calibration2 (x3_list,
+    A111, A_pol, Mag = pcs.Soloff_calibration2 (z_list,
                                                 Soloff_pform,
                                                 **calibration_dict)
     
@@ -123,7 +122,7 @@ if __name__ == '__main__' :
                                                       A111, 
                                                       A_pol,
                                                       Soloff_pform,
-                                                      method = 'curve_fit')       
+                                                      method = 'curve_fit')
         np.save(soloff_file, xSoloff_solution)
     
     xS, yS, zS = xSoloff_solution

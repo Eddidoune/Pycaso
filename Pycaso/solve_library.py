@@ -517,14 +517,14 @@ def fit_plans_to_points(points,
     return (fit, errors, mean_error, residual)
 
 def refplans(xc1, 
-             x3_list,
+             z_list,
              plotting = False) :
     """Plot the medians plans from references points
     
     Args:
        xc1 : numpy.ndarray (shape = 3,n)
            Real points x(x1, x2, x3)       
-       x3_list : numpy.ndarray
+       z_list : numpy.ndarray
            List of the different plans coordinates
        plotting = Bool
            Plot the result or not
@@ -536,7 +536,7 @@ def refplans(xc1,
     x,y,z = xc1
     xcons = []
     p0, pf = 0, 0
-    for z_i in x3_list :
+    for z_i in z_list :
         while z[pf] == z_i :
             pf += 1
             if pf > n-1 :
@@ -550,7 +550,7 @@ def refplans(xc1,
 
 def least_square_method (Xc1_identified, 
                          Xc2_identified, 
-                         A111) :
+                         Soloff_constants0) :
     """Resolve by least square method the system A . x = X for each points 
     detected and both cameras
     
@@ -559,7 +559,7 @@ def least_square_method (Xc1_identified,
            Real positions of camera 1
        Xc2_identified : numpy.ndarray
            Real positions of camera 2
-       A111 : numpy.ndarray
+       Soloff_constants0 : numpy.ndarray
            Constants of the first order calibration polynome
            
     Returns:
@@ -568,8 +568,8 @@ def least_square_method (Xc1_identified,
     """
     N = len (Xc1_identified)
     x0 = np.zeros((3, N))
-    a1c1, a2c1 = A111[0,0,:], A111[0,1,:]
-    a1c2, a2c2 = A111[1,0,:], A111[1,1,:]
+    a1c1, a2c1 = Soloff_constants0[0,0,:], Soloff_constants0[0,1,:]
+    a1c2, a2c2 = Soloff_constants0[1,0,:], Soloff_constants0[1,1,:]
     A = np.array([a1c1, a2c1, a1c2, a2c2])
     A = A[:,1:4]
     At = np.transpose (A)  

@@ -334,11 +334,11 @@ def cut_calibration_model (List_images,
             List of the detected corners
         Xref : list
             List of the real corners
-        ncx = int, optional
+        ncx : int, optional
             The number of squares for the chessboard through x direction
-        ncy = int, optional
+        ncy : int, optional
             The number of squares for the chessboard through y direction
-        sqr = float, optional
+        sqr : float, optional
             Size of a square (in mm)
         
     Returns:
@@ -437,11 +437,11 @@ def NAN_calibration_model (Images,
             List of the detected corners
         Xref : list
             List of the real corners
-        ncx = int, optional
+        ncx : int, optional
             The number of squares for the chessboard through x direction
-        ncy = int, optional
+        ncy : int, optional
             The number of squares for the chessboard through y direction
-        sqr = float, optional
+        sqr : float, optional
             Size of a square (in mm)
         pattern : str
             Name of the pattern used ('macro' or 'micro')
@@ -516,11 +516,11 @@ def pattern_detection (left_folder = 'left_calibration',
            Name to save
        saving_folder : str, optional
            Folder to save
-       ncx = int, optional
+       ncx : int, optional
            The number of squares for the chessboard through x direction
-       ncy = int, optional
+       ncy : int, optional
            The number of squares for the chessboard through y direction
-       sqr = float, optional
+       sqr : float, optional
            Size of a square (in mm)
        hybrid_verification : bool, optional
            If True, verify each pattern detection and propose to pick 
@@ -601,11 +601,11 @@ def multifolder_pattern_detection (left_folder = 'left_calibration',
            Name to save
        saving_folder : str, optional
            Folder to save
-       ncx = int, optional
+       ncx : int, optional
            The number of squares for the chessboard through x direction
-       ncy = int, optional
+       ncy : int, optional
            The number of squares for the chessboard through y direction
-       sqr = float, optional
+       sqr : float, optional
            Size of a square (in mm)
        hybrid_verification : bool, optional
            If True, verify each pattern detection and propose to pick 
@@ -726,7 +726,7 @@ def hybrid_mask_creation (image,
 
 def camera_np_coordinates (all_X, 
                            all_x, 
-                           x3_list) :
+                           z_list) :
     """Organising the coordinates of the calibration
     
     Args:
@@ -734,7 +734,7 @@ def camera_np_coordinates (all_X,
            The corners of the pattern detect by the camera
        all_x : numpy.ndarray
            The theorical corners of the pattern
-       x3_list : numpy.ndarray
+       z_list : numpy.ndarray
            List of the different z position. (Ordered the same way in the 
            target folder)
     Returns:
@@ -758,7 +758,7 @@ def camera_np_coordinates (all_X,
         for j in range (sU[0]) :
             all_xi[j][:,0] = Xref[:,0]
             all_xi[j][:,1] = Xref[:,1]
-            all_xi[j][:,2] = x3_list[j]
+            all_xi[j][:,2] = z_list[j]
 
             x[j*sU[1] : (j+1)*sU[1], :]  = all_xi[j]
             X[j*sU[1] : (j+1)*sU[1], :]  = all_Xi[j]
@@ -798,14 +798,14 @@ def camera_np_coordinates (all_X,
         
     return (x, Xc1, Xc2)
 
-def DIC_disflow (__DIC_dict__,
+def DIC_disflow (DIC_dict,
                  flip = False,
                  image_ids = False) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the deformed ones (other left and right pictures).
     
     Args:
-       __DIC_dict__ : dict
+       DIC_dict : dict
            DIC dictionnary including the picture folders, the saving name and 
            the window (in px) to study.
        flip : bool, optional
@@ -821,11 +821,10 @@ def DIC_disflow (__DIC_dict__,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
     """
-    saving_folder = __DIC_dict__['saving_folder']
-    left_folder = __DIC_dict__['left_folder']
-    right_folder = __DIC_dict__['right_folder']
-    window = __DIC_dict__['window']
-    vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
+    left_folder = DIC_dict['left_folder']
+    right_folder = DIC_dict['right_folder']
+    window = DIC_dict['window']
+    vr_kwargs = DIC_dict['dic_kwargs'] if 'dic_kwargs' in DIC_dict else ()
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
@@ -845,12 +844,12 @@ def DIC_disflow (__DIC_dict__,
     N = len(Images)
 
     print('    - DIC in progress ...')
-    name = __DIC_dict__['name']
+    name = DIC_dict['name']
     if image_ids :
         for i in image_ids :
             name = name + str(i)
-    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
-    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
+    Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    Save_all_V = str(DIC_dict['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         all_U = np.load(Save_all_U)
@@ -905,14 +904,14 @@ def DIC_disflow (__DIC_dict__,
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return(Xleft_id, Xright_id)
 
-def DIC_compute_flow (__DIC_dict__,
+def DIC_compute_flow (DIC_dict,
                       flip = False,
                       image_ids = False):
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
     
     Args:
-       __DIC_dict__ : dict
+       DIC_dict : dict
            DIC dictionnary including the picture folders, the saving name and 
            the window (in px) to study.
        flip : bool, optional
@@ -933,9 +932,9 @@ def DIC_compute_flow (__DIC_dict__,
     except ImportError:
         print('No module named compute_flow')
         sys.exit()
-    left_folder = __DIC_dict__['left_folder']
-    right_folder = __DIC_dict__['right_folder']
-    ROI = __DIC_dict__['window']
+    left_folder = DIC_dict['left_folder']
+    right_folder = DIC_dict['right_folder']
+    ROI = DIC_dict['window']
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
@@ -949,8 +948,8 @@ def DIC_compute_flow (__DIC_dict__,
                 "LO_filter": 0}
     
     print('    - DIC in progress ...')
-    if 'dic_kwargs' in __DIC_dict__ :
-        optical_flow_parameters = __DIC_dict__['dic_kwargs']  
+    if 'dic_kwargs' in DIC_dict :
+        optical_flow_parameters = DIC_dict['dic_kwargs']  
     else :
         optical_flow_parameters = opt_flow
 
@@ -971,12 +970,12 @@ def DIC_compute_flow (__DIC_dict__,
     [lx1, lx2], [ly1, ly2] = ROI
     N = len(Images)
 
-    name = __DIC_dict__['name']
+    name = DIC_dict['name']
     if image_ids :
         for i in image_ids :
             name = name + str(i)
-    Save_all_U = str(__DIC_dict__['saving_folder']) +"/compute_flow_U_" + name + ".npy"
-    Save_all_V = str(__DIC_dict__['saving_folder']) +"/compute_flow_V_" + name + ".npy"
+    Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    Save_all_V = str(DIC_dict['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         all_U = np.load(Save_all_U)
@@ -1094,7 +1093,7 @@ def DIC_compute_flow (__DIC_dict__,
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return (Xleft_id, Xright_id)
 
-def DIC_get_positions (__DIC_dict__,
+def DIC_get_positions (DIC_dict,
                        flip = False,
                        image_ids = False,
                        method = 'compute_flow') :
@@ -1102,7 +1101,7 @@ def DIC_get_positions (__DIC_dict__,
     (first left one) in the other ones (other left and right pictures).
     
     Args:
-       __DIC_dict__ : dict
+       DIC_dict : dict
            DIC dictionnary including the picture folders, the saving name and 
            the window (in px) to study.
        flip : bool, optional
@@ -1127,23 +1126,85 @@ def DIC_get_positions (__DIC_dict__,
             print('No module named conpute_flow, disflow from OpenCV will be used')
             method = 'disflow'
     if method == 'disflow' :
-        return (DIC_disflow(__DIC_dict__,
+        return (DIC_disflow(DIC_dict,
                             flip = flip,
                             image_ids = image_ids))
     if method == 'compute_flow' :
-        return (DIC_compute_flow(__DIC_dict__,
+        return (DIC_compute_flow(DIC_dict,
                                  flip = flip,
                                  image_ids = image_ids))
     else :
         print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
         raise
 
-def DIC_fields (__DIC_dict__,
+def DIC_get_positions2 (left_folder = 'left_identification',
+                       right_folder = 'right_identification',
+                       name = 'identification',
+                       saving_folder = 'results',
+                       window = [False],
+                       flip = False,
+                       image_ids = False,
+                       method = 'compute_flow') :
+    """Use the DIC to locate all the points from the reference picture
+    (first left one) in the other ones (other left and right pictures).
+    
+    Args:
+       left_folder : str, optional
+           Left calibration images folder
+       right_folder : str, optional
+           Right calibration images folder
+       name : str, optional
+           identification
+       saving_folder : str, optional
+           results
+       window : str, optional
+           Window of the picture to process (in px)
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
+       image_ids : list, optional
+           Define the list of images you want to compare in the left and right folders
+       method : str
+           DIC method between compute_flow and disflow
+           
+    Returns:
+       Xleft_id : numpy.ndarrayleft_sample_identification
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
+    """
+    DIC_dict = {
+    'left_folder' : left_folder,
+    'right_folder' : right_folder,
+    'name' : name,
+    'saving_folder' : saving_folder,
+    'window' : window
+    }
+    if method == 'compute_flow' :
+        try : 
+            from compute_flow import compute_flow
+        except ImportError:
+            print('No module named conpute_flow, disflow from OpenCV will be used')
+            method = 'disflow'
+    if method == 'disflow' :
+        return (DIC_disflow(DIC_dict,
+                            flip = flip,
+                            image_ids = image_ids))
+    if method == 'compute_flow' :
+        return (DIC_compute_flow(DIC_dict,
+                                 flip = flip,
+                                 image_ids = image_ids))
+    else :
+        print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
+        raise
+
+def DIC_fields (DIC_dict,
                 flip = False) :
     """Use the DIC to calcul all the left and right displacements fields.
     
     Args:
-       __DIC_dict__ : dict
+       DIC_dict : dict
            DIC dictionnary including the picture folders, the saving name and 
            the window (in px) to study.
        flip : bool, optional
@@ -1160,12 +1221,12 @@ def DIC_fields (__DIC_dict__,
        V_right : numpy.ndarray
            All the right displacements fields in y direction.
     """
-    saving_folder = __DIC_dict__['saving_folder']
-    left_folder = __DIC_dict__['left_folder']
-    right_folder = __DIC_dict__['right_folder']
-    name = __DIC_dict__['name']
+    saving_folder = DIC_dict['saving_folder']
+    left_folder = DIC_dict['left_folder']
+    right_folder = DIC_dict['right_folder']
+    name = DIC_dict['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
-    vr_kwargs = __DIC_dict__['dic_kwargs'] if 'dic_kwargs' in __DIC_dict__ else ()
+    vr_kwargs = DIC_dict['dic_kwargs'] if 'dic_kwargs' in DIC_dict else ()
     
     # Taking pre-calculated datas from the saving_folder
     if os.path.exists(Save_UV) :
