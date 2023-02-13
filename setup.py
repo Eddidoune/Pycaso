@@ -1,12 +1,6 @@
 # setup.py
 import setuptools
 
-from os import popen, listdir, walk
-import sys
-from distutils.core import setup, Extension
-import platform
-
-
 setuptools.setup(
     name="Pycaso",
     version="1.0",
