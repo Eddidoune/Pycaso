@@ -49,17 +49,17 @@ Use the cameras and the z-axe to take a lot of picture of the pattern at differe
 Save all of the left image (resp right) in a folder 'Folder_calibration_left' with the z position as a name 'z.png'.
 - Define the calibration dictionnary :
 ```
-__calibration_dict__ = {
-'left_folder' : '/Folder_calibration_left',
-'right_folder' : '/Folder_calibration_right',
-'name' : 'Whatever',
-'ncx' : 16,
-'ncy' : 12,
- pixel_factor' : 10}
+calibration_dict = {
+								'left_folder' : '/Folder_calibration_left',
+								'right_folder' : '/Folder_calibration_right',
+								'name' : 'Whatever',
+								'ncx' : 16,
+								'ncy' : 12,
+								'pixel_factor' : 10}
 ```
  - Create the list of z plans
 ```
-Folder = __calibration_dict__['left_folder']
+Folder = calibration_dict['left_folder']
 Imgs = sorted(glob(str(Folder) + '/*'))
 x3_list = np.zeros((len(Imgs)))
 for i in range (len(Imgs)) :
@@ -77,15 +77,15 @@ saving_folder = '/saving_folder_name'
 ```
 Lauch the Soloff calibration function in the main.py :
 ```
-A111, A_pol, Mag= Soloff_calibration (__calibration_dict__,
-                          	       x3_list,
-                                      Soloff_pform)
+A111, A_pol, Mag= Pycaso.Soloff_calibration (x3_list,
+																				Soloff_pform,
+																				**calibration_dict)
 ```
 And/Or the direct calibration function in the main.py :
 ```
-direct_A, Mag= direct_calibration (__calibration_dict__,
-                        	    x3_list,
-                                   direct_pform)
+direct_A, Mag= Pycaso.direct_calibration (x3_list,
+																		direct_pform,
+																		**calibration_dict)
 ```
 The calibration parameters are identified and calibration part is done. For more information about the resolution, see the Hessian detection explaination.
 
@@ -93,26 +93,26 @@ The calibration parameters are identified and calibration part is done. For more
 Use the cameras to take some pair of pictures of the coin.
 Save all of the left image (resp right) in a folder 'Folder_identification_left'. Then, define a DIC dictionnary :
 ```
-__DIC_dict__ = {
-'left_folder' : '/Folder_identification_left',
-'right_folder' : '/Folder_identification_right',
-'name' : 'Whatever',
-'window' : [[300, 1700], [300, 1700]]}
+DIC_dict = {
+					'left_folder' : '/Folder_identification_left',
+					'right_folder' : '/Folder_identification_right',
+					'name' : 'Whatever',
+					'window' : [[300, 1700], [300, 1700]]}
 ```
 
 The identification can start :
 First, use the correlation process (default = GCpu_OpticalFlow or disflow) from left to right images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the left and the right cameras.
 ```
-Xleft_id, Xright_id = data.DIC_get_positions(__DIC_dict__)
+Xleft_id, Xright_id = data.DIC_get_positions(DIC_dict)
 ```
 Then use one of the pairs (Xleft_id[0], Xright_id[0]) to create the points on the global referential (x,y,z) :
 ```
 xSoloff_solution = Soloff_identification(Xleft_id[0],
-                                         Xright_id[0],
-                                         A111, 
-                                         A_pol,
-                                         Soloff_pform,
-                                         method = 'curve_fit')       
+																Xright_id[0],
+																A111, 
+																A_pol,
+																Soloff_pform,
+																method = 'curve_fit')       
 xS, yS, zS = xSoloff_solution
 ```
 Now all of the spacial points i are detected (xS[i], yS[i], zS[i]). 
@@ -129,16 +129,16 @@ NB : Here all the points are calculated by Soloff but, if you want to use the AI
 ```
 AI_training_size = 50000
 model = AI_training (X_c1,
-                     X_c2,
-                     xSoloff_solution,
-                     AI_training_size = AI_training_size)
+								   X_c2,
+								   xSoloff_solution,
+								   I_training_size = AI_training_size)
 ```
 
 Then, all the points can be calculated here with the AI model :
 ```
 xAI_solution = AI_identification (X_c1,
-                                  X_c2,
-                                  model)
+													   X_c2,
+													   model)
 xAI, yAI, zAI = xAI_solution
 ```
 Now all of the spacial points i are detected (xAI[i], yAI[i], zAI[i]). 
