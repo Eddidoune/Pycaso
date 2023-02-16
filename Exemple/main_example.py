@@ -20,7 +20,7 @@ import data_library as data
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__' :    
-    saving_folder = 'results/main_expl_300_1700'
+    saving_folder = 'results/main_exemple'
     # Define the inputs
     calibration_dict = {
     'left_folder' : 'Images_example/left_calibration',

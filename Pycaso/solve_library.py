@@ -17,6 +17,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import validation_curve
 import math
 
 core_number = os.cpu_count()
@@ -774,7 +775,7 @@ def AI_solve_simultaneously (file : str,
                              random_state : int = 1, 
                              max_features : str = 'sqrt',
                              max_depth : int = 100,
-                             bootstrap : str = 'true',
+                             bootstrap : bool = True,
                              hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
                                                                         int) :  
     """Calculation of the AI model between all inputs (Xl and Xr) and 
@@ -818,6 +819,15 @@ def AI_solve_simultaneously (file : str,
                                   max_features=max_features,
                                   max_depth=max_depth,
                                   bootstrap=bootstrap)
+    
+    ''' # 
+    param_range = np.array([1,2,5,10,20,50,100,200,500,1000])
+    train_scores, test_scores = sklearn.model_selection.validation_curve(model, 
+                                                                         X, 
+                                                                         Y, 
+                                                                         param_name = 'n_estimators', 
+                                                                         param_range = param_range)
+    '''
     print('IA model training : x,y,z')
     model.fit(X,Y)
     
@@ -883,7 +893,7 @@ def AI_solve_independantly (file : str,
                             random_state : int = 1, 
                             max_features : str = 'sqrt',
                             max_depth : int = 100,
-                            bootstrap : str = 'true',
+                            bootstrap : bool = True,
                             hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
                                                                        int) :  
     """Calculation of the AI models between all inputs (Xl and Xr) and each 
@@ -1057,7 +1067,7 @@ def AI_solve_zdependantly (file : str,
                            random_state : int = 1, 
                            max_features : str = 'sqrt',
                            max_depth : int = 100,
-                           bootstrap : str = 'true',
+                           bootstrap : bool = True,
                            hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
                                                                       int) :    
     """Calculation of the AI models between all inputs (Xl and Xr) and each 

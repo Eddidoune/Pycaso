@@ -29,7 +29,7 @@ setuptools.setup(
                       "opencv-python>=4.5.3.56",
                       "sigfig>=1.3.1",
                       "scipy>=1.7.3",
-                      "scikit-learn>=1.0.1",
+                      "scikit-learn>=1.2.1",
                       "scikit-image>=0.18.3",
                       "seaborn>=0.11.2"],
     package_data={"": ["README.md","LICENSE"]})
