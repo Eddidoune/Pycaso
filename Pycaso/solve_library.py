@@ -541,13 +541,13 @@ def fit_plans_to_points(points : np.ndarray,
 
     return (fit, errors, mean_error, residual)
 
-def refplans(xc1 : np.ndarray, 
+def refplans(x : np.ndarray, 
              z_list : np.ndarray,
              plotting: bool = False) :
     """Plot the medians plans from references points
     
     Args:
-       xc1 : np.ndarray (shape = 3,n)
+       x : np.ndarray (shape = 3,n)
            Real points x(x1, x2, x3)       
        z_list : np.ndarray
            List of the different plans coordinates
@@ -557,8 +557,8 @@ def refplans(xc1 : np.ndarray,
     Returns:
        plot points + associated plans
     """
-    m, n = xc1.shape
-    x,y,z = xc1
+    m, n = x.shape
+    x,y,z = x
     xcons = []
     p0, pf = 0, 0
     for z_i in z_list :
@@ -820,7 +820,8 @@ def AI_solve_simultaneously (file : str,
                                   max_depth=max_depth,
                                   bootstrap=bootstrap)
     
-    ''' # 
+    # Train score / Epoch curve
+    '''
     param_range = np.array([1,2,5,10,20,50,100,200,500,1000])
     train_scores, test_scores = sklearn.model_selection.validation_curve(model, 
                                                                          X, 

@@ -49,6 +49,8 @@ def calibrate(im : str ,
     Returns:
         corners_list : list (Dim = N * 3)
             List of the detected corners 
+        pts : list
+            Number of detected corners
     """
     mrk = sqr / 2
     dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
@@ -77,21 +79,23 @@ def calibrate(im : str ,
         
         print("marks ", idall, " not detected")         
         if ids is not None and len(ids) > 0:
-            ret, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
+            pts, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
                 corners, ids, img, board)
-            print(len(corners), ' marks detected. ', ret, ' points detected')
+            print(len(corners), ' marks detected. ', pts, ' points detected')
             print('---')
             corners_list = []
             BU = []
-            if ret != 0 :
+            if pts != 0 :
                 for i in range (0, len(chcorners)) :
                     BU.append(chcorners[i][0])
                     corners_list.append([BU[i][0],BU[i][1],chids[i][0]])
             else :
                 ()
     else :
-        corners_list = False
-    return (corners_list, ret) 
+        corners_list = [False]
+        pts = 0
+        print("No marks detected")         
+    return (corners_list, pts) 
 
 def complete_missing_points (corners_list : np.ndarray, 
                              im : str, 
@@ -177,7 +181,7 @@ def complete_missing_points (corners_list : np.ndarray,
     pts_list_cut = np.ravel(pts_list_cut)
     ptB = []
     out_of_range_points = 0
-    for pt in pts_list_cut :
+    for pt in np.flip(pts_list_cut) :
         if np.any(corners_list[:,2] == pt) :
             lineB, columnB = np.where(pts_list == pt)
             line, column = np.where(corners_list == pt)
