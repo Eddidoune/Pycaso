@@ -128,7 +128,7 @@ def complete_missing_points (corners_list : np.ndarray,
         corners_list_opt : list (Dim = N * 3)
             List of the detected corners (automatically with ChAruco and 
                                           Hessian invariants + manually)
-    """                        
+    """ 
     corners_list = np.asarray(corners_list)
     x, y, ids = np.transpose(corners_list)
     img = cv2.imread(im, 0)
@@ -215,6 +215,39 @@ def complete_missing_points (corners_list : np.ndarray,
         x0 = xA - d0x
         y0 = yA - d0y
     
+        # Def win resize
+        def win_spot (bin_im, l, d, xi, yi) :
+            xm, ym = bin_im.shape
+            if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
+                bary, barx = np.nan, np.nan
+                max_area = np.nan
+            else :
+                # Try Hessian detection and pick the biggest binary 
+                # area
+                areas = []
+                while areas == [] and d < l :
+                    bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
+                    # label_img=label(clear_border(bin_im_win))
+                    label_img=label(bin_im_win)
+                    regions = regionprops(label_img)
+                    for region in (regions):
+                        areas.append(region.area)
+                    if any (areas) :
+                        max_area = max(areas)
+                        max_i = areas.index(max_area)
+                        region = regions[max_i]
+                        bary, barx = region.centroid
+                    else :
+                        bary, barx = np.nan, np.nan
+                        d += int(l//8)
+            y_dot = bary + yi - d
+            x_dot = barx + xi - d
+            return(x_dot, y_dot, max_area)
+        
+        # Find the size of pattern area
+        x_dot, y_dot, area_test = win_spot (bin_im, int(l), int(l*2/3), int(xA), int(yA))
+        len_test = math.sqrt(area_test)
+        
         # Find the holes
         for id_ in np.ravel(pts_list) :
             # Find the missing point
@@ -223,31 +256,15 @@ def complete_missing_points (corners_list : np.ndarray,
             diy = column2 * xy + line2 * yy
             xi = int(x0 + dix)
             yi = int(y0 + diy)
-            d = int(l//4)
+            d = int(len_test)
             
             # Find the missing point, if on the screen
-            xm, ym = img.shape
-            if (xm < int(yi+d)) or (ym < int(xi+d)) or (0> int(yi-d)) or (0> int(xi-d)) :
+            x_dot, y_dot, __ = win_spot (bin_im, l, d, xi, yi)
+            # Do it again around center 
+            x_dot, y_dot, __ = win_spot (bin_im, l, d, int(x_dot), int(y_dot))
+            
+            if x_dot == np.nan :
                 out_of_range_points += 1
-                bary, barx = np.nan, np.nan
-            else :
-                # Try Hessian detection and pick the biggest binary 
-                # area
-                bin_im_win = bin_im[yi-d:yi+d, xi-d:xi+d]
-                label_img=label(clear_border(bin_im_win))
-                regions = regionprops(label_img)
-                areas = []
-                for region in (regions):
-                    areas.append(region.area)
-                if any (areas) :
-                    max_area = max(areas)
-                    max_i = areas.index(max_area)
-                    region = regions[max_i]
-                    bary, barx = region.centroid
-                else :
-                    bary, barx = np.nan, np.nan
-            y_dot = bary + yi - d
-            x_dot = barx + xi - d
             
             arr = np.array([float(x_dot), float(y_dot), float(id_)])
             if hybrid_verification :
