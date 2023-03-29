@@ -2,19 +2,19 @@
 import setuptools
 
 setuptools.setup(
-    name="Pycaso",
+    name="pycaso",
+    python_requires=">=3.8.10",
     version="1.0",
     author="LaMcube",
     author_email="eddy.caron@centralelille.fr",
-    description="PYthon module for CAlibration of cameras by SOloff’s method",
-    long_description="PYthon module for CAlibration of cameras by SOloff’s " +
+    description="PYthon module for CAlibration of cameras by SOloff s method",
+    long_description="PYthon module for CAlibration of cameras by SOloff s " +
     "method (PYCASO) provides an open-source Python-based framework for " + 
     "stereoscopic reconstructions from pairs of 2D images.",
     url='https://github.com/Eddidoune/Pycaso',
     project_urls={'Documentation':'No documentation for the moment'},
     packages=setuptools.find_packages(),
-    python_requires=">=3.8.10",
-    ext_package='Pycaso',
+    ext_package='pycaso',
     license='CC BY-NC-ND 4.0 LICENSE',
     classifiers=['Development Status :: 4 - Beta ',
                  'Intended Audience :: Science/Research',

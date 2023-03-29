@@ -1,0 +1,8 @@
+LICENSE.txt
+README.md
+setup.py
+pycaso.egg-info/PKG-INFO
+pycaso.egg-info/SOURCES.txt
+pycaso.egg-info/dependency_links.txt
+pycaso.egg-info/requires.txt
+pycaso.egg-info/top_level.txt

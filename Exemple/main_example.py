@@ -15,7 +15,7 @@ import os
 from glob import glob
 sys.path.append('../Pycaso')
 
-import Pycaso as pcs
+import pycaso as pcs
 import data_library as data
 import matplotlib.pyplot as plt
 

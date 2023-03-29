@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: pycaso
+Version: 1.0
+Summary: PYthon module for CAlibration of cameras by SOloff s method
+Home-page: https://github.com/Eddidoune/Pycaso
+Author: LaMcube
+Author-email: eddy.caron@centralelille.fr
+License: CC BY-NC-ND 4.0 LICENSE
+Project-URL: Documentation, No documentation for the moment
+Classifier: Development Status :: 4 - Beta 
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: CC BY-NC-ND 4.0 LICENSE
+Classifier: Programming Language :: Python :: 3.8.10
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8.10
+License-File: LICENSE.txt
+
+PYthon module for CAlibration of cameras by SOloff s method (PYCASO) provides an open-source Python-based framework for stereoscopic reconstructions from pairs of 2D images.
