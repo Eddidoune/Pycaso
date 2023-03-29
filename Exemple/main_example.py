@@ -13,7 +13,6 @@ import sys
 import pathlib
 import os
 from glob import glob
-sys.path.append('../Pycaso')
 
 import pycaso as pcs
 import data_library as data
