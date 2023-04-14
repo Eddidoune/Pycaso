@@ -14,6 +14,7 @@ import pathlib
 import os
 from glob import glob
 
+# path.append('/home/caroneddy/These/Github/Pycaso')
 import pycaso as pcs
 import data_library as data
 import matplotlib.pyplot as plt
