@@ -26,7 +26,7 @@ setuptools.setup(
     install_requires=["numpy>=1.23.1", 
                       "pandas>=1.3.2",
                       "matplotlib>=3.1.2",
-                      "opencv-python>=4.5.3.56",
+                      "opencv-python>=4.4.0.46,<4.6.0.66",
                       "sigfig>=1.3.1",
                       "scipy>=1.7.3",
                       "scikit-learn>=1.2.1",

@@ -14,7 +14,7 @@ import pathlib
 import os
 from glob import glob
 
-# path.append('/home/caroneddy/These/Github/Pycaso')
+sys.path.append('/home/caroneddy/These/Github/Pycaso/pycaso')
 
 import pycaso as pcs
 import data_library as data
@@ -24,8 +24,8 @@ if __name__ == '__main__' :
     saving_folder = 'results/main_exemple'
     # Define the inputs
     calibration_dict = {
-    'left_folder' : 'Images_example/left_calibration',
-    'right_folder' : 'Images_example/right_calibration',
+    'left_folder' : 'Images_example/left_calibration11',
+    'right_folder' : 'Images_example/right_calibration11',
     'name' : 'micro_calibration',
     'saving_folder' : saving_folder,
     'ncx' : 16,

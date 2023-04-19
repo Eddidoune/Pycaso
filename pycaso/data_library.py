@@ -18,8 +18,7 @@ sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 try : 
     from compute_flow import compute_flow
 except ImportError:
-    print('No module named conpute_flow')
-    raise 
+    print('No module named compute_flow')
 
 try : 
     import cupy 
