@@ -13,7 +13,8 @@ import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 
-sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
+# Add the path of GCpu library if you want
+sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow/Src')
 
 try : 
     from compute_flow import compute_flow
@@ -971,8 +972,8 @@ def DIC_compute_flow (DIC_dict : dict,
     try : 
         from compute_flow import compute_flow
     except ImportError:
-        print('No module named compute_flow')
-        sys.exit()
+        raise('No module named compute_flow')
+
     left_folder = DIC_dict['left_folder']
     right_folder = DIC_dict['right_folder']
     ROI = DIC_dict['window']

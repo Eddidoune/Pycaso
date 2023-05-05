@@ -5,10 +5,7 @@ Created on Fri Nov 26 09:19:07 2021
 
 @author: Eddidoune
 """
-try : 
-    import cupy as np
-except ImportError:
-    import numpy as np
+import numpy as np
 import sys
 import pathlib
 import os
@@ -123,7 +120,7 @@ if __name__ == '__main__' :
                                                       A111, 
                                                       A_pol,
                                                       Soloff_pform,
-                                                      method = 'curve_fit')
+                                                      method = 'Peter')
         np.save(soloff_file, xSoloff_solution)
     
     xS, yS, zS = xSoloff_solution
@@ -132,7 +129,7 @@ if __name__ == '__main__' :
     zS = zS.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
     t0 = time.time()
     print('tS : ',t0-t00)
-      
+ 
     plt.figure()
     plt.imshow(zS)
     plt.title('Z projected on left camera with Soloff calculation')

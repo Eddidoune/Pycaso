@@ -203,7 +203,8 @@ def Soloff_identification (Xc1_identified : np.ndarray,
                            Soloff_constants0 : np.ndarray, 
                            Soloff_constants : np.ndarray,
                            Soloff_pform : int,
-                           method : str = 'curve_fit') -> np.ndarray :
+                           method : str = 'Peter',
+                           cut : int = 0) -> np.ndarray :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -219,35 +220,90 @@ def Soloff_identification (Xc1_identified : np.ndarray,
        Soloff_pform : int
            Polynomial form
        method : str, optional
-           Python method used to solve it ('Least-squares' or 'curve-fit')
+           Python method used to solve it ('Peter' 'curve-fit')
+       cut : int, optional
+           Used by Peter method to reduce the windows of resolution
 
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
     """
-    if len(Xc1_identified.shape) == 3 : 
-        modif_22_12_09 = True
-        nx, ny, naxis = Xc1_identified.shape
-        Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
-        Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
-    elif len(Xc1_identified.shape) == 2 : 
-        modif_22_12_09 = False
-    else :
-        raise('Error, X_ci shape different than 2 or 3')    
-    # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
-    # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
-    x0 = solvel.least_square_method (Xc1_identified, Xc2_identified, Soloff_constants0)
+    if method == 'Peter' :
+        if Soloff_pform != 332 :
+            raise('No Peter resolution for the polynomial form ', Soloff_pform, ' for the moment (Only for the form 332')
+        Xl = Xc1_identified[:,:,0]
+        Yl = Xc1_identified[:,:,1]
+        Xr = Xc2_identified[:,:,0]
+        Yr = Xc2_identified[:,:,1]
+        Xl0 = []
+        Yl0 = []
+        Xr0 = []
+        Yr0 = []
+
+        l = 20
+        nx,ny = Xl.shape
+        nx = nx//l
+        ny = ny//l
+        for i in range (l) :
+            for j in range (l) :
+                Xl0.append(Xl[i*nx, j*ny])
+                Yl0.append(Yl[i*nx, j*ny])
+                Xr0.append(Xr[i*nx, j*ny])
+                Yr0.append(Yr[i*nx, j*ny])
+        
+        Xl0 = np.array(Xl0).reshape((l,l))
+        Yl0 = np.array(Yl0).reshape((l,l))
+        Xr0 = np.array(Xr0).reshape((l,l))
+        Yr0 = np.array(Yr0).reshape((l,l))
+        Xc1_identified0 = np.zeros((l,l,2))
+        Xc1_identified0[:,:,0] = Xl0
+        Xc1_identified0[:,:,1] = Yl0
+        Xc2_identified0 = np.zeros((l,l,2))
+        Xc2_identified0[:,:,0] = Xr0
+        Xc2_identified0[:,:,1] = Yr0        
+        x,y,z = Soloff_identification (Xc1_identified0,
+                                       Xc2_identified0,
+                                       Soloff_constants0, 
+                                       Soloff_constants,
+                                       Soloff_pform,
+                                       method = 'curve_fit') 
+
+        xsolution = solvel.Peter(Xl,
+                                 Yl,
+                                 Xr,
+                                 Yr,
+                                 Soloff_constants,
+                                 x,
+                                 y,
+                                 z,
+                                 cut = cut)
     
-    # Solve the polynomials constants ai with curve-fit method (Levenberg 
-    # Marcquardt)
-    xsolution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
-                                                           Xc2_identified, 
-                                                           Soloff_constants, 
-                                                           x0, 
-                                                           Soloff_pform, 
-                                                           method = 'curve_fit')
-    if modif_22_12_09 :
-        xsolution = xsolution.reshape((3, nx, ny))
+    else :
+        if len(Xc1_identified.shape) == 3 : 
+            modif_22_12_09 = True
+            nx, ny, naxis = Xc1_identified.shape
+            Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
+            Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
+        elif len(Xc1_identified.shape) == 2 : 
+            modif_22_12_09 = False
+        else :
+            raise('Error, X_ci shape different than 2 or 3')
+        # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
+        # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
+        x0 = solvel.least_square_method (Xc1_identified, 
+                                         Xc2_identified, 
+                                         Soloff_constants0)
+        
+        # Solve the polynomials constants ai with curve-fit method (Levenberg 
+        # Marcquardt)
+        xsolution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
+                                                               Xc2_identified, 
+                                                               Soloff_constants, 
+                                                               x0, 
+                                                               Soloff_pform, 
+                                                               method = method)
+        if modif_22_12_09 :
+            xsolution = xsolution.reshape((3, nx, ny))
     return (xsolution)
 
 def direct_calibration (z_list : np.ndarray,

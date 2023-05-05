@@ -10,10 +10,9 @@ The file main.py propose a typical protocol of resolution using few Pycaso funct
 
 # Requirements
 To install Pycaso, you will need [Python 3](https://www.python.org/downloads/) (3.6 or higher) with the following modules :
-- [numpy](https://numpy.org/install/)
-- [Open CV](https://pypi.org/project/opencv-python/) for image acquisition and identification, 
-- [matplotlib](https://matplotlib.org/) for graph plotting and scipy for Levenberg  Marcquardt  functions. 
-- Others modules as [glob](https://docs.python.org/3/library/glob.html) , [deepcopy](https://docs.python.org/3/library/copy.html), [os](https://docs.python.org/3/library/os.html), [sigfig](https://pypi.org/project/sigfig/), [scikit-image](https://scikit-image.org/docs/dev/install.html) and [sys](https://docs.python.org/3/library/sys.html). 
+- [numpy], [Open CV], [matplotlib], [sigfig], [pandas], [scikit], [scipy] and [seaborn]
+- The library [GCpu_OpticalFlow](https://github.com/chabibchabib/GCpu_OpticalFlow/blob/master/Doc/README.rst) is recommended.
+- [cupy] could increase the speed of processing and is recommended too.
 
 # Installation
 All the modules can be find on Github
@@ -112,7 +111,7 @@ xSoloff_solution = Soloff_identification(Xleft_id[0],
 																A111, 
 																A_pol,
 																Soloff_pform,
-																method = 'curve_fit')       
+																method = 'Peter')       
 xS, yS, zS = xSoloff_solution
 ```
 Now all of the spacial points i are detected (xS[i], yS[i], zS[i]). 
@@ -134,7 +133,7 @@ model = AI_training (X_c1,
 								   I_training_size = AI_training_size)
 ```
 
-Then, all the points can be calculated here with the AI model :
+Then, all the points can be calculated here with the AI model but the Peter solver is still better than the AI method (faster and more accuracy) :
 ```
 xAI_solution = AI_identification (X_c1,
 													   X_c2,

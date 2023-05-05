@@ -4,7 +4,7 @@ import setuptools
 setuptools.setup(
     name="pycaso",
     python_requires=">=3.8.10",
-    version="1.0",
+    version="1.1",
     author="LaMcube",
     author_email="eddy.caron@centralelille.fr",
     description="PYthon module for CAlibration of cameras by SOloff s method",
@@ -27,6 +27,7 @@ setuptools.setup(
                       "pandas>=1.3.2",
                       "matplotlib>=3.1.2",
                       "opencv-python>=4.4.0.46,<4.6.0.66",
+                      "opencv-contrib-python>=4.4.0.46,<4.6.0.66",
                       "sigfig>=1.3.1",
                       "scipy>=1.7.3",
                       "scikit-learn>=1.2.1",
