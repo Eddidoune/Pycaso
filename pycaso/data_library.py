@@ -14,7 +14,7 @@ from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 
 # Add the path of GCpu library if you want
-sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow/Src')
+sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 
 try : 
     from compute_flow import compute_flow
@@ -136,6 +136,8 @@ def complete_missing_points (corners_list : np.ndarray,
     # Filter the image with the Hessian matrix parameters to detect the 
     # corners (points)
     img_hess = plt.imread(im)
+    if len (img_hess.shape) == 3 :
+        img_hess = img_hess[:,:,0]
     HE0, HE1 = sfe.hessian_matrix_eigvals(sfe.hessian_matrix(img_hess, 9))
     HE = abs(HE0 * HE1)
     thresh = sfi.threshold_otsu(HE)
@@ -197,17 +199,24 @@ def complete_missing_points (corners_list : np.ndarray,
         dy = yB - yA
         dP = math.sqrt(dx**2 + dy**2)
         l = dP / math.sqrt(nx**2 + ny**2)
-        alpha = math.atan(-dy/dx)
-        if dx < 0 :
-            alpha += math.pi
-        alpha2 = math.atan(ny/nx)
-        if nx < 0 :
-            alpha2 += math.pi
-        alpha1 = alpha - alpha2
-        xx = l * math.cos(alpha1)
-        xy = - l * math.sin(alpha1)
-        yy = - l * math.cos(alpha1)
-        yx = - l * math.sin(alpha1)
+        
+        yx = (dy-ny*dx/nx)/(-nx-ny**2/nx)
+        xy = -yx
+        xx = (dx -ny*yx)/nx
+        yy = xx
+        
+        
+        # alpha = math.atan(-dy/dx)
+        # if dx < 0 :
+        #     alpha += math.pi
+        # alpha2 = math.atan(ny/nx)
+        # if nx < 0 :
+        #     alpha2 += math.pi
+        # alpha1 = alpha - alpha2
+        # xx = l * math.cos(alpha1)
+        # xy = - l * math.sin(alpha1)
+        # yy = - l * math.cos(alpha1)
+        # yx = - l * math.sin(alpha1)
     
         # Define the origine point
         d0x = columnA * xx + lineA * yx
@@ -230,16 +239,22 @@ def complete_missing_points (corners_list : np.ndarray,
                     # label_img=label(clear_border(bin_im_win))
                     label_img=label(bin_im_win)
                     regions = regionprops(label_img)
-                    for region in (regions):
-                        areas.append(region.area)
-                    if any (areas) :
-                        max_area = max(areas)
-                        max_i = areas.index(max_area)
-                        region = regions[max_i]
-                        bary, barx = region.centroid
-                    else :
+                    if len(regions) == 0 :
                         bary, barx = np.nan, np.nan
-                        d += int(l//8)
+                        max_area = np.nan
+                        print('Lose')
+                        break
+                    else :
+                        for region in (regions):
+                            areas.append(region.area)
+                        if any (areas) :
+                            max_area = max(areas)
+                            max_i = areas.index(max_area)
+                            region = regions[max_i]
+                            bary, barx = region.centroid
+                        else :
+                            bary, barx = np.nan, np.nan
+                            d += int(l//8)
             y_dot = bary + yi - d
             x_dot = barx + xi - d
             return(x_dot, y_dot, max_area)
@@ -260,10 +275,11 @@ def complete_missing_points (corners_list : np.ndarray,
             
             # Find the missing point, if on the screen
             x_dot, y_dot, __ = win_spot (bin_im, l, d, xi, yi)
-            # Do it again around center 
-            x_dot, y_dot, __ = win_spot (bin_im, l, d, int(x_dot), int(y_dot))
+            if not math.isnan(x_dot) :
+                # Do it again around center 
+                x_dot, y_dot, __ = win_spot (bin_im, l, d, int(x_dot), int(y_dot))
             
-            if x_dot == np.nan :
+            if math.isnan(x_dot) :
                 out_of_range_points += 1
             
             arr = np.array([float(x_dot), float(y_dot), float(id_)])

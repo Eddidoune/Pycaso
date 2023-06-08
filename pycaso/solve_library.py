@@ -523,18 +523,28 @@ def fit_plans_to_points(points : np.ndarray,
     residual = np.zeros(l)
     maxerror = []
     for i in range (len(points)) :
+        
         point = points[i]
-        fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
-                                                                        title = title,
-                                                                        plotting = plotting)
-        maxerror.append(np.max(abs(errori)))
-        errors.append(errori)
+        if len(point[0]) != 0 :
+            fit[i], errori, mean_error[i], residual[i] = fit_plan_to_points(point, 
+                                                                            title = title,
+                                                                            plotting = plotting)
+            maxerror.append(np.max(abs(errori)))
+            errors.append(errori)
+        else :
+            maxerror.append(np.nan)
+            errors.append(np.nan)
+            fit[i]=np.nan 
+            errori=np.nan
+            mean_error[i]=np.nan
+            residual[i]=np.nan
+            
     if plotting :
         plt.figure()
         plt.show()    
-    print('Plan square max error = ', np.round((np.max(maxerror)), 3), ' mm')
-    print('Plan square mean error = ', np.round((np.mean(mean_error**2))**(1/2), 3), ' mm')
-    print('Plan square mean residual = ', np.round((np.mean(residual**2))**(1/2), 3))
+    print('Plan square max error = ', np.round((np.nanmax(maxerror)), 3), ' mm')
+    print('Plan square mean error = ', np.round((np.nanmean(mean_error**2))**(1/2), 3), ' mm')
+    print('Plan square mean residual = ', np.round((np.nanmean(residual**2))**(1/2), 3))
 
     return (fit, errors, mean_error, residual)
 
