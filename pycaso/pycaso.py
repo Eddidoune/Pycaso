@@ -27,7 +27,7 @@ def magnification (X1 : np.ndarray,
                    x1 : np.ndarray,
                    x2 : np.ndarray) -> np.ndarray :
     """Calculation of the magnification between reals and detected positions
-    in mm/px
+    in unity(mm or µm)/px
     
     Args:
        X1 : numpy.ndarrayx
@@ -154,12 +154,37 @@ def Soloff_calibration (z_list : np.ndarray,
                                                       sqr = sqr,
                                                       hybrid_verification = hybrid_verification)        
 
+    # Remove nan arrays
+    e = 0 ; i = 0
+    while e==0 :
+        nx,ny,nz = all_X.shape
+        if np.isnan(all_X[i]).all() :
+            if i < nx//2 :
+                ip = i
+            else :
+                ip = i - nx//2
+            all_X = np.delete(all_X,nx//2 + ip, axis = 0)
+            all_X = np.delete(all_X, ip, axis = 0)
+            all_x = np.delete(all_x,nx//2 + ip, axis = 0)
+            all_x = np.delete(all_x, ip, axis = 0)
+            z_list = np.delete(z_list, ip, axis = 0)
+
+        else : 
+            i+=1
+        if i >= nx :
+            e = 1
+    print ('')
+    print ('DEPTH OF FIELD :')
+    print ('          The calibrated depth of field is between ', np.min(z_list), 'mm and ', np.max(z_list), 'mm.')    
+    print ('')
+    
     # Creation of the reference matrix Xref and the real position Ucam for 
     # each camera
     x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_list)     
 
     # Plot the references plans
-    solvel.refplans(x, z_list, plotting = plotting)
+    if plotting :
+        solvel.refplans(x, z_list, plotting = True)
 
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))
@@ -203,7 +228,8 @@ def Soloff_identification (Xc1_identified : np.ndarray,
                            Soloff_constants0 : np.ndarray, 
                            Soloff_constants : np.ndarray,
                            Soloff_pform : int,
-                           method : str = 'curve_fit') -> np.ndarray :
+                           method : str = 'Peter',
+                           cut : int = 0) -> np.ndarray :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -219,35 +245,100 @@ def Soloff_identification (Xc1_identified : np.ndarray,
        Soloff_pform : int
            Polynomial form
        method : str, optional
-           Python method used to solve it ('Least-squares' or 'curve-fit')
+           Python method used to solve it ('Peter' 'curve-fit')
+       cut : int, optional
+           Used by Peter method to reduce the windows of resolution
 
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
     """
-    if len(Xc1_identified.shape) == 3 : 
-        modif_22_12_09 = True
-        nx, ny, naxis = Xc1_identified.shape
-        Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
-        Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
-    elif len(Xc1_identified.shape) == 2 : 
-        modif_22_12_09 = False
-    else :
-        raise('Error, X_ci shape different than 2 or 3')    
-    # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
-    # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
-    x0 = solvel.least_square_method (Xc1_identified, Xc2_identified, Soloff_constants0)
+    if method == 'Peter' :
+        if Soloff_pform != 332 :
+            raise('No Peter resolution for the polynomial form ', Soloff_pform, ' for the moment (Only for the form 332')
+        Xl = np.copy(Xc1_identified[:,:,0])
+        Yl = np.copy(Xc1_identified[:,:,1])
+        Xr = np.copy(Xc2_identified[:,:,0])
+        Yr = np.copy(Xc2_identified[:,:,1])
+        Xl0 = []
+        Yl0 = []
+        Xr0 = []
+        Yr0 = []
+
+        l = 20
+        nx,ny = Xl.shape
+        nx = nx//l
+        ny = ny//l
+        for i in range (l) :
+            for j in range (l) :
+                Xl0.append(Xl[i*nx, j*ny])
+                Yl0.append(Yl[i*nx, j*ny])
+                Xr0.append(Xr[i*nx, j*ny])
+                Yr0.append(Yr[i*nx, j*ny])
+        
+        Xl0 = np.array(Xl0).reshape((l,l))
+        Yl0 = np.array(Yl0).reshape((l,l))
+        Xr0 = np.array(Xr0).reshape((l,l))
+        Yr0 = np.array(Yr0).reshape((l,l))
+        Xc1_identified0 = np.zeros((l,l,2))
+        Xc1_identified0[:,:,0] = Xl0
+        Xc1_identified0[:,:,1] = Yl0
+        Xc2_identified0 = np.zeros((l,l,2))
+        Xc2_identified0[:,:,0] = Xr0
+        Xc2_identified0[:,:,1] = Yr0        
+        x,y,z = Soloff_identification (Xc1_identified0,
+                                       Xc2_identified0,
+                                       Soloff_constants0, 
+                                       Soloff_constants,
+                                       Soloff_pform,
+                                       method = 'curve_fit') 
+        print('')
+        print('')
+        print('Peter mapping')
+        print('xmax',np.max(x))
+        print('ymax',np.max(y))
+        print('zmax',np.max(z))
+        print('xmin',np.min(x))
+        print('ymin',np.min(y))
+        print('zmin',np.min(z))
+        print('')
+        print('')
+        xsolution = solvel.Peter(Xl,
+                                 Yl,
+                                 Xr,
+                                 Yr,
+                                 Soloff_constants,
+                                 x,
+                                 y,
+                                 z,
+                                 cut = cut)
     
-    # Solve the polynomials constants ai with curve-fit method (Levenberg 
-    # Marcquardt)
-    xsolution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
-                                                           Xc2_identified, 
-                                                           Soloff_constants, 
-                                                           x0, 
-                                                           Soloff_pform, 
-                                                           method = 'curve_fit')
-    if modif_22_12_09 :
-        xsolution = xsolution.reshape((3, nx, ny))
+    else :
+        if len(Xc1_identified.shape) == 3 : 
+            modif_22_12_09 = True
+            nx, ny, naxis = Xc1_identified.shape
+            Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
+            Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
+        elif len(Xc1_identified.shape) == 2 : 
+            modif_22_12_09 = False
+        else :
+            raise('Error, X_ci shape different than 2 or 3')
+        # We're searching for the solution x0(x1, x2, x3) as Xc1 = ac1 . 
+        # (1 x1 x2 x3) and Xc2 = ac2 . (1 x1 x2 x3)  using least square method.
+        x0 = solvel.least_square_method (Xc1_identified, 
+                                         Xc2_identified, 
+                                         Soloff_constants0)
+        
+        # Solve the polynomials constants ai with curve-fit method (Levenberg 
+        # Marcquardt)
+        xsolution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
+                                                               Xc2_identified, 
+                                                               Soloff_constants, 
+                                                               x0, 
+                                                               Soloff_pform, 
+                                                               method = method)
+        if modif_22_12_09 :
+            xsolution = xsolution.reshape((3, nx, ny))
     return (xsolution)
 
 def direct_calibration (z_list : np.ndarray,
@@ -337,13 +428,37 @@ def direct_calibration (z_list : np.ndarray,
                                                       ncy = ncy,
                                                       sqr = sqr,
                                                       hybrid_verification = hybrid_verification)       
+    # Remove nan arrays
+    e = 0 ; i = 0
+    while e==0 :
+        nx,ny,nz = all_X.shape
+        if np.isnan(all_X[i]).all() :
+            if i < nx//2 :
+                ip = i
+            else :
+                ip = i - nx//2
+            all_X = np.delete(all_X,nx//2 + ip, axis = 0)
+            all_X = np.delete(all_X, ip, axis = 0)
+            all_x = np.delete(all_x,nx//2 + ip, axis = 0)
+            all_x = np.delete(all_x, ip, axis = 0)
+            z_list = np.delete(z_list, ip, axis = 0)
+
+        else : 
+            i+=1
+        if i >= nx :
+            e = 1
+    print ('')
+    print ('DEPTH OF FIELD :')
+    print ('          The calibrated depth of field is between ', np.min(z_list), 'mm and ', np.max(z_list), 'mm.')    
+    print ('')
 
     # Creation of the reference matrix Xref and the real position Ucam for 
     # each camera i
     x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_list)
 
     # Plot the references plans
-    solvel.refplans(x, z_list, plotting = plotting)
+    if plotting :
+        solvel.refplans(x, z_list, plotting = True)
         
     # Calcul of the Soloff polynome's constants. X = A . M
     Magnification = np.zeros((2, 2))

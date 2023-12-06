@@ -13,6 +13,7 @@ import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 
+# Add the path of GCpu library if you want
 sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
 
 try : 
@@ -52,14 +53,23 @@ def calibrate(im : str ,
             Number of detected corners
     """
     mrk = sqr / 2
-    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
-    parameters = cv2.aruco.DetectorParameters_create()
-    parameters.adaptiveThreshWinSizeMax = 300
-    board = cv2.aruco.CharucoBoard_create(ncx,
-                                          ncy,
-                                          sqr,
-                                          mrk,
-                                          dictionary)
+    if cv2.__version__=='4.7.0' :
+        dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+        parameters = cv2.aruco.DetectorParameters()
+        parameters.adaptiveThreshWinSizeMax = 300
+        board = cv2.aruco.CharucoBoard((ncx, ncy),
+                                       sqr,
+                                       mrk,
+                                       dictionary)
+    else :
+        dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_250)
+        parameters = cv2.aruco.DetectorParameters_create()
+        parameters.adaptiveThreshWinSizeMax = 300
+        board = cv2.aruco.CharucoBoard_create(ncx,
+                                              ncy,
+                                              sqr,
+                                              mrk,
+                                              dictionary)
     if len (im) < 20 :
         print("=> Calculation of the image ...", str(im))
     else :
@@ -70,9 +80,10 @@ def calibrate(im : str ,
                                                 parameters = parameters)
     
     idall = []
+    nids = int(ncx*ncy/2)
     if len(corners) != 0 :
-        if len(corners) < len(board.ids):
-            for idd in board.ids:
+        if len(corners) < nids :
+            for idd in list(range(0, nids)):
                 if idd not in ids:
                     idall.append(int(idd))
         
@@ -81,7 +92,6 @@ def calibrate(im : str ,
             pts, chcorners, chids = cv2.aruco.interpolateCornersCharuco(
                 corners, ids, img, board)
             print(len(corners), ' marks detected. ', pts, ' points detected')
-            print('---')
             corners_list = []
             BU = []
             if pts != 0 :
@@ -135,6 +145,8 @@ def complete_missing_points (corners_list : np.ndarray,
     # Filter the image with the Hessian matrix parameters to detect the 
     # corners (points)
     img_hess = plt.imread(im)
+    if len (img_hess.shape) == 3 :
+        img_hess = img_hess[:,:,0]
     HE0, HE1 = sfe.hessian_matrix_eigvals(sfe.hessian_matrix(img_hess, 9))
     HE = abs(HE0 * HE1)
     thresh = sfi.threshold_otsu(HE)
@@ -190,27 +202,35 @@ def complete_missing_points (corners_list : np.ndarray,
         
     if np.any(ptB) :
         # Define the referencial coordinates of the pattern grid
-        nx = columnB - columnA
-        ny = lineB - lineA
-        dx = xB - xA
-        dy = yB - yA
-        dP = math.sqrt(dx**2 + dy**2)
-        l = dP / math.sqrt(nx**2 + ny**2)
-        alpha = math.atan(-dy/dx)
-        if dx < 0 :
-            alpha += math.pi
-        alpha2 = math.atan(ny/nx)
-        if nx < 0 :
-            alpha2 += math.pi
-        alpha1 = alpha - alpha2
-        xx = l * math.cos(alpha1)
-        xy = - l * math.sin(alpha1)
-        yy = - l * math.cos(alpha1)
-        yx = - l * math.sin(alpha1)
+        if cv2.__version__[:3] == '4.6' or cv2.__version__[:3] == '4.7' :
+            nx = columnB - columnA
+            ny = lineB - lineA
+            dx = xB - xA
+            dy = yB - yA
+            dP = math.sqrt(dx**2 + dy**2)
+            l = dP / math.sqrt(nx**2 + ny**2)
+            
+            Lx = (dy-ny*dx/nx)/(-nx-ny**2/nx)
+            Cy = -Lx
+            Cx = (dx -ny*Lx)/nx
+            Ly = Cx
+        
+        elif cv2.__version__[:3] == '4.5' or cv2.__version__[:3] == '4.4'  :
+            alpha = math.atan(-dy/dx)
+            if dx < 0 :
+                alpha += math.pi
+            alpha2 = math.atan(ny/nx)
+            if nx < 0 :
+                alpha2 += math.pi
+            alpha1 = alpha - alpha2
+            Cx = l * math.cos(alpha1)
+            xy = - l * math.sin(alpha1)
+            Ly = - l * math.cos(alpha1)
+            Lx = - l * math.sin(alpha1)
     
         # Define the origine point
-        d0x = columnA * xx + lineA * yx
-        d0y = columnA * xy + lineA * yy
+        d0x = columnA * Cx + lineA * Lx
+        d0y = columnA * Cy + lineA * Ly
         x0 = xA - d0x
         y0 = yA - d0y
     
@@ -229,16 +249,22 @@ def complete_missing_points (corners_list : np.ndarray,
                     # label_img=label(clear_border(bin_im_win))
                     label_img=label(bin_im_win)
                     regions = regionprops(label_img)
-                    for region in (regions):
-                        areas.append(region.area)
-                    if any (areas) :
-                        max_area = max(areas)
-                        max_i = areas.index(max_area)
-                        region = regions[max_i]
-                        bary, barx = region.centroid
-                    else :
+                    if len(regions) == 0 :
                         bary, barx = np.nan, np.nan
-                        d += int(l//8)
+                        max_area = np.nan
+                        print('Lose')
+                        break
+                    else :
+                        for region in (regions):
+                            areas.append(region.area)
+                        if any (areas) :
+                            max_area = max(areas)
+                            max_i = areas.index(max_area)
+                            region = regions[max_i]
+                            bary, barx = region.centroid
+                        else :
+                            bary, barx = np.nan, np.nan
+                            d += int(l//8)
             y_dot = bary + yi - d
             x_dot = barx + xi - d
             return(x_dot, y_dot, max_area)
@@ -251,18 +277,19 @@ def complete_missing_points (corners_list : np.ndarray,
         for id_ in np.ravel(pts_list) :
             # Find the missing point
             line2, column2 = np.where(pts_list == id_)
-            dix = column2 * xx + line2 * yx
-            diy = column2 * xy + line2 * yy
+            dix = column2 * Cx + line2 * Lx
+            diy = column2 * Cy + line2 * Ly
             xi = int(x0 + dix)
             yi = int(y0 + diy)
             d = int(len_test)
             
             # Find the missing point, if on the screen
             x_dot, y_dot, __ = win_spot (bin_im, l, d, xi, yi)
-            # Do it again around center 
-            x_dot, y_dot, __ = win_spot (bin_im, l, d, int(x_dot), int(y_dot))
+            if not math.isnan(x_dot) :
+                # Do it again around center 
+                x_dot, y_dot, __ = win_spot (bin_im, l, d, int(x_dot), int(y_dot))
             
-            if x_dot == np.nan :
+            if math.isnan(x_dot) :
                 out_of_range_points += 1
             
             arr = np.array([float(x_dot), float(y_dot), float(id_)])
@@ -291,8 +318,8 @@ def complete_missing_points (corners_list : np.ndarray,
                         plt.close()
                     id_ = int(txt)
                     line2, column2 = np.where(pts_list == id_)
-                    dix = column2 * xx + line2 * yx
-                    diy = column2 * xy + line2 * yy
+                    dix = column2 * Cx + line2 * Lx
+                    diy = column2 * Cy + line2 * Ly
                     xi = int(x0 + dix)
                     yi = int(y0 + diy)
                     fig, ax = plt.subplots()
@@ -324,8 +351,9 @@ def complete_missing_points (corners_list : np.ndarray,
                 
     else :
         print('Impossible to detect manualy corners of image : ', im)
-        corners_list_opt = False
+        corners_list_opt = np.array([False])
     print (out_of_range_points, ' points out of the image or to close to the border')
+    print ('---')
     return (corners_list_opt)
 
 def calibration_model(nx, 
@@ -515,6 +543,11 @@ def NAN_calibration_model (Images : list ,
                                                    ncy = ncy,
                                                    sqr = sqr,
                                                    hybrid_verification = hybrid_verification)
+            if np.any(corners_list) :
+                ()
+            else :
+                corners_list = np.empty((Nall, 3))
+                corners_list[:] = np.nan
         else :
             corners_list = np.empty((Nall, 3))
             corners_list[:] = np.nan
@@ -971,8 +1004,8 @@ def DIC_compute_flow (DIC_dict : dict,
     try : 
         from compute_flow import compute_flow
     except ImportError:
-        print('No module named compute_flow')
-        sys.exit()
+        raise('No module named compute_flow')
+
     left_folder = DIC_dict['left_folder']
     right_folder = DIC_dict['right_folder']
     ROI = DIC_dict['window']
@@ -1389,7 +1422,7 @@ def Strain_fields (UVW : np.ndarray) -> (np.ndarray,
     """
     Np_img, axis, nx, ny = UVW.shape
     Exy, Exx, Eyy, Eyx, Ezy, Ezx = [], [], [], [], [], []
-    for i in Np_img :
+    for i in range(Np_img) :
         Exyi, Exxi, Eyyi, Eyxi, Ezyi, Ezxi = Strain_field (UVW[i])
         Exy.append(Exyi)
         Exx.append(Exxi)
