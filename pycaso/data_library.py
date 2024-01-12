@@ -203,24 +203,24 @@ def complete_missing_points (corners_list : np.ndarray,
     if np.any(ptB) :
         # Define the referencial coordinates of the pattern grid
         if cv2.__version__[:3] == '4.6' or cv2.__version__[:3] == '4.7' :
-            nx = columnB - columnA
-            ny = lineB - lineA
-            dx = xB - xA
-            dy = yB - yA
-            dP = math.sqrt(dx**2 + dy**2)
-            l = dP / math.sqrt(nx**2 + ny**2)
+            CAB = columnB - columnA
+            LAB = lineB - lineA
+            xAB = xB - xA
+            yAB = yB - yA
+            dP = math.sqrt(xAB**2 + yAB**2)
+            l = dP / math.sqrt(CAB**2 + LAB**2)
             
-            Lx = (dy-ny*dx/nx)/(-nx-ny**2/nx)
+            Lx = (yAB-LAB*xAB/CAB)/(-CAB-LAB**2/CAB)
             Cy = -Lx
-            Cx = (dx -ny*Lx)/nx
+            Cx = (xAB -LAB*Lx)/CAB
             Ly = Cx
         
         elif cv2.__version__[:3] == '4.5' or cv2.__version__[:3] == '4.4'  :
-            alpha = math.atan(-dy/dx)
-            if dx < 0 :
+            alpha = math.atan(-yAB/xAB)
+            if xAB < 0 :
                 alpha += math.pi
-            alpha2 = math.atan(ny/nx)
-            if nx < 0 :
+            alpha2 = math.atan(LAB/CAB)
+            if CAB < 0 :
                 alpha2 += math.pi
             alpha1 = alpha - alpha2
             Cx = l * math.cos(alpha1)

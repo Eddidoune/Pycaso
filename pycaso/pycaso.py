@@ -158,21 +158,22 @@ def Soloff_calibration (z_list : np.ndarray,
     e = 0 ; i = 0
     while e==0 :
         nx,ny,nz = all_X.shape
-        if np.isnan(all_X[i]).all() :
-            if i < nx//2 :
-                ip = i
-            else :
-                ip = i - nx//2
-            all_X = np.delete(all_X,nx//2 + ip, axis = 0)
-            all_X = np.delete(all_X, ip, axis = 0)
-            all_x = np.delete(all_x,nx//2 + ip, axis = 0)
-            all_x = np.delete(all_x, ip, axis = 0)
-            z_list = np.delete(z_list, ip, axis = 0)
-
-        else : 
-            i+=1
         if i >= nx :
             e = 1
+        else :
+            if np.isnan(all_X[i]).all() :
+                if i < nx//2 :
+                    ip = i
+                else :
+                    ip = i - nx//2
+                all_X = np.delete(all_X,nx//2 + ip, axis = 0)
+                all_X = np.delete(all_X, ip, axis = 0)
+                all_x = np.delete(all_x,nx//2 + ip, axis = 0)
+                all_x = np.delete(all_x, ip, axis = 0)
+                z_list = np.delete(z_list, ip, axis = 0)
+    
+            else : 
+                i+=1
     print ('')
     print ('DEPTH OF FIELD :')
     print ('          The calibrated depth of field is between ', np.min(z_list), 'mm and ', np.max(z_list), 'mm.')    
@@ -432,21 +433,23 @@ def direct_calibration (z_list : np.ndarray,
     e = 0 ; i = 0
     while e==0 :
         nx,ny,nz = all_X.shape
-        if np.isnan(all_X[i]).all() :
-            if i < nx//2 :
-                ip = i
-            else :
-                ip = i - nx//2
-            all_X = np.delete(all_X,nx//2 + ip, axis = 0)
-            all_X = np.delete(all_X, ip, axis = 0)
-            all_x = np.delete(all_x,nx//2 + ip, axis = 0)
-            all_x = np.delete(all_x, ip, axis = 0)
-            z_list = np.delete(z_list, ip, axis = 0)
-
-        else : 
-            i+=1
         if i >= nx :
             e = 1
+        else :
+            if np.isnan(all_X[i]).all() :
+                if i < nx//2 :
+                    ip = i
+                else :
+                    ip = i - nx//2
+                all_X = np.delete(all_X,nx//2 + ip, axis = 0)
+                all_X = np.delete(all_X, ip, axis = 0)
+                all_x = np.delete(all_x,nx//2 + ip, axis = 0)
+                all_x = np.delete(all_x, ip, axis = 0)
+                z_list = np.delete(z_list, ip, axis = 0)
+    
+            else : 
+                i+=1
+
     print ('')
     print ('DEPTH OF FIELD :')
     print ('          The calibrated depth of field is between ', np.min(z_list), 'mm and ', np.max(z_list), 'mm.')    
