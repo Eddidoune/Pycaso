@@ -421,6 +421,234 @@ class Soloff_Polynome(dict) :
         return(X)    
 
 
+class Zernike_Polynome(dict) :
+    def __init__(self, _dict_) :
+        self._dict_ = _dict_
+        self.polynomial_form = _dict_['polynomial_form']
+
+    def pol_form (self, 
+                  Xl : np.ndarray,
+                  Xr : np.ndarray,
+                  Cameras_dimensions
+                  ) -> np.ndarray :
+        """Create the matrix M = f(Xl,Xr) with f the polynomial function of 
+        degree n
+        
+        Args:
+           Xl : numpy.ndarray
+               Left detected points  Xl(Xl1, Xl2)
+           Xr : numpy.ndarray
+               Right detected points  Xr(Xr1, Xr2)
+           Cameras_dimensions : tuple
+               Dimensions of cameras = [left y, left x, right y, right x]
+               
+        Returns:
+           M : numpy.ndarray
+               M = f(Xl,Xr)
+        """
+        n = int(len(Xl[0]))
+        Xl = np.array(Xl)
+        Xr = np.array(Xr)
+        polynomial_form = self.polynomial_form
+        left_y, left_x, right_y, right_x = Cameras_dimensions
+        Diagl = math.sqrt(left_y*left_y + left_x*left_x)/2
+        Diagr = math.sqrt(right_y*right_y + right_x*right_x)/2
+
+        for i in range (core_number) :
+            ni0 = i*n//core_number
+            ni1 = (i+1)*n//core_number
+            ni = ni1 - ni0
+            
+            Xl1, Xl2 = Xl[:, ni0 : ni1]
+            Xr1, Xr2 = Xr[:, ni0 : ni1]
+            Xl1 = (Xl1 - left_x/2)/Diagl
+            Xl2 = (Xl2 - left_y/2)/Diagl
+            Xr1 = (Xr1 - right_x/2)/Diagr
+            Xr2 = (Xr2 - right_y/2)/Diagr
+            one = np.ones((ni))
+            degree_list = [5, 7, 11, 15, 19, 21, 25, 29, 33, 37, 41, 43]
+            if i == 0 :
+                M = np.zeros((degree_list[polynomial_form-1], n))
+
+            if polynomial_form >= 1 :
+                # Consider only tilt
+                M[:5,ni0 : ni1] = np.asarray (
+                                [one, 
+                                 Xl1, 
+                                 Xl2, 
+                                 Xr1, 
+                                 Xr2])
+                
+            if polynomial_form >= 2 :
+                # Add defocus
+                X2l1 = Xl1 * Xl1
+                X2l2 = Xl2 * Xl2
+                X2r1 = Xr1 * Xr1
+                X2r2 = Xr2 * Xr2
+                Rl = np.sqrt(X2l1 + X2l2)
+                Rr = np.sqrt(X2r1 + X2r2)
+                R2l = Rl*Rl
+                R2r = Rr*Rr
+                M[5:7,ni0 : ni1] = np.asarray (
+                                [2*R2l-one, 
+                                 2*R2r-one])
+                
+            if polynomial_form >= 3 :
+                # Add astigmatism
+                Xl12 = Xl1 * Xl2
+                Xr12 = Xr1 * Xr2
+                M[7:11,ni0 : ni1] = np.asarray (
+                                [X2l1-X2l2, 
+                                 2*Xl12, 
+                                 X2r1-X2r2, 
+                                 2*Xr12])
+
+            if polynomial_form >= 4 :
+                # Add coma
+                M[11:15,ni0 : ni1] = np.asarray (
+                                [(3*R2l-2)*Xl1, 
+                                 (3*R2l-2)*Xl2, 
+                                 (3*R2r-2)*Xr1, 
+                                 (3*R2r-2)*Xr2])
+                
+            if polynomial_form >= 5 :
+                # Add trefoil
+                M[15:19,ni0 : ni1] = np.asarray (
+                                [(3*X2l1-X2l2)*Xl2, 
+                                 (3*X2l2-X2l1)*Xl1, 
+                                 (3*X2r1-X2r2)*Xr2, 
+                                 (3*X2r2-X2r1)*Xr1])
+
+            if polynomial_form >= 6 :
+                # Add sphericity
+                R4l = R2l*R2l
+                R4r = R2r*R2r
+                M[19:21,ni0 : ni1] = np.asarray (
+                                [6*R4l-6*R2l+one, 
+                                 6*R4r-6*R2r+one])
+                
+            if polynomial_form >= 7 :
+                # Add second astigmatism
+                                
+                X4l1 = X2l1 * X2l1
+                X4l2 = X2l2 * X2l2
+                X4r1 = X2r1 * X2r1
+                X4r2 = X2r2 * X2r2
+                M[21:25,ni0 : ni1] = np.asarray (
+                                [4*(X4l1-X4l2)-3*(X2l1-X2l2), 
+                                 (8*R2l-6)*Xl1*Xl2,
+                                 4*(X4r1-X4r2)-3*(X2r1-X2r2), 
+                                 (8*R2r-6)*Xr1*Xr2])
+
+            if polynomial_form >= 8 :
+                # Add tetrafoil
+                M[25:29,ni0 : ni1] = np.asarray (
+                                [X4l1+X4l2-6*X2l1*X2l2, 
+                                 4*(X2l1-X2l2)*Xl1*Xl2,
+                                 X4r1+X4r2-6*X2r1*X2r2, 
+                                 4*(X2r1-X2r2)*Xr1*Xr2])
+
+            if polynomial_form >= 9 :
+                # Add second coma
+                M[29:33,ni0 : ni1] = np.asarray (
+                                [(10*R4l-12*R2l+3)*Xl1, 
+                                 (10*R4l-12*R2l+3)*Xl2,
+                                 (10*R4r-12*R2r+3)*Xr1, 
+                                 (10*R4r-12*R2r+3)*Xr2])
+
+            if polynomial_form >= 10 :
+                # Add second trefoil
+                M[33:37,ni0 : ni1] = np.asarray (
+                                [(5*X4l1-10*X2l1*X2l2-15*X4l2-4*X2l1+12*X2l2)*Xl1, 
+                                 (15*X4l1+10*X2l1*X2l2-5*X4l2-12*X2l1+4*X2l2)*Xl2,
+                                 (5*X4r1-10*X2r1*X2r2-15*X4r2-4*X2r1+12*X2r2)*Xr1, 
+                                 (15*X4r1+10*X2r1*X2r2-5*X4r2-12*X2r1+4*X2r2)*Xr2])
+                
+            if polynomial_form >= 11 :
+                # Add hexafoil
+                M[37:41,ni0 : ni1] = np.asarray (
+                                [(X4l1-10*X2l1*X2l2+5*X4l2)*Xl1,
+                                 (5*X4l1-10*X2l1*X2l2+X4l2)*Xl2,
+                                 (X4r1-10*X2r1*X2r2+5*X4r2)*Xr1,
+                                 (5*X4r1-10*X2r1*X2r2+X4r2)*Xr2])
+                
+            if polynomial_form >= 12 :
+                # Add second sphericity
+                R6l = R4l*R2l
+                R6r = R4r*R2r
+                M[41:43,ni0 : ni1] = np.asarray (
+                                [20*R6l-30*R4l+12*R2l-1,
+                                 20*R6r-30*R4r+12*R2r-1])
+        return (M)
+
+
+    def polynomial_LM_CF (self, a, *x) :
+        """Definition of the functionnal F (for curve_fit method)
+        
+        Args:
+           x : numpy.ndarray
+               Real points x(x1, x2, x3)
+           a : numpy.ndarray
+               cst of the polynomial function M = f(x)
+           
+        Returns:
+           Xc : numpy.ndarray
+               Calculted position
+        """
+        polynomial_form = self.polynomial_form
+        x = np.array ([x])
+        x = x.reshape((3,len(x[0])//3))
+        M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)    
+        Xc = np.matmul(a, M)
+        Xc = Xc.reshape(4*len(x[0]))
+        return (Xc)
+
+    def polynomial_LM_LS (self, x, X, a) :
+        """Definition of the functionnal F (for least_squares method)
+        
+        Args:
+           x : numpy.ndarray
+               Real points x(x1, x2, x3)
+           X : numpy.ndarray
+               Measured points X(Xl1, Xl2, Xr1, Xr2)
+           a : numpy.ndarray
+               cst of the polynomial function M = f(x)
+           
+        Returns:
+           X-Xc : numpy.ndarray
+               Functional calculation
+        """
+        polynomial_form = self.polynomial_form
+        x = np.array ([x])
+        x = x.reshape((3,len(x[0])//3))
+        M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x) 
+        Xc = np.matmul(a, M)
+        Xc = Xc.reshape(4*len(x[0]))
+        F = X-Xc
+        return (F)
+    
+    def polynomial_system (self, x, a) :
+        """Create the matrix M = f(x) with f the polynomial function of degree 
+        (aab : a for x1, x2 and b for x3)
+        
+        Args:
+           x : numpy.ndarray
+               Real points x(x1, x2, x3)
+           a : numpy.ndarray
+               cst of the polynomial function M = f(x)
+           
+        Returns:
+           M : numpy.ndarray
+               M = f(x)
+        """
+        polynomial_form = self.polynomial_form
+        M = Soloff_Polynome({'polynomial_form' : polynomial_form}).pol_form(x)   
+        X = np.matmul(a, M)
+            
+        return(X)    
+
+
+
 def fit_plan_to_points(point : np.ndarray,
                        title : bool = False,
                        plotting : bool = False) -> (np.ndarray,
@@ -1667,16 +1895,24 @@ def Peter(Xl : np.ndarray,
     
         print("minPeter ",i,": ",np.linalg.norm(resXl,'fro')+np.linalg.norm(resYl,'fro')+np.linalg.norm(resXr,'fro')+np.linalg.norm(resYr,'fro'))
         print("resPeter ",i,": ",np.linalg.norm(resx,'fro')+np.linalg.norm(resy,'fro')+np.linalg.norm(resz,'fro'))
-        Mxx = Hyy*Hzz-Hyz**2
-        Mxy = Hxz*Hyz-Hxy*Hzz
-        Mxz = Hxy*Hyz-Hxz*Hyy
-        Myy = Hxx*Hzz-Hxz**2
-        Myz = Hxz*Hxy-Hxx*Hyz
-        Mzz = Hxx*Hyy-Hxy*Hxy**2
-        det = Hxx*Mxx+Hxy*Mxy+Hxz*Mxz
-        xi -= (Mxx*resx+Mxy*resy+Mxz*resz)/det
-        yi -= (Mxy*resx+Myy*resy+Myz*resz)/det
-        zi -= (Mxz*resx+Myz*resy+Mzz*resz)/det
+        Lxx = np.sqrt(Hxx)
+        Lxy = Hxy/Lxx
+        Lyy = np.sqrt(Hxx-Lxy*Lxy)
+        Lxz = Hxz/Lxx
+        Lyz = (Hyz-Lxz*Lxy)/Lyy
+        Lzz = np.sqrt(Hxx-Lxz*Lxz-Lyz*Lyz)
+
+        ax = resx/Lxx
+        ay = (resy-Lxy*ax)/Lyy
+        az = (resz-Lxz*ax-Lyz*ay)/Lzz
+
+        bz = az/Lzz
+        by = (ay-Lyz*bz)/Lyy
+        bx = (ax-Lxy*by-Lxz*bz)/Lzz
+
+        xi -= bx
+        yi -= by
+        zi -= bz
         
     print("Temps: ",time.process_time() - start)
     if cpy :

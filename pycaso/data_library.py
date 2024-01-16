@@ -356,17 +356,17 @@ def complete_missing_points (corners_list : np.ndarray,
     print ('---')
     return (corners_list_opt)
 
-def calibration_model(nx, 
-                      ny, 
-                      l) : 
+def calibration_model(ncx : int = 16,
+                      ncy : int = 12,
+                      sqr : float = 0.3,) : 
     """ Creation of the model of the calibration pattern
     
     Args:
-        nx : int
+        ncx : int
             Number of x squares
-        ny : int
+        ncy : int
             Number of y squares
-        l : int
+        sqr : int
             Size of a square
         
     Returns:
@@ -375,9 +375,9 @@ def calibration_model(nx,
             
     """
     Xref = []
-    for i in range (0, ny-1) :
-        for j in range (0, nx-1) :
-            Xref.append([(nx-(j+1))*l, (i+1)*l, j+(ny-1)*i])
+    for i in range (0, ncy-1) :
+        for j in range (0, ncx-1) :
+            Xref.append([(ncx-(j+1))*sqr, (i+1)*sqr, j+(ncy-1)*i])
     return Xref
 
 def cut_calibration_model (List_images : list , 
@@ -1432,3 +1432,34 @@ def Strain_fields (UVW : np.ndarray) -> (np.ndarray,
         Ezx.append(Ezxi)
         
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
+
+def cameras_size (left_folder : str = 'left_calibration',
+                  right_folder : str = 'right_calibration',
+                  name : str = 'calibration',
+                  saving_folder : str = 'results',
+                  ncx : int = 16,
+                  ncy : int = 12,
+                  sqr : float = 0.3,
+                  hybrid_verification : bool = False,
+                  save : bool = True) -> (np.ndarray,
+                                          np.ndarray) :
+    """Give the dimension in puxel of both cameras (left and right).
+    Only left_folder and right_folder are used.
+    
+    Args:
+       left_folder : str, optional
+           Left calibration images folder
+       right_folder : str, optional
+           Right calibration images folder
+           
+    Returns:
+       Cameras_dimensions : list
+           Dimensions of left and right cameras
+    """
+    # Taking the first image of each camera.
+    Image_left = cv2.imread(sorted(glob(str(left_folder) + '/*'))[0], 0) 
+    Image_right = cv2.imread(sorted(glob(str(right_folder) + '/*'))[0], 0) 
+    Left_dimensions = Image_left.shape
+    Right_dimensions = Image_right.shape
+    Cameras_dimensions = [Left_dimensions[0], Left_dimensions[1], Right_dimensions[0], Right_dimensions[1]]
+    return(Cameras_dimensions)
