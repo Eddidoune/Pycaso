@@ -13,14 +13,6 @@ import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
 
-# Add the path of GCpu library if you want
-sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
-
-try : 
-    from compute_flow import compute_flow
-except ImportError:
-    print('No module named compute_flow')
-
 try : 
     import cupy 
     cpy = True
@@ -111,7 +103,9 @@ def complete_missing_points (corners_list : np.ndarray,
                              ncx : int = 16,
                              ncy : int = 12,
                              sqr : float = 0.3,
-                             hybrid_verification : bool = False) -> list :  
+                             hybrid_verification : bool = False,
+                             plotting : bool = False,
+                             c = 'r') -> list :  
     """ Detection of the corners with Hessian invariants filtering
     
     Args:
@@ -131,6 +125,10 @@ def complete_missing_points (corners_list : np.ndarray,
             corners is show and you can decide to change any point using
             it ID (ID indicated on the image) as an input. If there is no
             bad detected corner, press ENTER to go to the next image.
+        plotting : bool, optional
+            If True, plot the image and the detected points.
+        c : str, optional
+            Color of detected points when plotting=True.
 
            
     Returns:
@@ -354,6 +352,9 @@ def complete_missing_points (corners_list : np.ndarray,
         corners_list_opt = np.array([False])
     print (out_of_range_points, ' points out of the image or to close to the border')
     print ('---')
+    if plotting :
+        plt.imshow(img)
+        plt.scatter(corners_list_opt[:,0], corners_list_opt[:,1], c=c)
     return (corners_list_opt)
 
 def calibration_model(ncx : int = 16,
@@ -977,7 +978,7 @@ def DIC_disflow (DIC_dict : dict,
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return(Xleft_id, Xright_id)
 
-def DIC_compute_flow (DIC_dict : dict,
+def DIC_optical_flow (DIC_dict : dict,
                       flip : bool = False,
                       image_ids : list = [False]) -> (np.ndarray,
                                                       np.ndarray) :
@@ -1002,9 +1003,10 @@ def DIC_compute_flow (DIC_dict : dict,
            All the left pixels (points) localised on the right pictures.
    """
     try : 
+        sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
         from compute_flow import compute_flow
     except ImportError:
-        raise('No module named compute_flow')
+        raise('No module named optical_flow')
 
     left_folder = DIC_dict['left_folder']
     right_folder = DIC_dict['right_folder']
@@ -1048,8 +1050,8 @@ def DIC_compute_flow (DIC_dict : dict,
     if any (image_ids) :
         for i in image_ids :
             name = name + str(i)
-    Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
-    Save_all_V = str(DIC_dict['saving_folder']) +"/compute_flow_V_" + name + ".npy"
+    Save_all_U = str(DIC_dict['saving_folder']) +"/optical_flow_U_" + name + ".npy"
+    Save_all_V = str(DIC_dict['saving_folder']) +"/optical_flow_V_" + name + ".npy"
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         all_U = np.load(Save_all_U)
@@ -1167,10 +1169,233 @@ def DIC_compute_flow (DIC_dict : dict,
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return (Xleft_id, Xright_id)
 
+def DIC_robust_metric (DIC_dict : dict,
+                       flip : bool = False,
+                       image_ids : list = [False]) -> (np.ndarray,
+                                                       np.ndarray) :
+    """Use the DIC to locate all the points from the reference picture
+    (first left one) in the other ones (other left and right pictures).
+    
+    Args:
+       DIC_dict : dict
+           DIC dictionnary including the picture folders, the saving name and 
+           the window (in px) to study.
+       flip : bool, optional
+           If True, all the pictures are flipped before the DIC (useful when 
+           you're using a mirror)
+       image_ids : list, optional
+           Define the list of images you want to compare in the left and right folders
+           
+    Returns:
+       Xleft_id : numpy.ndarray
+           All the points of the left pictures (1 point per pixel) in an array 
+           arrange with their positions. 
+       Xright_id : numpy.ndarray
+           All the left pixels (points) localised on the right pictures.
+   """
+    try : 
+        sys.path.append('/home/caroneddy/These/GCpu_Robust_Metrics/Src')
+        from compute_flow import compute_flow
+    except ImportError:
+        raise('No module named optical_flow')
+
+    left_folder = DIC_dict['left_folder']
+    right_folder = DIC_dict['right_folder']
+    ROI = DIC_dict['window']
+    import rescale_img as ri
+
+    Images_left = sorted(glob(str(left_folder) + '/*'))
+    Images_right = sorted(glob(str(right_folder) + '/*'))
+    if any (image_ids) :
+        Images_left_cut = []
+        Images_right_cut = []
+        for i in image_ids :
+            Images_left_cut.append(Images_left[i])
+            Images_right_cut.append(Images_right[i])
+        Images_left = Images_left_cut
+        Images_right = Images_right_cut
+    Images = Images_left
+    N = len(Images)
+    for i in range (N) :
+        Images.append(Images_right[i]) 
+    [lx1, lx2], [ly1, ly2] = ROI
+    N = len(Images)
+
+    name = DIC_dict['name']
+    if any (image_ids) :
+        for i in image_ids :
+            name = name + str(i)
+    Save_all_U = str(DIC_dict['saving_folder']) +"/robust_metric_U_" + name + ".npy"
+    Save_all_V = str(DIC_dict['saving_folder']) +"/robust_metric_V_" + name + ".npy"
+    if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
+        print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
+        all_U = np.load(Save_all_U)
+        all_V = np.load(Save_all_V)
+    else:
+        im0_left = cv2.imread(Images[0], 0)
+        im0_right = cv2.imread(Images[int(N/2)], 0)
+        if flip :
+            im0_left = cv2.flip(im0_left, 1)
+            im0_right = cv2.flip(im0_right, 1)
+        nx, ny = im0_left.shape
+        all_U = np.zeros((N, nx, ny), dtype=np.float32)
+        all_V = np.zeros((N, nx, ny), dtype=np.float32)
+        x, y = np.meshgrid(np.arange(ny), np.arange(nx))
+        x = x.astype(np.float32)
+        y = y.astype(np.float32)
+        # Left0/left camera correlations + left0 / right0 correlation
+        spacing = 2
+        opt_flow = {"iter_gnc" : 3, # Gnc iteration
+                    "gnc_pyram_levels" : 2, # Gnc levels
+                    "gnc_factor" : 1.25, # Gnc factor
+                    "gnc_spacing" : 1.25,
+                    "pyram_levels" : ri.compute_auto_pyramd_levels(im0_left,spacing), #Automatic detection of the number of levels
+                    "factor" : 2,
+                    "spacing" : spacing,
+                    "ordre_inter" : 3, # Interpolation order
+                    "alpha" : 1,
+                    "lmbda" : 12,
+                    "size_median_filter" : 5,
+                    "h" : np.array([[-1, 8, 0, -8, 1]])/12,
+                    "coef" : 0.5,
+                    "max_linear_iter" : 1,
+                    "max_iter" : 10,
+                    "metric" : 'lorentz',
+                    "Mask" : None,
+                    "sigma" : 0.2} #The parameter of Lorentz
+
+        print('    - DIC in progress ...')
+        if 'dic_kwargs' in DIC_dict :
+            optical_flow_parameters = DIC_dict['dic_kwargs']  
+        else :
+            optical_flow_parameters = opt_flow
+            
+        for i, image in enumerate(Images[1:(int(N/2)+1)]):
+            im = cv2.imread(image, 0)
+            if flip :
+                im = cv2.flip(im, 1)
+            print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
+            t1 = time.time()
+            U, V = compute_flow(im0_left, 
+                                im, 
+                                np.zeros((im0_left.shape)),
+                                np.zeros((im.shape)), 
+                                optical_flow_parameters["iter_gnc"], 
+                                optical_flow_parameters["gnc_pyram_levels"],
+                                optical_flow_parameters["gnc_factor"],
+                                optical_flow_parameters["gnc_spacing"], 
+                                optical_flow_parameters["pyram_levels"], 
+                                optical_flow_parameters["factor"],
+                                optical_flow_parameters["spacing"], 
+                                optical_flow_parameters["ordre_inter"],
+                                optical_flow_parameters["alpha"],
+                                optical_flow_parameters["lmbda"], 
+                                optical_flow_parameters["size_median_filter"],
+                                optical_flow_parameters["h"],
+                                optical_flow_parameters["coef"], 
+                                optical_flow_parameters["max_linear_iter"],
+                                optical_flow_parameters["max_iter"],
+                                optical_flow_parameters["metric"],
+                                optical_flow_parameters["Mask"],
+                                optical_flow_parameters["sigma"])
+
+            try :
+                import cupy
+                U = cupy.asnumpy(U)
+                V = cupy.asnumpy(V)
+            except ImportError:
+                ()  
+            all_U[i+1], all_V[i+1] = U, V
+            t2 = time.time()
+            print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
+        # Left0/right camera composed correlations 
+        for i, image in enumerate(Images[(int(N/2)+1):]):
+            im = cv2.imread(image, 0)
+            if flip :
+                im = cv2.flip(im, 1)
+            print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
+            t1 = time.time()
+            # Right0/right camera correlation    
+            Ur, Vr = compute_flow(im0_right,
+                                  im,
+                                  np.zeros((im0_right.shape)),
+                                  np.zeros((im.shape)), 
+                                  optical_flow_parameters["iter_gnc"], 
+                                  optical_flow_parameters["gnc_pyram_levels"],
+                                  optical_flow_parameters["gnc_factor"],
+                                  optical_flow_parameters["gnc_spacing"], 
+                                  optical_flow_parameters["pyram_levels"], 
+                                  optical_flow_parameters["factor"],
+                                  optical_flow_parameters["spacing"], 
+                                  optical_flow_parameters["ordre_inter"],
+                                  optical_flow_parameters["alpha"],
+                                  optical_flow_parameters["lmbda"], 
+                                  optical_flow_parameters["size_median_filter"],
+                                  optical_flow_parameters["h"],
+                                  optical_flow_parameters["coef"], 
+                                  optical_flow_parameters["max_linear_iter"],
+                                  optical_flow_parameters["max_iter"],
+                                  optical_flow_parameters["metric"],
+                                  optical_flow_parameters["Mask"],
+                                  optical_flow_parameters["sigma"])
+      
+            try :
+                import cupy
+                Ur = cupy.asnumpy(Ur)
+                Vr = cupy.asnumpy(Vr)
+            except ImportError:
+                ()
+            Ur = Ur.astype(np.float32)
+            Vr = Vr.astype(np.float32)
+            t2 = time.time()
+            print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
+            # Composition of transformations
+            all_U[int(N/2)+i+1] = all_U[int(N/2)] + cv2.remap(Ur, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
+            all_V[int(N/2)+i+1] = all_V[int(N/2)] + cv2.remap(Vr, x+all_U[int(N/2)], y+all_V[int(N/2)], cv2.INTER_LINEAR)
+        print('Saving data to\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
+        np.save(Save_all_U, all_U)
+        np.save(Save_all_V, all_V)
+    
+    Xleft_id = []
+    Xright_id = []
+    for i in range (N) :
+        U, V = all_U[i], all_V[i]
+        nX1, nX2 = U.shape
+        linsp1 = np.arange(nX1)+1
+        linsp2 = np.arange(nX2)+1
+        linsp1 = np.reshape (linsp1, (1,nX1))
+        linsp2 = np.reshape (linsp2, (1,nX2))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp2)
+        X2matrix = np.matmul(np.transpose(linsp1), np.ones((1, nX2)))
+        X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
+        X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
+
+        # Left camera --> position = each px
+        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
+                                      np.ravel(X2matrix_w)]))
+        UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
+                                    np.ravel(V[lx1:lx2, ly1:ly2])]))
+
+        # Right camera --> position = each px + displacement
+        X_c2 = X_c1 + UV
+        if i < N//2 :
+            Xleft_id.append(X_c2)
+        else : 
+            Xright_id.append(X_c2)
+    
+    Xleft_id = np.array(Xleft_id)
+    Xright_id = np.array(Xright_id)
+    nim, npts, naxis = Xleft_id.shape
+    Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    return (Xleft_id, Xright_id)
+
+
+
 def DIC_get_positions (DIC_dict : dict,
                        flip : bool= False,
                        image_ids : list = [False],
-                       method : str = 'compute_flow') -> (np.ndarray,
+                       method : str = 'disflow') -> (np.ndarray,
                                                           np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
     (first left one) in the other ones (other left and right pictures).
@@ -1185,7 +1410,7 @@ def DIC_get_positions (DIC_dict : dict,
        image_ids : list, optional
            Define the list of images you want to compare in the left and right folders
        method : str
-           DIC method between compute_flow and disflow
+           DIC method between optical_flow, robust_metric and disflow
            
     Returns:
        Xleft_id : numpy.ndarray
@@ -1194,20 +1419,39 @@ def DIC_get_positions (DIC_dict : dict,
        Xright_id : numpy.ndarray
            All the left pixels (points) localised on the right pictures.
     """
-    if method == 'compute_flow' :
+    if method == 'optical_flow' :
         try : 
+            sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
             from compute_flow import compute_flow
         except ImportError:
-            print('No module named conpute_flow, disflow from OpenCV will be used')
-            method = 'disflow'
+            answer = input('No module named optical_flow, do you want to use disflow from OpenCV (y)?')
+            if answer == 'y' : 
+                method = 'disflow'
+            else :
+                sys.exit()
+        return (DIC_optical_flow(DIC_dict,
+                                 flip = flip,
+                                 image_ids = image_ids))
+    
+    if method == 'robust_metric' :
+        try : 
+            sys.path.append('/home/caroneddy/These/GCpu_Robust_Metrics/Src')
+            import compute_flow as compute_flow
+        except ImportError:
+            answer = input('No module named robust_metric (Maybe no cupy), do you want to use disflow from OpenCV (y)?')
+            if answer == 'y' : 
+                method = 'disflow'
+            else :
+                sys.exit()
+        return (DIC_robust_metric(DIC_dict,
+                                  flip = flip,
+                                  image_ids = image_ids))
+            
     if method == 'disflow' :
         return (DIC_disflow(DIC_dict,
                             flip = flip,
                             image_ids = image_ids))
-    if method == 'compute_flow' :
-        return (DIC_compute_flow(DIC_dict,
-                                 flip = flip,
-                                 image_ids = image_ids))
+
     else :
         print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
         raise
@@ -1257,6 +1501,7 @@ def DIC_get_positions2 (left_folder : str = 'left_identification',
     'saving_folder' : saving_folder,
     'window' : window
     }
+    
     if method == 'compute_flow' :
         try : 
             from compute_flow import compute_flow
@@ -1268,7 +1513,7 @@ def DIC_get_positions2 (left_folder : str = 'left_identification',
                             flip = flip,
                             image_ids = image_ids))
     if method == 'compute_flow' :
-        return (DIC_compute_flow(DIC_dict,
+        return (DIC_optical_flow(DIC_dict,
                                  flip = flip,
                                  image_ids = image_ids))
     else :
