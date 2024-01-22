@@ -576,7 +576,7 @@ def Zernike_identification (Xc1_identified : np.ndarray,
                             Xc2_identified : np.ndarray,
                             Zernike_constants : np.ndarray,
                             Zernike_pform : int,
-                            Cameras_dimensions) -> np.ndarray :
+                            Cameras_dimensions : list) -> np.ndarray :
     """Identification of the points detected on both cameras left and right 
     into the global 3D-space
     
@@ -616,6 +616,172 @@ def Zernike_identification (Xc1_identified : np.ndarray,
     if modif_22_12_09 :
         xsolution = xsolution.reshape((3, nx, ny))
     return(xsolution)
+
+def Soloff_Zernike_calibration (z_list : np.ndarray,
+                                Soloff_pform : int,
+                                Zernike_pform : int = 3,
+                                multifolder : bool = False,
+                                plotting : bool = False,
+                                **kwargs) -> (np.ndarray, 
+                                              np.ndarray, 
+                                              np.ndarray):
+    """Calculation of the magnification between reals and detected positions 
+    and the calibration parameters A = Soloff_constants0 (Resp Soloff_constants):--> X = A.M(x)
+    
+    Args:
+       z_list : numpy.ndarray
+           List of the different z position. (WARNING : Should be order the 
+                                              same way in the target folder)
+       Soloff_pform : int
+           Polynomial form
+       multifolder : bool, optional
+           Used for specific image acquisition when all directions moved
+       plotting = Bool
+           Plot the calibration view or not
+       **kwargs : All the arguments of the fonction data.pattern_detection
+           
+    Returns:
+       Soloff_constants0 : numpy.ndarray
+           Constants of Soloff polynomial form '111'
+       Soloff_constants : numpy.ndarray
+           Constants of Soloff polynomial form chose (Soloff_pform)
+       Magnification : numpy.ndarray
+           Magnification between reals and detected positions 
+           [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
+    """
+    Zernike_constants, Magnification = Zernike_calibration (z_list,
+                                                            Zernike_pform ,
+                                                            multifolder = multifolder,
+                                                            plotting = plotting,
+                                                            **kwargs)
+    Soloff_constants0, Soloff_constants, Magnification = Soloff_calibration (z_list,
+                                                                             Soloff_pform,
+                                                                             multifolder = multifolder,
+                                                                             plotting = plotting,
+                                                                             **kwargs)
+    return(Zernike_constants, Soloff_constants, Magnification)
+
+def Soloff_Zernike_identification (Xc1_identified : np.ndarray,
+                                   Xc2_identified : np.ndarray,
+                                   Zernike_constants : np.ndarray, 
+                                   Soloff_constants : np.ndarray,
+                                   Soloff_pform : int,
+                                   Cameras_dimensions : list,
+                                   Zernike_pform : int = 3,
+                                   method : str = 'Peter',
+                                   cut : int = 0) -> np.ndarray :
+    """Identification of the points detected on both cameras left and right 
+    into the global 3D-space
+    
+    Args:
+       Xc1_identified : numpy.ndarray
+           Points identified on the left camera
+       Xc2_identified : numpy.ndarray
+           Points identified on the right camera
+       Soloff_constants0 : numpy.ndarray
+           Constants of Soloff polynomial form '111'
+       Soloff_constants : numpy.ndarray
+           Constants of Soloff polynomial form chose (polynomial_form)
+       Soloff_pform : int
+           Polynomial form
+       method : str, optional
+           Python method used to solve it ('Peter' 'curve-fit')
+       cut : int, optional
+           Used by Peter method to reduce the windows of resolution
+
+    Returns:
+       x_solution : numpy.ndarray
+           Identification in the 3D space of the detected points
+    """
+    if method == 'Peter' :
+        if Soloff_pform != 332 :
+            raise('No Peter resolution for the polynomial form ', Soloff_pform, ' for the moment (Only for the form 332')
+        Xl = np.copy(Xc1_identified[:,:,0])
+        Yl = np.copy(Xc1_identified[:,:,1])
+        Xr = np.copy(Xc2_identified[:,:,0])
+        Yr = np.copy(Xc2_identified[:,:,1])
+        Xl0 = []
+        Yl0 = []
+        Xr0 = []
+        Yr0 = []
+
+        l = 20
+        nx,ny = Xl.shape
+        nx = nx//l
+        ny = ny//l
+        for i in range (l) :
+            for j in range (l) :
+                Xl0.append(Xl[i*nx, j*ny])
+                Yl0.append(Yl[i*nx, j*ny])
+                Xr0.append(Xr[i*nx, j*ny])
+                Yr0.append(Yr[i*nx, j*ny])
+        
+        Xl0 = np.array(Xl0).reshape((l,l))
+        Yl0 = np.array(Yl0).reshape((l,l))
+        Xr0 = np.array(Xr0).reshape((l,l))
+        Yr0 = np.array(Yr0).reshape((l,l))
+        Xc1_identified0 = np.zeros((l,l,2))
+        Xc1_identified0[:,:,0] = Xl0
+        Xc1_identified0[:,:,1] = Yl0
+        Xc2_identified0 = np.zeros((l,l,2))
+        Xc2_identified0[:,:,0] = Xr0
+        Xc2_identified0[:,:,1] = Yr0        
+        x,y,z = Zernike_identification (Xc1_identified0,
+                                        Xc2_identified0,
+                                        Zernike_constants = Zernike_constants,
+                                        Zernike_pform = Zernike_pform,
+                                        Cameras_dimensions = Cameras_dimensions)
+        print('')
+        print('')
+        print('Peter mapping')
+        print('xmax',np.max(x))
+        print('ymax',np.max(y))
+        print('zmax',np.max(z))
+        print('xmin',np.min(x))
+        print('ymin',np.min(y))
+        print('zmin',np.min(z))
+        print('')
+        print('')
+        xsolution = solvel.Peter(Xl,
+                                 Yl,
+                                 Xr,
+                                 Yr,
+                                 Soloff_constants,
+                                 x,
+                                 y,
+                                 z,
+                                 cut = cut)
+    
+    else :
+        if len(Xc1_identified.shape) == 3 : 
+            modif_22_12_09 = True
+            nx, ny, naxis = Xc1_identified.shape
+            Xc1_identified = Xc1_identified.reshape((nx*ny, naxis))
+            Xc2_identified = Xc2_identified.reshape((nx*ny, naxis))
+        elif len(Xc1_identified.shape) == 2 : 
+            modif_22_12_09 = False
+        else :
+            raise('Error, X_ci shape different than 2 or 3')
+        x0 = Zernike_identification (Xc1_identified,
+                                     Xc2_identified,
+                                     Zernike_constants = Zernike_constants,
+                                     Zernike_pform = Zernike_pform,
+                                     Cameras_dimensions = Cameras_dimensions)
+        
+        # Solve the polynomials constants ai with curve-fit method (Levenberg 
+        # Marcquardt)
+        xsolution, Xc, Xd = solvel.Levenberg_Marquardt_solving(Xc1_identified, 
+                                                               Xc2_identified, 
+                                                               Soloff_constants, 
+                                                               x0, 
+                                                               Soloff_pform, 
+                                                               method = method)
+        if modif_22_12_09 :
+            xsolution = xsolution.reshape((3, nx, ny))
+    return (xsolution)
+
+
+
 
 def hybrid_identification(Xc1_identified : np.ndarray,
                           Xc2_identified : np.ndarray,

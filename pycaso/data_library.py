@@ -1453,7 +1453,7 @@ def DIC_get_positions (DIC_dict : dict,
                             image_ids = image_ids))
 
     else :
-        print('No method known as ' + method + ', please chose "diflow" or "compute_flow"')
+        print('No method known as ' + method + ', please chose "diflow", "optical_flow" or "robust_metric"')
         raise
 
 def DIC_get_positions2 (left_folder : str = 'left_identification',
