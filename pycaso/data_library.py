@@ -951,18 +951,20 @@ def DIC_disflow (DIC_dict : dict,
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
-        linsp = np.arange(nX1)+1
-        linsp = np.reshape (linsp, (1,nX1))
-        X1matrix = np.matmul(np.ones((nX1, 1)), linsp)
-        X2matrix = np.matmul(np.transpose(linsp), np.ones((1, nX1)))
-        X1matrix_w = X1matrix[ly1:ly2, lx1:lx2]
-        X2matrix_w = X2matrix[ly1:ly2, lx1:lx2]
+        linsp1 = np.arange(nX1)+1
+        linsp2 = np.arange(nX2)+1
+        linsp1 = np.reshape (linsp1, (1,nX1))
+        linsp2 = np.reshape (linsp2, (1,nX2))
+        X1matrix = np.matmul(np.ones((nX1, 1)), linsp2)
+        X2matrix = np.matmul(np.transpose(linsp1), np.ones((1, nX2)))
+        X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
+        X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
 
         # Left camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
                                       np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[ly1:ly2, lx1:lx2]), 
-                                    np.ravel(V[ly1:ly2, lx1:lx2])]))
+        UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
+                                    np.ravel(V[lx1:lx2, ly1:ly2])]))
 
         # Right camera --> position = each px + displacement
         X_c2 = X_c1 + UV

@@ -298,7 +298,7 @@ class Soloff_Polynome(dict) :
                 
             elif polynomial_form == 554 :
                 if i == 0 :
-                    M = np.zeros((105, n))
+                    M = np.zeros((55, n))
                 x12 = x1 * x1
                 x22 = x2 * x2
                 x32 = x3 * x3
@@ -325,7 +325,7 @@ class Soloff_Polynome(dict) :
                 
             elif polynomial_form == 555 or polynomial_form == 5 :
                 if i == 0 :
-                    M = np.zeros((106, n))
+                    M = np.zeros((56, n))
                 x12 = x1 * x1
                 x22 = x2 * x2
                 x32 = x3 * x3

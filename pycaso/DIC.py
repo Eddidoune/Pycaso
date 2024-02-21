@@ -200,10 +200,10 @@ def displacement_field (Im1 : str,
         Im2 = Im2[ly1:ly2, lx1:lx2]
         
 
-    alpha = vr_kwargs['alpha'] if 'alpha' in vr_kwargs else 3
+    alpha = vr_kwargs['alpha'] if 'alpha' in vr_kwargs else 10
     delta = vr_kwargs['delta'] if 'delta' in vr_kwargs else 1
     gamma = vr_kwargs['gamma'] if 'gamma' in vr_kwargs else 0
-    iterations = vr_kwargs['iterations'] if 'iterations' in vr_kwargs else 10
+    iterations = vr_kwargs['iterations'] if 'iterations' in vr_kwargs else 20
     flow = cv2.DISOpticalFlow_create()
     flow.setFinestScale(0)
     # cf https://www.mia.uni-saarland.de/Publications/brox-eccv04-of.pdf
