@@ -268,12 +268,12 @@ class Soloff_Polynome(dict) :
                 x24 = x2 * x2 * x2 * x2
                 M[:,ni0 : ni1] = np.asarray (
                                 [np.ones((ni)),   x1,            x2,         x3,        x12,
-                                 x1 *x2,         x22,           x1*x3,      x2*x3,     x32,
-                                 x13,            x12*x2,        x1*x22,     x23,       x12*x3,
-                                 x1*x2*x3,       x22*x3,        x1*x32,     x2*x32,    x33,
-                                 x14,            x13*x2,        x12*x22,    x1*x23,    x24,
-                                 x13*x3,         x12*x2*x3,    x1*x22*x3,  x23*x3,    x12*x32,
-                                 x1*x2*x32,      x22*x32,       x1*x33,     x2*x33])   
+                                 x1 *x2,          x22,           x1*x3,      x2*x3,     x32,
+                                 x13,             x12*x2,        x1*x22,     x23,       x12*x3,
+                                 x1*x2*x3,        x22*x3,        x1*x32,     x2*x32,    x33,
+                                 x14,             x13*x2,        x12*x22,    x1*x23,    x24,
+                                 x13*x3,          x12*x2*x3,     x1*x22*x3,  x23*x3,    x12*x32,
+                                 x1*x2*x32,       x22*x32,       x1*x33,     x2*x33])   
                 
             elif polynomial_form == 444 or polynomial_form == 4 :
                 if i == 0 :

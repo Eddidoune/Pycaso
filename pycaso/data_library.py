@@ -573,7 +573,8 @@ def pattern_detection (left_folder : str = 'left_calibration',
                        ncy : int = 12,
                        sqr : float = 0.3,
                        hybrid_verification : bool = False,
-                       save : bool = True) -> (np.ndarray,
+                       save : bool = True,
+                       eject_crown : int = 0) -> (np.ndarray,
                                                np.ndarray) :
     """Detect the corners of Charucco's pattern.
     
@@ -600,6 +601,8 @@ def pattern_detection (left_folder : str = 'left_calibration',
            bad detected corner, press ENTER to go to the next image.
        save : bool, optional
            Save the datas in the saving_folder
+        eject_crown : int, opt
+            Number of crown from the pattern to eject
            
     Returns:
        all_X : numpy.ndarray
@@ -648,8 +651,18 @@ def pattern_detection (left_folder : str = 'left_calibration',
                 np.save(Save_all_x, all_x)
                 np.save(Save_nb_pts, nb_pts)
                 print('    - Saving datas in ', saving_folder)
-
-        
+    
+    # Remove the external crowns if necessary
+    nx, ny = ncx-1, ncy-1
+    all_X = np.reshape(all_X,(len(all_X), ny, nx, 2))
+    all_x = np.reshape(all_x,(len(all_x), ny, nx, 2))
+    for i in range (eject_crown) :
+        all_X = all_X[:,1:-1,1:-1,:]
+        all_x = all_x[:,1:-1,1:-1,:]
+    _,ny,nx,_ = all_X.shape
+    all_X = np.reshape(all_X,(len(all_X), ny*nx, 2))
+    all_x = np.reshape(all_x,(len(all_x), ny*nx, 2))
+    
     return(all_X, all_x, nb_pts)
 
 def multifolder_pattern_detection (left_folder : str = 'left_calibration',
@@ -1688,8 +1701,9 @@ def cameras_size (left_folder : str = 'left_calibration',
                   ncy : int = 12,
                   sqr : float = 0.3,
                   hybrid_verification : bool = False,
-                  save : bool = True) -> (np.ndarray,
-                                          np.ndarray) :
+                  save : bool = True,
+                  eject_crown : int = 0) -> (np.ndarray,
+                                             np.ndarray) :
     """Give the dimension in puxel of both cameras (left and right).
     Only left_folder and right_folder are used.
     

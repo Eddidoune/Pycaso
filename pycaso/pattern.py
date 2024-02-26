@@ -21,11 +21,15 @@ def ChAruco_board (ncx : int,
        ChAruco_Board_build_img : np.ndarray
            ChAruco image
     """
-    dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000)
     n = ncx * ncy / 2
     ChAruco_Board_img = []
     for e in range (int(n)) :
-        ChAruco_mrk = cv2.aruco.drawMarker(dictionary, e, pixel_factor*8)
+        if cv2.__version__>='4.7.0' :
+            dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_1000)
+            ChAruco_mrk = cv2.aruco.generateImageMarker(dictionary, e, pixel_factor*8)
+        else :
+            dictionary = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_1000)
+            ChAruco_mrk = cv2.aruco.drawMarker(dictionary, e, pixel_factor*8)
         x, y = ChAruco_mrk.shape
         dx, dy = x//2, y//2
         black_square = np.ones ((x//2,y//2)) * 255
