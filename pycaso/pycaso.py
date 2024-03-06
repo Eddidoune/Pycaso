@@ -22,6 +22,8 @@ import data_library as data
 import csv
 import math
 import matplotlib.pyplot as plt
+import os
+import pathlib
 
 def magnification (X1 : np.ndarray, 
                    X2 : np.ndarray,
@@ -370,7 +372,6 @@ def retroprojection_error (calibration_method : str,
             # plt.close()
         else :
             i_s.append(i)
-            print(i_s)
             z_iter.append(z_list[i])
             
     z_theoric = np.delete(z_list, i_s)
@@ -385,6 +386,7 @@ def Soloff_calibration (z_list : np.ndarray,
                         Soloff_pform : int,
                         multifolder : bool = False,
                         plotting : bool = False,
+                        iterations = 1,
                         **kwargs) -> (np.ndarray, 
                                       np.ndarray, 
                                       np.ndarray):
@@ -401,7 +403,11 @@ def Soloff_calibration (z_list : np.ndarray,
            Used for specific image acquisition when all directions moved
        plotting = Bool
            Plot the calibration view or not
-       **kwargs : All the arguments of the fonction data.pattern_detection
+       iterations : int
+           Number of iterations. For each of them, the z_list is changed 
+           with the retroprojection error assuming that the set-up is not 
+           perfect
+        **kwargs : All the arguments of the fonction data.pattern_detection
            
     Returns:
        Soloff_constants0 : numpy.ndarray
@@ -412,104 +418,136 @@ def Soloff_calibration (z_list : np.ndarray,
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
-    z_list = np.array(z_list)    
-    Soloff_constants0 = []
-    Soloff_constants = []
+
     if not Soloff_pform in [111, 1, 221, 222, 2, 332, 333, 3, 443, 444, 4, 554, 555, 5] :
         raise('Only define for polynomial forms 111, 221, 222, 332, 333, 443, 444, 554 or 555')
     
     Soloff_pforms = [1, Soloff_pform]
 
-    
-    # Detect points from folders
-    if multifolder :
-        all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
-    else :
-        all_X, all_x, nb_pts = data.pattern_detection(**kwargs)        
-
-    # Using not well detected images, remove corresponding arrays from all_X 
-    # (right and left) and z_list
-    e = 0 ; i = 0
-    while e==0 :
-        nx,ny,nz = all_X.shape
-        if i >= nx :
-            e = 1
+    z_list = np.array(z_list)    
+    z_list2 = z_list
+    try :
+        save_retro = kwargs['saving_folder']+'/Pycaso_retroprojection_error/'
+    except :
+        save_retro = ''
+    if not os.path.exists(save_retro) :
+        P = pathlib.Path(save_retro)
+        pathlib.Path.mkdir(P, parents = True)
+    for it in range(iterations) :
+        z_listd = z_list2
+        Soloff_constants0 = []
+        Soloff_constants = []
+        # Detect points from folders
+        if multifolder :
+            all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
         else :
-            if np.isnan(all_X[i]).all() :
-                if i < nx//2 :
-                    ip = i
-                else :
-                    ip = i - nx//2
-                all_X = np.delete(all_X,nx//2 + ip, axis = 0)
-                all_X = np.delete(all_X, ip, axis = 0)
-                all_x = np.delete(all_x,nx//2 + ip, axis = 0)
-                all_x = np.delete(all_x, ip, axis = 0)
-                z_list = np.delete(z_list, ip, axis = 0)
+            all_X, all_x, nb_pts = data.pattern_detection(**kwargs)        
     
-            else : 
-                i+=1
-    print ('')
-    print ('DEPTH OF FIELD :')
-    print ('          The calibrated depth of field is between ', 
-           np.min(z_list), 
-           'mm and ', 
-           np.max(z_list), 
-           'mm.')    
-    print ('')
-    
-    # Creation of the reference matrix Xref and the real position Ucam for 
-    # each camera
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_list)     
-
-    # Plot the references plans
-    if plotting :
-        solvel.refplans(x, z_list, plotting = True)
-
-    # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
-    for camera in [1, 2] :
-        if camera == 1 :
-            X = Xc1
-        elif camera == 2 :
-            X = Xc2
-        x1, x2, x3 = x
-        X1, X2 = X
-        
-        # Compute the magnification (same for each cam as set up is symetric)
-        Magnification[camera-1] = magnification (X1, X2, x1, x2)
-        
-        for pol in range (2) :
-            # Do the system X = Ai*M, where M is the monomial of the real 
-            # coordinates of crosses and X the image coordinates, and M the 
-            # unknow (polynomial form aab)
-            Soloff_pform = Soloff_pforms[pol]
-            M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
-            Ai = np.matmul(X, np.linalg.pinv(M))
-            if pol == 0 :
-                Soloff_constants0.append(Ai)
+        # Using not well detected images, remove corresponding arrays from all_X 
+        # (right and left) and z_list
+        e = 0 ; i = 0
+        while e==0 :
+            nx,ny,nz = all_X.shape
+            if i >= nx :
+                e = 1
             else :
-                Soloff_constants.append(Ai)
+                if np.isnan(all_X[i]).all() :
+                    if i < nx//2 :
+                        ip = i
+                    else :
+                        ip = i - nx//2
+                    all_X = np.delete(all_X,nx//2 + ip, axis = 0)
+                    all_X = np.delete(all_X, ip, axis = 0)
+                    all_x = np.delete(all_x,nx//2 + ip, axis = 0)
+                    all_x = np.delete(all_x, ip, axis = 0)
+                    z_listd = np.delete(z_listd, ip, axis = 0)
+        
+                else : 
+                    i+=1
+        print ('')
+        print ('DEPTH OF FIELD :')
+        print ('          The calibrated depth of field is between ', 
+               np.min(z_listd), 
+               'mm and ', 
+               np.max(z_listd), 
+               'mm.')    
+        print ('')
+        
+        # Creation of the reference matrix Xref and the real position Ucam for 
+        # each camera
+        x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_listd)     
+    
+        # Plot the references plans
+        if plotting :
+            solvel.refplans(x, z_listd, plotting = True)
+    
+        # Calcul of the Soloff polynome's constants. X = A . M
+        Magnification = np.zeros((2, 2))
+        for camera in [1, 2] :
+            if camera == 1 :
+                X = Xc1
+            elif camera == 2 :
+                X = Xc2
+            x1, x2, x3 = x
+            X1, X2 = X
             
-            # Error of projection
-            Xd = np.matmul(Ai,M)
-            proj_error = X - Xd
-            print('Max ; min projection error (polynomial form ', 
-                str(Soloff_pform),
-                ') for camera ', 
-                str(camera),
-                ' = ',
-                str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
-                ' ; ',
-                str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
-                ' px')
-    Soloff_constants0 = np.asarray(Soloff_constants0)
-    Soloff_constants = np.asarray(Soloff_constants)
+            # Compute the magnification (same for each cam as set up is symetric)
+            Magnification[camera-1] = magnification (X1, X2, x1, x2)
+            
+            for pol in range (2) :
+                # Do the system X = Ai*M, where M is the monomial of the real 
+                # coordinates of crosses and X the image coordinates, and M the 
+                # unknow (polynomial form aab)
+                Soloff_pform = Soloff_pforms[pol]
+                M = solvel.Soloff_Polynome({'polynomial_form' : Soloff_pform}).pol_form(x)
+                Ai = np.matmul(X, np.linalg.pinv(M))
+                if pol == 0 :
+                    Soloff_constants0.append(Ai)
+                else :
+                    Soloff_constants.append(Ai)
+                    
+                    
+                
+                # Error of projection
+                Xd = np.matmul(Ai,M)
+                proj_error = X - Xd
+                print('Max ; min projection error (polynomial form ', 
+                    str(Soloff_pform),
+                    ') for camera ', 
+                    str(camera),
+                    ' = ',
+                    str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+                    ' ; ',
+                    str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+                    ' px')
+        Soloff_constants0 = np.asarray(Soloff_constants0)
+        Soloff_constants = np.asarray(Soloff_constants)
+        z_theoric, z_retro, z_std, z_iter = retroprojection_error ('Soloff',
+                                                                   Soloff_pform,
+                                                                   (Soloff_constants0,Soloff_constants),
+                                                                   z_list2,
+                                                                   **kwargs)
+        z_list2 = z_iter
+        
+        px = 1/np.mean(Magnification)
+        z_error = (z_retro-z_theoric)*px
+        
+        plt.errorbar(z_theoric, z_error, (z_std)*px, linestyle='None', marker='^')
+        plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
+        plt.xlabel('z theoretical (mm)')
+        plt.ylabel('DELTA_z (px)')
+        plt.legend()
+        plt.savefig(save_retro+'Soloff_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+        plt.close()
+        
     return(Soloff_constants0, Soloff_constants, Magnification)
+
 
 def direct_calibration (z_list : np.ndarray,
                         direct_pform : int,
                         multifolder : bool = False,
                         plotting : bool = False,
+                        iterations = 1,
                         **kwargs) -> (np.ndarray, 
                                                      np.ndarray) :
     """Calculation of the magnification between reals and detected positions 
@@ -525,7 +563,12 @@ def direct_calibration (z_list : np.ndarray,
            Used for specific image acquisition when all directions moved
        plotting = Bool
            Plot the calibration view or not
+       iterations : int
+           Number of iterations. For each of them, the z_list is changed 
+           with the retroprojection error assuming that the set-up is not 
+           perfect
        **kwargs : All the arguments of the fonction data.pattern_detection
+       
            
     Returns:
        direct_constants : numpy.ndarray
@@ -538,78 +581,104 @@ def direct_calibration (z_list : np.ndarray,
         raise ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
         
     z_list = np.array(z_list)
-    
-    # Detect points from folders
-    if multifolder :
-        all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
-    else :
-        all_X, all_x, nb_pts = data.pattern_detection(**kwargs)       
-    # Remove nan arrays
-    e = 0 ; i = 0
-    while e==0 :
-        nx,ny,nz = all_X.shape
-        if i >= nx :
-            e = 1
+    z_list2 = z_list
+    try :
+        save_retro = kwargs['saving_folder']+'/Pycaso_retroprojection_error/'
+    except :
+        save_retro = ''
+    if not os.path.exists(save_retro) :
+        P = pathlib.Path(save_retro)
+        pathlib.Path.mkdir(P, parents = True)
+    for it in range(iterations) :
+        z_listd = z_list2
+        # Detect points from folders
+        if multifolder :
+            all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
         else :
-            if np.isnan(all_X[i]).all() :
-                if i < nx//2 :
-                    ip = i
-                else :
-                    ip = i - nx//2
-                all_X = np.delete(all_X,nx//2 + ip, axis = 0)
-                all_X = np.delete(all_X, ip, axis = 0)
-                all_x = np.delete(all_x,nx//2 + ip, axis = 0)
-                all_x = np.delete(all_x, ip, axis = 0)
-                z_list = np.delete(z_list, ip, axis = 0)
+            all_X, all_x, nb_pts = data.pattern_detection(**kwargs)       
+        # Remove nan arrays
+        e = 0 ; i = 0
+        while e==0 :
+            nx,ny,nz = all_X.shape
+            if i >= nx :
+                e = 1
+            else :
+                if np.isnan(all_X[i]).all() :
+                    if i < nx//2 :
+                        ip = i
+                    else :
+                        ip = i - nx//2
+                    all_X = np.delete(all_X,nx//2 + ip, axis = 0)
+                    all_X = np.delete(all_X, ip, axis = 0)
+                    all_x = np.delete(all_x,nx//2 + ip, axis = 0)
+                    all_x = np.delete(all_x, ip, axis = 0)
+                    z_listd = np.delete(z_listd, ip, axis = 0)
+        
+                else : 
+                    i+=1
     
-            else : 
-                i+=1
-
-    print ('')
-    print ('DEPTH OF FIELD :')
-    print ('          The calibrated depth of field is between ', np.min(z_list), 'mm and ', np.max(z_list), 'mm.')    
-    print ('')
-
-    # Creation of the reference matrix Xref and the real position Ucam for 
-    # each camera i
-    x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_list)
-
-    # Plot the references plans
-    if plotting :
-        solvel.refplans(x, z_list, plotting = True)
+        print ('')
+        print ('DEPTH OF FIELD :')
+        print ('          The calibrated depth of field is between ', np.min(z_listd), 'mm and ', np.max(z_listd), 'mm.')    
+        print ('')
+    
+        # Creation of the reference matrix Xref and the real position Ucam for 
+        # each camera i
+        x, Xc1, Xc2 = data.camera_np_coordinates(all_X, all_x, z_listd)
+    
+        # Plot the references plans
+        if plotting :
+            solvel.refplans(x, z_listd, plotting = True)
+            
+        # Calcul of the Soloff polynome's constants. X = A . M
+        Magnification = np.zeros((2, 2))
+    
+        for camera in [1, 2] :
+            if camera == 1 :
+                X = Xc1
+            elif camera == 2 :
+                X = Xc2
+            x1, x2, x3 = x
+            X1, X2 = X
+            
+            # Compute the magnification (same for each cam as set up is symetric)
+            Magnification[camera-1] = magnification (X1, X2, x1, x2)
+            
+        # Do the system x = Ap*M, where M is the monomial of the real 
+        # coordinates of crosses and x the image coordinates, and M the unknow
+        M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
+        Ap = np.matmul(x, np.linalg.pinv(M))
+        direct_constants = Ap
+        z_theoric, z_retro, z_std, z_iter = retroprojection_error ('direct',
+                                                                   direct_pform,
+                                                                   direct_constants,
+                                                                   z_list2,
+                                                                   **kwargs)
+        z_list2 = z_iter
+    
+        # Error of projection
+        xd = np.matmul(Ap,M)
+        proj_error = x - xd
+        print('Max ; min projection error (polynomial form ', 
+            str(direct_pform),
+            ') for camera ', 
+            str(camera),
+            ' = ',
+            str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
+            ' ; ',
+            str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
+            ' px')
+        px = 1/np.mean(Magnification)
+        z_error = (z_retro-z_theoric)*px
         
-    # Calcul of the Soloff polynome's constants. X = A . M
-    Magnification = np.zeros((2, 2))
-
-    for camera in [1, 2] :
-        if camera == 1 :
-            X = Xc1
-        elif camera == 2 :
-            X = Xc2
-        x1, x2, x3 = x
-        X1, X2 = X
+        plt.errorbar(z_theoric, z_error, (z_std)*px, linestyle='None', marker='^')
+        plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
+        plt.xlabel('z theoretical (mm)')
+        plt.ylabel('DELTA_z (px)')
+        plt.legend()
+        plt.savefig(save_retro+'direct_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+        plt.close()
         
-        # Compute the magnification (same for each cam as set up is symetric)
-        Magnification[camera-1] = magnification (X1, X2, x1, x2)
-        
-    # Do the system x = Ap*M, where M is the monomial of the real 
-    # coordinates of crosses and x the image coordinates, and M the unknow
-    M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
-    Ap = np.matmul(x, np.linalg.pinv(M))
-    direct_constants = Ap
-
-    # Error of projection
-    xd = np.matmul(Ap,M)
-    proj_error = x - xd
-    print('Max ; min projection error (polynomial form ', 
-        str(direct_pform),
-        ') for camera ', 
-        str(camera),
-        ' = ',
-        str(sgf.round(np.nanmax(proj_error), sigfigs =3)),
-        ' ; ',
-        str(sgf.round(np.nanmin(proj_error), sigfigs =3)),
-        ' px')
 
     return(direct_constants, Magnification)    
 
@@ -659,11 +728,18 @@ def Zernike_calibration (z_list : np.ndarray,
            Magnification between reals and detected positions 
            [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
     """
-    z_list = np.array(z_list)  
-    z_list2 = z_list
     if not Zernike_pform in list(range(1, 13)) :
         raise('Only define for polynomial forms '+ str(list(range(1, 13))))
-        
+    
+    z_list = np.array(z_list)  
+    z_list2 = z_list
+    try :
+        save_retro = kwargs['saving_folder']+'/Pycaso_retroprojection_error/'
+    except :
+        save_retro = ''
+    if not os.path.exists(save_retro) :
+        P = pathlib.Path(save_retro)
+        pathlib.Path.mkdir(P, parents = True)
     for it in range(iterations) :
         z_listd = z_list2
         # Detect points from folders
@@ -757,7 +833,7 @@ def Zernike_calibration (z_list : np.ndarray,
         plt.xlabel('z theoretical (mm)')
         plt.ylabel('DELTA_z (px)')
         plt.legend()
-        plt.savefig(kwargs['saving_folder']+'/Pycaso_retroprojection_error/z_diff_'+str(it+1)+'.png', dpi = 500)
+        plt.savefig(save_retro+'Zernike_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
         plt.close()
         
     return(Zernike_constants, Magnification)
