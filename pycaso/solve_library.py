@@ -807,9 +807,10 @@ def refplans(x : np.ndarray,
         plan = np.array ([x[p0:pf], y[p0:pf], z[p0:pf]])
         p0 = pf
         xcons.append (plan)
-    fit_plans_to_points(xcons, 
-                        title = 'Calibration plans',
-                        plotting = plotting)
+    fit, errors, mean_error, residual = fit_plans_to_points(xcons, 
+                                                            title = 'Calibration plans',
+                                                            plotting = plotting)
+    return(fit, errors, mean_error, residual)
 
 def least_square_method (Xc1_identified : np.ndarray, 
                          Xc2_identified : np.ndarray, 

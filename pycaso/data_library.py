@@ -611,7 +611,7 @@ def pattern_detection (left_folder : str = 'left_calibration',
            Expl : [left_picture_1, left_picture_2, right_picture_1, 
                    right_picture_2]
        all_x : numpy.ndarray
-           The theorical corners of the pattern
+           The theoretical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
     Images_left = sorted(glob(str(left_folder) + '/*'))
@@ -627,13 +627,13 @@ def pattern_detection (left_folder : str = 'left_calibration',
     # Corners detection
     if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
         # Taking pre-calculated datas from the saving_folder
-        print('    - Taking datas from ', saving_folder)        
+        print('PATTERN DETECTION :\n\t Taking datas from ', saving_folder,'\n')        
         all_X = np.load(Save_all_X)
         all_x = np.load(Save_all_x)
         nb_pts = np.load(Save_nb_pts)
     
     else : # Corners detection
-        print('    - Detection of the pattern in progress ...')
+        print('PATTERN DETECTION :\n\t TDetection of the pattern in progress ...\n')
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
         all_x, all_X, nb_pts = NAN_calibration_model(Images, 
@@ -705,7 +705,7 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
            Expl : [left_picture_1, left_picture_2, right_picture_1, 
                    right_picture_2]
        all_x : numpy.ndarray
-           The theorical corners of the pattern
+           The theoretical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
     nxy = len(sorted(glob(str(left_folder) + '/*')))
@@ -808,21 +808,23 @@ def hybrid_mask_creation (image : np.ndarray,
     mask_median = [inside_mask.mask, median]
     return (mask_median)
 
-def camera_np_coordinates (all_X : np.ndarray, 
-                           all_x : np.ndarray, 
-                           z_list : np.ndarray) -> (np.ndarray,
-                                                    np.ndarray,
-                                                    np.ndarray) :
+def camera_coordinates (all_X : np.ndarray, 
+                              all_x : np.ndarray, 
+                              z_list : np.ndarray) -> (np.ndarray,
+                                                       np.ndarray,
+                                                       np.ndarray) :
     """Organising the coordinates of the calibration
     
     Args:
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera
        all_x : numpy.ndarray
-           The theorical corners of the pattern
+           The theoretical corners of the pattern
        z_list : numpy.ndarray
            List of the different z position. (Ordered the same way in the 
            target folder)
+           Can be one z per plan or every z of every points
+           
     Returns:
        x : numpy.ndarray
            Organised real positions in 3D space
@@ -832,22 +834,21 @@ def camera_np_coordinates (all_X : np.ndarray,
            Organised detected positions of camera 2
     """
     for i in [1, 2] :
-        print('')
         mid = all_X.shape[0]//2    
         all_Xi = all_X[(i-1)*mid:i*mid,:,:]
         all_xi = all_x[i*(mid-1):i*mid,:,:]
-        sU = all_Xi.shape
+        nx,ny,nz = all_Xi.shape
         Xref = all_xi[0]
-        all_xi = np.empty ((sU[0], sU[1], sU[2]+1))
-        x = np.empty ((sU[0] * sU[1], sU[2]+1))
-        X = np.empty ((sU[0] * sU[1], sU[2]))
-        for j in range (sU[0]) :
+        all_xi = np.empty ((nx, ny, nz+1))
+        x = np.empty ((nx * ny, nz+1))
+        X = np.empty ((nx * ny, nz))
+        for j in range (nx) :
             all_xi[j][:,0] = Xref[:,0]
             all_xi[j][:,1] = Xref[:,1]
             all_xi[j][:,2] = z_list[j]
 
-            x[j*sU[1] : (j+1)*sU[1], :]  = all_xi[j]
-            X[j*sU[1] : (j+1)*sU[1], :]  = all_Xi[j]
+            x[j*ny : (j+1)*ny, :]  = all_xi[j]
+            X[j*ny : (j+1)*ny, :]  = all_Xi[j]
 
         # Real position in space : Xref (x1, x2, x3)
         x1 = x[:,0]
