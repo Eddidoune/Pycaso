@@ -758,7 +758,7 @@ def direct_calibration (z_list : np.ndarray,
         # Calcul of the direct polynome's constants. X = A . M
         # Do the system x = Ap*M, where M is the monomial of the real 
         # coordinates of crosses and x the image coordinates, and M the unknow
-        M = solvel.direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2, Cameras_dimensions)
+        M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
         direct_constants = np.asarray(Ap)
         

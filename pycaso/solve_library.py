@@ -1003,7 +1003,6 @@ def Levenberg_Marquardt_solving (Xc1_identified : np.ndarray,
 
     Xcalculated = Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_system(xopt, A0)
     Xdiff = np.absolute(Xcalculated - Xdetected)
-    print(str(Soloff_pform), ' : The max error between detected and calculated points is ', np.max(Xdiff), ' pixels.')
     
     return (xopt, Xcalculated, Xdetected)
 
