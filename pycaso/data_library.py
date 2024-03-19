@@ -916,7 +916,7 @@ def DIC_disflow (DIC_dict : dict,
     
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
-    if any (image_ids) :
+    if not len(image_ids) == 0 :
         Images_left_cut = []
         Images_right_cut = []
         for i in image_ids :
@@ -1047,7 +1047,7 @@ def DIC_optical_flow (DIC_dict : dict,
 
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
-    if any (image_ids) :
+    if not len(image_ids) == 0 :
         Images_left_cut = []
         Images_right_cut = []
         for i in image_ids :
@@ -1222,7 +1222,7 @@ def DIC_robust_metric (DIC_dict : dict,
 
     Images_left = sorted(glob(str(left_folder) + '/*'))
     Images_right = sorted(glob(str(right_folder) + '/*'))
-    if any (image_ids) :
+    if not len(image_ids) == 0 :
         Images_left_cut = []
         Images_right_cut = []
         for i in image_ids :
