@@ -265,7 +265,7 @@ def retroprojection_error (calibration_method : str,
                            calibration_constants : np.ndarray,
                            z_points : np.ndarray,
                            all_X : np.ndarray,
-                           all_x : np.ndarray,
+                           all_xth : np.ndarray,
                            left_folder : str = 'left_calibration',
                            right_folder : str = 'right_calibration',
                            name : str = 'calibration',
@@ -295,7 +295,7 @@ def retroprojection_error (calibration_method : str,
            arrange with all left pictures followed by all right pictures. 
            Expl : [left_picture_1, left_picture_2, right_picture_1, 
                    right_picture_2]
-       all_x : numpy.ndarray
+       all_xth : numpy.ndarray
            The theoretical corners of the pattern
        ncx : int, optional
            The number of squares for the chessboard through x direction
@@ -357,7 +357,7 @@ def retroprojection_error (calibration_method : str,
         fit, errors, mean_error, residual = solvel.fit_plan_to_points(Solution, 
                                                                       title = 'Calibration plans',
                                                                       plotting = False)
-        z_fit = z_points[i] - fit[0] * all_x[i,:,0] - fit[1] * all_x[i,:,1] - fit[2]
+        z_fit = z_points[i] - fit[0] * all_xth[i,:,0] - fit[1] * all_xth[i,:,1] - fit[2]
         z_fit = np.ravel(z_theoric) - z_fit
         
         # plt.figure()
@@ -378,127 +378,6 @@ def retroprojection_error (calibration_method : str,
     
     return(z_mean, z_std, z_iter)
 
-# def retroprojection_error (calibration_method : str,
-#                            pform : int,
-#                            calibration_constants : np.ndarray,
-#                            z_list : np.ndarray,
-#                            left_folder : str = 'left_calibration',
-#                            right_folder : str = 'right_calibration',
-#                            name : str = 'calibration',
-#                            saving_folder : str = 'results',
-#                            ncx : int = 16,
-#                            ncy : int = 12,
-#                            sqr : float = 0.3,
-#                            hybrid_verification : bool = False,
-#                            save : bool = True,
-#                            eject_crown : int = 0,
-#                            method = 'curve-fit') -> (np.ndarray,
-#                                                    np.ndarray) :
-#     """Calcul of the retroprojection error between the theoratical plans 
-#     positions and the calculated plans (with pycaso_identification)
-    
-#     Args:
-#        calibration_method : str
-#            Calibration method of your choice (Soloff, direct or Zernike)
-#        pform : int
-#            Polynomial form of the method.
-#        calibration_constants : np.ndarray (or tuple for Soloff calibration_method)
-#            Calibration's constants of the method. Tuple for Soloff method (A111,A_pol)
-#        z_list : numpy.ndarray
-#            List of the different z position
-#        left_folder : str, optional
-#            Left calibration images folder
-#        right_folder : str, optional
-#            Right calibration images folder
-#        name : str, optional
-#            Name to save
-#        saving_folder : str, optional
-#            Folder to save
-#        ncx : int, optional
-#            The number of squares for the chessboard through x direction
-#        ncy : int, optional
-#            The number of squares for the chessboard through y direction
-#        method : str, optional
-#            Python method used to solve Soloff ('Peter' 'curve-fit')
-#        Other arguments are useless...
-           
-#     Returns:
-#        z_theoric : list
-#            z_list without the non detected plans ejected
-#        z_retro : list
-#            z position retrocalculated
-#        z_std : list
-#            standard deviation of each z_retro
-#        z_iter : list
-#            z_retro + the z position not detected of z_list
-#     """
-#     Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
-#     Cameras_dimensions = data.cameras_size(left_folder,
-#                                            right_folder)
-#     all_X = np.load(Save_all_X)
-#     z_retro = []
-#     z_std = []
-#     i_s=[]
-#     z_iter = []
-#     n,npts,_ = all_X.shape
-#     n = n//2
-#     for i in range (n) :
-#         Xc1 = all_X[i]
-#         Xc2 = all_X[i+n]
-#         if Xc1.shape == (npts, 2) and Xc2.shape == (npts, 2) :
-#             nx, ny = ncx-1, ncy-1
-#             Xc1 = np.reshape(Xc1,(ny, nx, 2))
-#             Xc2 = np.reshape(Xc2,(ny, nx, 2))
-#             for l in range (eject_crown) :
-#                 Xc1 = Xc1[1:-1,1:-1,:]
-#                 Xc2 = Xc2[1:-1,1:-1,:]
-#             ny,nx,_ = Xc1.shape
-#             if calibration_method == 'Zernike' :
-#                 Zernike_constants = calibration_constants
-#                 Zernike_pform = pform
-#                 Solution = Zernike_identification (Xc1,
-#                                                    Xc2,
-#                                                    Zernike_constants,
-#                                                    Zernike_pform,
-#                                                    Cameras_dimensions)
-#             elif calibration_method == 'Soloff' :
-#                 A111, A_pol = calibration_constants
-#                 Soloff_pform = pform
-#                 Solution = Soloff_identification (Xc1,
-#                                                   Xc2,
-#                                                   A111, 
-#                                                   A_pol,
-#                                                   Soloff_pform,
-#                                                   method = method)
-#             elif calibration_method == 'direct' :
-#                 direct_A = calibration_constants
-#                 direct_pform = pform
-#                 Solution = direct_identification (Xc1,
-#                                                   Xc2,
-#                                                   direct_A,
-#                                                   direct_pform)
-#             z_retro.append(np.mean(Solution[2]))
-#             z_std.append(np.std(Solution[2]))
-#             z_iter.append(np.mean(Solution[2]))
-            
-#             # fig = plt.figure()
-#             # im = plt.imshow(np.reshape(Solution[2], (ny,nx)), plt.get_cmap('hot'), alpha=1)
-#             # cb = plt.colorbar()
-#             # cb.set_label('z (mm)')
-#             # plt.title('z distribution on plan = ' +str(i)+ ' ; iteration = ' +str(it) + ' ; method = ' + names[na])
-#             # plt.savefig(saving_folder + name + '/iteration' +str(it)+ '_z_plan' +str(i)+'.png', dpi = 500)
-#             # plt.close()
-#         else :
-#             i_s.append(i)
-#             z_iter.append(z_list[i])
-            
-#     z_theoric = np.delete(z_list, i_s)
-#     argsort = np.argsort(z_theoric)
-#     z_theoric = z_theoric[argsort]
-#     z_iter = np.asarray(z_iter)
-#     z_retro = np.asarray(z_retro)[argsort]
-#     z_std = np.asarray(z_std)[argsort]
-#     return(z_theoric, z_retro, z_std, z_iter)
 
 def Soloff_calibration (z_list : np.ndarray,
                         Soloff_pform : int,
@@ -555,9 +434,9 @@ def Soloff_calibration (z_list : np.ndarray,
         if it == 0 :
             # Detect points from folders
             if multifolder :
-                all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
+                all_X, all_xth, nb_pts = data.multifolder_pattern_detection(**kwargs)          
             else :
-                all_X, all_x, nb_pts = data.pattern_detection(**kwargs)        
+                all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
     
             # Using not well detected images, remove corresponding arrays from all_X 
             # (right and left) and z_list
@@ -578,7 +457,7 @@ def Soloff_calibration (z_list : np.ndarray,
             b.sort()
             c.sort()
             z_list = np.delete(z_list, c, axis = 0)
-            all_x = np.delete(all_x, b, axis = 0)
+            all_xth = np.delete(all_xth, b, axis = 0)
             all_X = np.delete(all_X, b, axis = 0)
             
             # Camera dimensions
@@ -586,7 +465,7 @@ def Soloff_calibration (z_list : np.ndarray,
         
             # Creation of the reference matrix Xref and the real position Ucam for 
             # each camera
-            nx, ny, _ = all_x.shape
+            nx, ny, _ = all_xth.shape
             z_points = np.ones((nx//2, ny))
             for i in range(nx//2) :
                 z_points[i] = z_points[i]*z_list[i]
@@ -596,7 +475,7 @@ def Soloff_calibration (z_list : np.ndarray,
         
         # Creation of the reference matrix Xref and the real position Ucam for 
         # each camera
-        x, Xc1, Xc2 = data.camera_coordinates(all_X, all_x, z_points)     
+        x, Xc1, Xc2 = data.camera_coordinates(all_X, all_xth, z_points)     
     
         # Calcul of the Soloff polynome's constants. X = A . M
         Magnification = np.zeros((2, 2))
@@ -622,7 +501,8 @@ def Soloff_calibration (z_list : np.ndarray,
                     Soloff_constants0.append(Ai)
                 else :
                     Soloff_constants.append(Ai)
-                    
+        px = 1/np.mean(Magnification)
+            
         # Find and eventually plot the references plans
         if plotting :
             fit, errors, mean_error, residual = solvel.refplans(x, z_list, plotting = True)
@@ -631,26 +511,29 @@ def Soloff_calibration (z_list : np.ndarray,
         Soloff_constants = np.asarray(Soloff_constants)
         
         #Calcul the retroprojection error
-        z_mean, z_std, z_iter = retroprojection_error('Soloff',
-                                                       Soloff_pform,
-                                                       (Soloff_constants0,Soloff_constants),
-                                                       z_points,
-                                                       all_X,
-                                                       all_x,
-                                                       **kwargs)
-        px = 1/np.mean(Magnification)
-        mz_points = np.mean(z_points, axis=1)
-        z_error = (z_mean-mz_points)*px
-        
-        plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-        plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-        plt.xlabel('z theoretical (px)')
-        plt.ylabel('DELTA_z (px)')
-        plt.savefig(save_retro+'Soloff_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
-        plt.close()
-        
-        # Change the list to the new ajusted
-        z_points = z_iter
+        try :
+            z_mean, z_std, z_iter = retroprojection_error('Soloff',
+                                                           Soloff_pform,
+                                                           (Soloff_constants0,Soloff_constants),
+                                                           z_points,
+                                                           all_X,
+                                                           all_xth,
+                                                           **kwargs)
+            mz_points = np.mean(z_points, axis=1)
+            z_error = (z_mean-mz_points)*px
+            
+            plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
+            plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
+            plt.xlabel('z theoretical (px)')
+            plt.ylabel('DELTA_z (px)')
+            plt.savefig(save_retro+'Soloff_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+            plt.close()
+            
+            # Change the list to the new ajusted
+            z_points = z_iter
+        except :
+            print('Retroprojection estimation not possible : The ChAruco pattern might be partially out of field of view')
+            z_error = np.array([0,0])
             
     # Error of projection
     print ('DEPTH OF FIELD :\n\t The calibrated depth of field is between \n\t', 
@@ -715,9 +598,9 @@ def direct_calibration (z_list : np.ndarray,
         if it == 0 :
             # Detect points from folders
             if multifolder :
-                all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
+                all_X, all_xth, nb_pts = data.multifolder_pattern_detection(**kwargs)          
             else :
-                all_X, all_x, nb_pts = data.pattern_detection(**kwargs)        
+                all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
     
             # Using not well detected images, remove corresponding arrays from all_X 
             # (right and left) and z_list
@@ -738,7 +621,7 @@ def direct_calibration (z_list : np.ndarray,
             b.sort()
             c.sort()
             z_list = np.delete(z_list, c, axis = 0)
-            all_x = np.delete(all_x, b, axis = 0)
+            all_xth = np.delete(all_xth, b, axis = 0)
             all_X = np.delete(all_X, b, axis = 0)
             
             # Camera dimensions
@@ -746,14 +629,14 @@ def direct_calibration (z_list : np.ndarray,
         
             # Creation of the reference matrix Xref and the real position Ucam for 
             # each camera
-            nx, ny, _ = all_x.shape
+            nx, ny, _ = all_xth.shape
             z_points = np.ones((nx//2, ny))
             for i in range(nx//2) :
                 z_points[i] = z_points[i]*z_list[i]
         
         # Creation of the reference matrix Xref and the real position Ucam for 
         # each camera i
-        x, Xc1, Xc2 = data.camera_coordinates(all_X, all_x, z_points)
+        x, Xc1, Xc2 = data.camera_coordinates(all_X, all_xth, z_points)
     
         # Calcul of the direct polynome's constants. X = A . M
         # Do the system x = Ap*M, where M is the monomial of the real 
@@ -766,19 +649,8 @@ def direct_calibration (z_list : np.ndarray,
         if plotting :
             fit, errors, mean_error, residual = solvel.refplans(x, z_list, plotting = True)
         
-        #Calcul the retroprojection error
-        z_mean, z_std, z_iter = retroprojection_error('direct',
-                                                       direct_pform,
-                                                       direct_constants,
-                                                       z_points,
-                                                       all_X,
-                                                       all_x,
-                                                       **kwargs)
-        
-        
-        # Calcul of the Soloff polynome's constants. X = A . M
+        # Compute the magnification (same for each cam as set up is symetric)
         Magnification = np.zeros((2, 2))
-    
         for camera in [1, 2] :
             if camera == 1 :
                 X = Xc1
@@ -786,24 +658,34 @@ def direct_calibration (z_list : np.ndarray,
                 X = Xc2
             x1, x2, x3 = x
             X1, X2 = X
-            
-            # Compute the magnification (same for each cam as set up is symetric)
             Magnification[camera-1] = magnification (X1, X2, x1, x2)
-            
-    
         px = 1/np.mean(Magnification)
-        mz_points = np.mean(z_points, axis=1)
-        z_error = (z_mean-mz_points)*px
         
-        plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-        plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-        plt.xlabel('z theoretical (px)')
-        plt.ylabel('DELTA_z (px)')
-        plt.savefig(save_retro+'direct_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
-        plt.close()
+        #Calcul the retroprojection error
+        try :
+            z_mean, z_std, z_iter = retroprojection_error('direct',
+                                                           direct_pform,
+                                                           direct_constants,
+                                                           z_points,
+                                                           all_X,
+                                                           all_xth,
+                                                           **kwargs)
         
-        # Change the list to the new ajusted
-        z_points = z_iter
+            mz_points = np.mean(z_points, axis=1)
+            z_error = (z_mean-mz_points)*px
+            
+            plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
+            plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
+            plt.xlabel('z theoretical (px)')
+            plt.ylabel('DELTA_z (px)')
+            plt.savefig(save_retro+'direct_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+            plt.close()
+            
+            # Change the list to the new ajusted
+            z_points = z_iter
+        except :
+            print('Retroprojection estimation not possible : The ChAruco pattern might be partially out of field of view')
+            z_error = np.array([0,0])
             
     # Error of projection
     print ('DEPTH OF FIELD :\n\t The calibrated depth of field is between \n\t', 
@@ -880,9 +762,9 @@ def Zernike_calibration (z_list : np.ndarray,
         if it == 0 :
             # Detect points from folders
             if multifolder :
-                all_X, all_x, nb_pts = data.multifolder_pattern_detection(**kwargs)          
+                all_X, all_xth, nb_pts = data.multifolder_pattern_detection(**kwargs)          
             else :
-                all_X, all_x, nb_pts = data.pattern_detection(**kwargs)        
+                all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
     
             # Using not well detected images, remove corresponding arrays from all_X 
             # (right and left) and z_list
@@ -903,7 +785,7 @@ def Zernike_calibration (z_list : np.ndarray,
             b.sort()
             c.sort()
             z_list = np.delete(z_list, c, axis = 0)
-            all_x = np.delete(all_x, b, axis = 0)
+            all_xth = np.delete(all_xth, b, axis = 0)
             all_X = np.delete(all_X, b, axis = 0)
             
             # Camera dimensions
@@ -911,14 +793,14 @@ def Zernike_calibration (z_list : np.ndarray,
         
             # Creation of the reference matrix Xref and the real position Ucam for 
             # each camera
-            nx, ny, _ = all_x.shape
+            nx, ny, _ = all_xth.shape
             z_points = np.ones((nx//2, ny))
             for i in range(nx//2) :
                 z_points[i] = z_points[i]*z_list[i]
             
         # Creation of the reference matrix Xref and the real position Ucam for 
         # each camera
-        x, Xc1, Xc2 = data.camera_coordinates(all_X, all_x, z_points)
+        x, Xc1, Xc2 = data.camera_coordinates(all_X, all_xth, z_points)
 
         # Calcul of the Zernike polynome's constants. X = A . M
         # Do the system x = Ap*M, where M is the monomial of the real 
@@ -931,15 +813,6 @@ def Zernike_calibration (z_list : np.ndarray,
         if plotting :
             fit, errors, mean_error, residual = solvel.refplans(x, z_list, plotting = True)
 
-        #Calcul the retroprojection error
-        z_mean, z_std, z_iter = retroprojection_error('Zernike',
-                                                       Zernike_pform,
-                                                       Zernike_constants,
-                                                       z_points,
-                                                       all_X,
-                                                       all_x,
-                                                       **kwargs)
-        
         # Compute the magnification (same for each cam as set up is symetric)
         Magnification = np.zeros((2, 2))
         for camera in [1, 2] :
@@ -950,20 +823,34 @@ def Zernike_calibration (z_list : np.ndarray,
             x1, x2, x3 = x
             X1, X2 = X
             Magnification[camera-1] = magnification (X1, X2, x1, x2)
-        
         px = 1/np.mean(Magnification)
-        mz_points = np.mean(z_points, axis=1)
-        z_error = (z_mean-mz_points)*px
-        
-        plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-        plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-        plt.xlabel('z theoretical (px)')
-        plt.ylabel('DELTA_z (px)')
-        plt.savefig(save_retro+'Zernike_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
-        plt.close()
-        
-        # Change the list to the new ajusted
-        z_points = z_iter
+
+        #Calcul the retroprojection error
+        try :
+            z_mean, z_std, z_iter = retroprojection_error('Zernike',
+                                                           Zernike_pform,
+                                                           Zernike_constants,
+                                                           z_points,
+                                                           all_X,
+                                                           all_xth,
+                                                           **kwargs)
+            
+
+            mz_points = np.mean(z_points, axis=1)
+            z_error = (z_mean-mz_points)*px
+            
+            plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
+            plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
+            plt.xlabel('z theoretical (px)')
+            plt.ylabel('DELTA_z (px)')
+            plt.savefig(save_retro+'Zernike_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+            plt.close()
+            
+            # Change the list to the new ajusted
+            z_points = z_iter
+        except :
+            print('Retroprojection estimation not possible : The ChAruco pattern might be partially out of field of view')
+            z_error = np.array([0,0])
             
     # Error of projection
     print ('DEPTH OF FIELD :\n\t The calibrated depth of field is between \n\t', 

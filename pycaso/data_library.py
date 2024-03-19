@@ -405,7 +405,7 @@ def cut_calibration_model (List_images : list ,
             Size of a square (in mm)
         
     Returns:
-        all_x : np.ndarray (Dim = Nimages * N * 3)
+        all_xth : np.ndarray (Dim = Nimages * N * 3)
             List of the real corners
         all_X : np.ndarray (Dim = Nimages * N * 3)
             List of the detected corners
@@ -465,14 +465,14 @@ def cut_calibration_model (List_images : list ,
     print(str(T) + ' points deleted in each images on a total of ' + str(Pmax) + ' points')
     print('----------')
           
-    # Then delete those holes on all_x
+    # Then delete those holes on all_xth
     x = deepcopy(Xref)
     for t in range (0, T) :     
         p = holes[T-(t+1)]
         del(x[p])
-    all_x = []
+    all_xth = []
     for i in range (0, M) :
-        all_x.append(x)
+        all_xth.append(x)
         
 
     if all_X[0] == [] :
@@ -481,10 +481,10 @@ def cut_calibration_model (List_images : list ,
         # Use it as array
         all_X = np.asarray(all_X)
         all_X = all_X[:, :, [0, 1]]
-        all_x = np.asarray(all_x)
-        all_x = all_x[:, :, [0, 1]]
+        all_xth = np.asarray(all_xth)
+        all_xth = all_xth[:, :, [0, 1]]
     nb_pts = nb_pts.reshape((2, M//2))
-    return (all_x, all_X, nb_pts)
+    return (all_xth, all_X, nb_pts)
 
 def NAN_calibration_model (Images : list , 
                            Xref : list , 
@@ -517,7 +517,7 @@ def NAN_calibration_model (Images : list ,
             bad detected corner, press ENTER to go to the next image.
         
     Returns:
-        all_x : np.ndarray (Dim = Nimages * N * 3)
+        all_xth : np.ndarray (Dim = Nimages * N * 3)
             Array of the real corners
         all_X : np.ndarray (Dim = Nimages * N * 3)
             Array of the detected corners
@@ -555,15 +555,15 @@ def NAN_calibration_model (Images : list ,
         
         all_X[i] = corners_list
 
-    all_x = []
+    all_xth = []
     for i in range (0, M) :
-        all_x.append(Xref)        
+        all_xth.append(Xref)        
     # Use it as array
-    all_x = np.asarray(all_x)
-    all_x = all_x[:, :, [0, 1]]
+    all_xth = np.asarray(all_xth)
+    all_xth = all_xth[:, :, [0, 1]]
     all_X = all_X[:, :, [0, 1]]
     nb_pts = np.reshape(nb_pts, (2, M//2))
-    return (all_x, all_X, nb_pts)
+    return (all_xth, all_X, nb_pts)
 
 def pattern_detection (left_folder : str = 'left_calibration',
                        right_folder : str = 'right_calibration',
@@ -610,7 +610,7 @@ def pattern_detection (left_folder : str = 'left_calibration',
            arrange with all left pictures followed by all right pictures. 
            Expl : [left_picture_1, left_picture_2, right_picture_1, 
                    right_picture_2]
-       all_x : numpy.ndarray
+       all_xth : numpy.ndarray
            The theoretical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
@@ -621,22 +621,22 @@ def pattern_detection (left_folder : str = 'left_calibration',
         Images.append(Images_right[i])
     
     Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
-    Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
+    Save_all_xth = str(saving_folder) + "/all_xth_" + name + ".npy"
     Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
     
     # Corners detection
-    if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
+    if os.path.exists(Save_all_X) and os.path.exists(Save_all_xth) and os.path.exists(Save_nb_pts) :
         # Taking pre-calculated datas from the saving_folder
         print('PATTERN DETECTION :\n\t Taking datas from ', saving_folder,'\n')        
         all_X = np.load(Save_all_X)
-        all_x = np.load(Save_all_x)
+        all_xth = np.load(Save_all_xth)
         nb_pts = np.load(Save_nb_pts)
     
     else : # Corners detection
         print('PATTERN DETECTION :\n\t TDetection of the pattern in progress ...\n')
         # Creation of the theoretical pattern + detection of camera's pattern
         Xref = calibration_model(ncx, ncy, sqr)
-        all_x, all_X, nb_pts = NAN_calibration_model(Images, 
+        all_xth, all_X, nb_pts = NAN_calibration_model(Images, 
                                                      Xref, 
                                                      ncx = ncx,
                                                      ncy = ncy,
@@ -648,22 +648,22 @@ def pattern_detection (left_folder : str = 'left_calibration',
         else :
             if save :
                 np.save(Save_all_X, all_X)
-                np.save(Save_all_x, all_x)
+                np.save(Save_all_xth, all_xth)
                 np.save(Save_nb_pts, nb_pts)
                 print('    - Saving datas in ', saving_folder)
     
     # Remove the external crowns if necessary
     nx, ny = ncx-1, ncy-1
     all_X = np.reshape(all_X,(len(all_X), ny, nx, 2))
-    all_x = np.reshape(all_x,(len(all_x), ny, nx, 2))
+    all_xth = np.reshape(all_xth,(len(all_xth), ny, nx, 2))
     for i in range (eject_crown) :
         all_X = all_X[:,1:-1,1:-1,:]
-        all_x = all_x[:,1:-1,1:-1,:]
+        all_xth = all_xth[:,1:-1,1:-1,:]
     _,ny,nx,_ = all_X.shape
     all_X = np.reshape(all_X,(len(all_X), ny*nx, 2))
-    all_x = np.reshape(all_x,(len(all_x), ny*nx, 2))
+    all_xth = np.reshape(all_xth,(len(all_xth), ny*nx, 2))
     
-    return(all_X, all_x, nb_pts)
+    return(all_X, all_xth, nb_pts)
 
 def multifolder_pattern_detection (left_folder : str = 'left_calibration',
                                    right_folder : str = 'right_calibration',
@@ -704,7 +704,7 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
            arrange with all left pictures followed by all right pictures. 
            Expl : [left_picture_1, left_picture_2, right_picture_1, 
                    right_picture_2]
-       all_x : numpy.ndarray
+       all_xth : numpy.ndarray
            The theoretical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
@@ -712,17 +712,17 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
     nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(left_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
     npts = (ncx-1)*(ncy-1)
     multall_X = np.empty((nxy, nxy, 2*nz, npts, 2))
-    multall_x = np.empty((nxy, nxy, 2*nz, npts, 2))
+    multall_xth = np.empty((nxy, nxy, 2*nz, npts, 2))
     multnb_pts = np.empty((nxy, nxy, 2, nz))
     Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
-    Save_all_x = str(saving_folder) + "/all_x_" + name + ".npy"
+    Save_all_xth = str(saving_folder) + "/all_xth_" + name + ".npy"
     Save_nb_pts = str(saving_folder) + "/nb_pts_" + name + ".npy"
     # Corners detection
-    if os.path.exists(Save_all_X) and os.path.exists(Save_all_x) and os.path.exists(Save_nb_pts) :
+    if os.path.exists(Save_all_X) and os.path.exists(Save_all_xth) and os.path.exists(Save_nb_pts) :
         # Taking pre-calculated datas from the saving_folder
         print('    - Taking datas from ', saving_folder)        
         all_X = np.load(Save_all_X)
-        all_x = np.load(Save_all_x)
+        all_xth = np.load(Save_all_xth)
         nb_pts = np.load(Save_nb_pts)
     
     else : # Corners detection
@@ -730,7 +730,7 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
             dx = imx[len(left_folder)+2:]
             for j, imy in enumerate(sorted(glob(str(imx) + '/*'))) :
                 dy = imy[len(imx)+2:]
-                all_X, all_x, nb_pts = pattern_detection (left_folder = left_folder + imy[len(left_folder):],
+                all_X, all_xth, nb_pts = pattern_detection (left_folder = left_folder + imy[len(left_folder):],
                                                           right_folder = right_folder + imy[len(left_folder):],
                                                           name = name,
                                                           saving_folder = saving_folder,
@@ -739,25 +739,25 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
                                                           sqr = sqr,
                                                           hybrid_verification = hybrid_verification,
                                                           save = False)
-                all_x[:,:,0] += float(dx)
-                all_x[:,:,1] += float(dy)
+                all_xth[:,:,0] += float(dx)
+                all_xth[:,:,1] += float(dy)
                 
                 multall_X [i,j]= all_X
-                multall_x [i,j]= all_x
+                multall_xth [i,j]= all_xth
                 multnb_pts [i,j]= nb_pts
                 print('x = ', dx)
                 print('y = ', dy)
         
         # Re_organise arrays
         all_X = np.empty((2*nz, nxy*nxy*npts, 2))
-        all_x = np.empty((2*nz, nxy*nxy*npts, 2))
+        all_xth = np.empty((2*nz, nxy*nxy*npts, 2))
         nb_pts = np.empty((2, nz))
         for i in range (nz) :
             all_X[i] = multall_X[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
-            all_x[i] = multall_x[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
+            all_xth[i] = multall_xth[:,:,i,:,:].reshape((nxy*nxy*npts, 2))
             
             all_X[i+nz] = multall_X[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
-            all_x[i+nz] = multall_x[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
+            all_xth[i+nz] = multall_xth[:,:,i+nz,:,:].reshape((nxy*nxy*npts, 2))
             nb_pts[0, i] = np.min(multnb_pts[:,:,0,i])
             nb_pts[1, i] = np.min(multnb_pts[:,:,1,i])
         
@@ -766,11 +766,11 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
             print('Not any point detected in all images/cameras')
         else :
             np.save(Save_all_X, all_X)
-            np.save(Save_all_x, all_x)
+            np.save(Save_all_xth, all_xth)
             np.save(Save_nb_pts, nb_pts)
             print('    - Saving datas in ', saving_folder)
         
-    return(all_X, all_x, nb_pts)
+    return(all_X, all_xth, nb_pts)
 
 def hybrid_mask_creation (image : np.ndarray,
                           ROI : bool = False,
@@ -809,7 +809,7 @@ def hybrid_mask_creation (image : np.ndarray,
     return (mask_median)
 
 def camera_coordinates (all_X : np.ndarray, 
-                              all_x : np.ndarray, 
+                              all_xth : np.ndarray, 
                               z_list : np.ndarray) -> (np.ndarray,
                                                        np.ndarray,
                                                        np.ndarray) :
@@ -818,7 +818,7 @@ def camera_coordinates (all_X : np.ndarray,
     Args:
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera
-       all_x : numpy.ndarray
+       all_xth : numpy.ndarray
            The theoretical corners of the pattern
        z_list : numpy.ndarray
            List of the different z position. (Ordered the same way in the 
@@ -836,18 +836,18 @@ def camera_coordinates (all_X : np.ndarray,
     for i in [1, 2] :
         mid = all_X.shape[0]//2    
         all_Xi = all_X[(i-1)*mid:i*mid,:,:]
-        all_xi = all_x[i*(mid-1):i*mid,:,:]
+        all_xthi = all_xth[i*(mid-1):i*mid,:,:]
         nx,ny,nz = all_Xi.shape
-        Xref = all_xi[0]
-        all_xi = np.empty ((nx, ny, nz+1))
+        Xref = all_xthi[0]
+        all_xthi = np.empty ((nx, ny, nz+1))
         x = np.empty ((nx * ny, nz+1))
         X = np.empty ((nx * ny, nz))
         for j in range (nx) :
-            all_xi[j][:,0] = Xref[:,0]
-            all_xi[j][:,1] = Xref[:,1]
-            all_xi[j][:,2] = z_list[j]
+            all_xthi[j][:,0] = Xref[:,0]
+            all_xthi[j][:,1] = Xref[:,1]
+            all_xthi[j][:,2] = z_list[j]
 
-            x[j*ny : (j+1)*ny, :]  = all_xi[j]
+            x[j*ny : (j+1)*ny, :]  = all_xthi[j]
             X[j*ny : (j+1)*ny, :]  = all_Xi[j]
 
         # Real position in space : Xref (x1, x2, x3)
