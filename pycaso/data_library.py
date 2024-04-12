@@ -565,8 +565,8 @@ def NAN_calibration_model (Images : list ,
     nb_pts = np.reshape(nb_pts, (2, M//2))
     return (all_xth, all_X, nb_pts)
 
-def pattern_detection (left_folder : str = 'left_calibration',
-                       right_folder : str = 'right_calibration',
+def pattern_detection (cam1_folder : str = 'cam1_calibration',
+                       cam2_folder : str = 'cam2_calibration',
                        name : str = 'calibration',
                        saving_folder : str = 'results',
                        ncx : int = 16,
@@ -579,10 +579,10 @@ def pattern_detection (left_folder : str = 'left_calibration',
     """Detect the corners of Charucco's pattern.
     
     Args:
-       left_folder : str, optional
-           Left calibration images folder
-       right_folder : str, optional
-           Right calibration images folder
+       cam1_folder : str, optional
+           cam1 calibration images folder
+       cam2_folder : str, optional
+           cam2 calibration images folder
        name : str, optional
            Name to save
        saving_folder : str, optional
@@ -607,18 +607,18 @@ def pattern_detection (left_folder : str = 'left_calibration',
     Returns:
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera ranged in an array 
-           arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, 
-                   right_picture_2]
+           arrange with all cam1 pictures followed by all cam2 pictures. 
+           Expl : [cam1_picture_1, cam1_picture_2, cam2_picture_1, 
+                   cam2_picture_2]
        all_xth : numpy.ndarray
            The theoretical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
-    Images = Images_left
-    for i in range (len(Images_right)) :
-        Images.append(Images_right[i])
+    Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
+    Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
+    Images = Images_cam1
+    for i in range (len(Images_cam2)) :
+        Images.append(Images_cam2[i])
     
     Save_all_X = str(saving_folder) + "/all_X_" + name + ".npy"
     Save_all_xth = str(saving_folder) + "/all_xth_" + name + ".npy"
@@ -665,8 +665,8 @@ def pattern_detection (left_folder : str = 'left_calibration',
     
     return(all_X, all_xth, nb_pts)
 
-def multifolder_pattern_detection (left_folder : str = 'left_calibration',
-                                   right_folder : str = 'right_calibration',
+def multifolder_pattern_detection (cam1_folder : str = 'cam1_calibration',
+                                   cam2_folder : str = 'cam2_calibration',
                                    name : str = 'calibration',
                                    saving_folder : str = 'results',
                                    ncx : int = 16,
@@ -677,10 +677,10 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
     """Detect the corners of Charucco's pattern in multiple folders.
     
     Args:
-       left_folder : str, optional
-           Left calibration images folder
-       right_folder : str, optional
-           Right calibration images folder
+       cam1_folder : str, optional
+           cam1 calibration images folder
+       cam2_folder : str, optional
+           cam2 calibration images folder
        name : str, optional
            Name to save
        saving_folder : str, optional
@@ -701,15 +701,15 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
     Returns:
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera ranged in an array 
-           arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, 
-                   right_picture_2]
+           arrange with all cam1 pictures followed by all cam2 pictures. 
+           Expl : [cam1_picture_1, cam1_picture_2, cam2_picture_1, 
+                   cam2_picture_2]
        all_xth : numpy.ndarray
            The theoretical corners of the pattern
     """
     # Taking the main parameters from bibliotheque_data_eddy.
-    nxy = len(sorted(glob(str(left_folder) + '/*')))
-    nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(left_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
+    nxy = len(sorted(glob(str(cam1_folder) + '/*')))
+    nz = len(sorted(glob(str(sorted(glob(str(sorted(glob(str(cam1_folder) + '/*'))[0]) + '/*'))[0]) + '/*')))
     npts = (ncx-1)*(ncy-1)
     multall_X = np.empty((nxy, nxy, 2*nz, npts, 2))
     multall_xth = np.empty((nxy, nxy, 2*nz, npts, 2))
@@ -726,12 +726,12 @@ def multifolder_pattern_detection (left_folder : str = 'left_calibration',
         nb_pts = np.load(Save_nb_pts)
     
     else : # Corners detection
-        for i, imx in enumerate(sorted(glob(str(left_folder) + '/*'))) :
-            dx = imx[len(left_folder)+2:]
+        for i, imx in enumerate(sorted(glob(str(cam1_folder) + '/*'))) :
+            dx = imx[len(cam1_folder)+2:]
             for j, imy in enumerate(sorted(glob(str(imx) + '/*'))) :
                 dy = imy[len(imx)+2:]
-                all_X, all_xth, nb_pts = pattern_detection (left_folder = left_folder + imy[len(left_folder):],
-                                                          right_folder = right_folder + imy[len(left_folder):],
+                all_X, all_xth, nb_pts = pattern_detection (cam1_folder = cam1_folder + imy[len(cam1_folder):],
+                                                          cam2_folder = cam2_folder + imy[len(cam1_folder):],
                                                           name = name,
                                                           saving_folder = saving_folder,
                                                           ncx = ncx,
@@ -890,7 +890,7 @@ def DIC_disflow (DIC_dict : dict,
                  image_ids : list = [False]) -> (np.ndarray,
                                                  np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the deformed ones (other left and right pictures).
+    (first cam1 one) in the deformed ones (other cam1 and cam2 pictures).
     
     Args:
        DIC_dict : dict
@@ -900,34 +900,34 @@ def DIC_disflow (DIC_dict : dict,
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
        image_ids : list, optional
-           Define the list of images you want to compare in the left and right folders
+           Define the list of images you want to compare in the cam1 and cam2 folders
            
     Returns:
-       Xleft_id : numpy.ndarray
-           All the points of the left pictures (1 point per pixel) in an array 
+       Xcam1_id : numpy.ndarray
+           All the points of the cam1 pictures (1 point per pixel) in an array 
            arrange with their positions. 
-       Xright_id : numpy.ndarray
-           All the left pixels (points) localised on the right pictures.
+       Xcam2_id : numpy.ndarray
+           All the cam1 pixels (points) localised on the cam2 pictures.
     """
-    left_folder = DIC_dict['left_folder']
-    right_folder = DIC_dict['right_folder']
+    cam1_folder = DIC_dict['cam1_folder']
+    cam2_folder = DIC_dict['cam2_folder']
     window = DIC_dict['window']
     vr_kwargs = DIC_dict['dic_kwargs'] if 'dic_kwargs' in DIC_dict else ()
     
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
+    Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
+    Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
     if not len(image_ids) == 0 :
-        Images_left_cut = []
-        Images_right_cut = []
+        Images_cam1_cut = []
+        Images_cam2_cut = []
         for i in image_ids :
-            Images_left_cut.append(Images_left[i])
-            Images_right_cut.append(Images_right[i])
-        Images_left = Images_left_cut
-        Images_right = Images_right_cut
-    Images = Images_left
+            Images_cam1_cut.append(Images_cam1[i])
+            Images_cam2_cut.append(Images_cam2[i])
+        Images_cam1 = Images_cam1_cut
+        Images_cam2 = Images_cam2_cut
+    Images = Images_cam1
     N = len(Images)
     for i in range (N) :
-        Images.append(Images_right[i]) 
+        Images.append(Images_cam2[i]) 
     [lx1, lx2], [ly1, ly2] = window
     N = len(Images)
 
@@ -960,8 +960,8 @@ def DIC_disflow (DIC_dict : dict,
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
 
-    Xleft_id = []
-    Xright_id = []        
+    Xcam1_id = []
+    Xcam2_id = []        
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
@@ -974,32 +974,32 @@ def DIC_disflow (DIC_dict : dict,
         X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
         X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
 
-        # Left camera --> position = each px
+        # cam1 camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
                                       np.ravel(X2matrix_w)]))
         UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
                                     np.ravel(V[lx1:lx2, ly1:ly2])]))
 
-        # Right camera --> position = each px + displacement
+        # cam2 camera --> position = each px + displacement
         X_c2 = X_c1 + UV
         if i < N//2 :
-            Xleft_id.append(X_c2)
+            Xcam1_id.append(X_c2)
         else : 
-            Xright_id.append(X_c2)
+            Xcam2_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
-    nim, npts, naxis = Xleft_id.shape
-    Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    return(Xleft_id, Xright_id)
+    Xcam1_id = np.array(Xcam1_id)
+    Xcam2_id = np.array(Xcam2_id)
+    nim, npts, naxis = Xcam1_id.shape
+    Xcam1_id = Xcam1_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    Xcam2_id = Xcam2_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    return(Xcam1_id, Xcam2_id)
 
 def DIC_optical_flow (DIC_dict : dict,
                       flip : bool = False,
                       image_ids : list = [False]) -> (np.ndarray,
                                                       np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the other ones (other left and right pictures).
+    (first cam1 one) in the other ones (other cam1 and cam2 pictures).
     
     Args:
        DIC_dict : dict
@@ -1009,14 +1009,14 @@ def DIC_optical_flow (DIC_dict : dict,
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
        image_ids : list, optional
-           Define the list of images you want to compare in the left and right folders
+           Define the list of images you want to compare in the cam1 and cam2 folders
            
     Returns:
-       Xleft_id : numpy.ndarray
-           All the points of the left pictures (1 point per pixel) in an array 
+       Xcam1_id : numpy.ndarray
+           All the points of the cam1 pictures (1 point per pixel) in an array 
            arrange with their positions. 
-       Xright_id : numpy.ndarray
-           All the left pixels (points) localised on the right pictures.
+       Xcam2_id : numpy.ndarray
+           All the cam1 pixels (points) localised on the cam2 pictures.
    """
     try : 
         sys.path.append('/home/caroneddy/These/GCpu_OpticalFlow-master/Src')
@@ -1024,8 +1024,8 @@ def DIC_optical_flow (DIC_dict : dict,
     except ImportError:
         raise('No module named optical_flow')
 
-    left_folder = DIC_dict['left_folder']
-    right_folder = DIC_dict['right_folder']
+    cam1_folder = DIC_dict['cam1_folder']
+    cam2_folder = DIC_dict['cam2_folder']
     ROI = DIC_dict['window']
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
@@ -1045,20 +1045,20 @@ def DIC_optical_flow (DIC_dict : dict,
     else :
         optical_flow_parameters = opt_flow
 
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
+    Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
+    Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
     if not len(image_ids) == 0 :
-        Images_left_cut = []
-        Images_right_cut = []
+        Images_cam1_cut = []
+        Images_cam2_cut = []
         for i in image_ids :
-            Images_left_cut.append(Images_left[i])
-            Images_right_cut.append(Images_right[i])
-        Images_left = Images_left_cut
-        Images_right = Images_right_cut
-    Images = Images_left
+            Images_cam1_cut.append(Images_cam1[i])
+            Images_cam2_cut.append(Images_cam2[i])
+        Images_cam1 = Images_cam1_cut
+        Images_cam2 = Images_cam2_cut
+    Images = Images_cam1
     N = len(Images)
     for i in range (N) :
-        Images.append(Images_right[i]) 
+        Images.append(Images_cam2[i]) 
     [lx1, lx2], [ly1, ly2] = ROI
     N = len(Images)
 
@@ -1073,25 +1073,25 @@ def DIC_optical_flow (DIC_dict : dict,
         all_U = np.load(Save_all_U)
         all_V = np.load(Save_all_V)
     else:
-        im0_left = cv2.imread(Images[0], 0)
-        im0_right = cv2.imread(Images[int(N/2)], 0)
+        im0_cam1 = cv2.imread(Images[0], 0)
+        im0_cam2 = cv2.imread(Images[int(N/2)], 0)
         if flip :
-            im0_left = cv2.flip(im0_left, 1)
-            im0_right = cv2.flip(im0_right, 1)
-        nx, ny = im0_left.shape
+            im0_cam1 = cv2.flip(im0_cam1, 1)
+            im0_cam2 = cv2.flip(im0_cam2, 1)
+        nx, ny = im0_cam1.shape
         all_U = np.zeros((N, nx, ny), dtype=np.float32)
         all_V = np.zeros((N, nx, ny), dtype=np.float32)
         x, y = np.meshgrid(np.arange(ny), np.arange(nx))
         x = x.astype(np.float32)
         y = y.astype(np.float32)
-        # Left0/left camera correlations + left0 / right0 correlation
+        # cam10/cam1 camera correlations + cam10 / cam20 correlation
         for i, image in enumerate(Images[1:(int(N/2)+1)]):
             im = cv2.imread(image, 0)
             if flip :
                 im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
             t1 = time.time()
-            U, V = compute_flow(im0_left, 
+            U, V = compute_flow(im0_cam1, 
                                 im, 
                                 optical_flow_parameters["pyram_levels"], 
                                 optical_flow_parameters["factor"], 
@@ -1113,15 +1113,15 @@ def DIC_optical_flow (DIC_dict : dict,
             all_U[i+1], all_V[i+1] = U, V
             t2 = time.time()
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
-        # Left0/right camera composed correlations 
+        # cam10/cam2 camera composed correlations 
         for i, image in enumerate(Images[(int(N/2)+1):]):
             im = cv2.imread(image, 0)
             if flip :
                 im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
             t1 = time.time()
-            # Right0/right camera correlation    
-            Ur, Vr = compute_flow(im0_right,
+            # cam20/cam2 camera correlation    
+            Ur, Vr = compute_flow(im0_cam2,
                                   im,
                                   optical_flow_parameters["pyram_levels"],
                                   optical_flow_parameters["factor"],
@@ -1151,8 +1151,8 @@ def DIC_optical_flow (DIC_dict : dict,
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
     
-    Xleft_id = []
-    Xright_id = []
+    Xcam1_id = []
+    Xcam2_id = []
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
@@ -1165,32 +1165,32 @@ def DIC_optical_flow (DIC_dict : dict,
         X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
         X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
 
-        # Left camera --> position = each px
+        # cam1 camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
                                       np.ravel(X2matrix_w)]))
         UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
                                     np.ravel(V[lx1:lx2, ly1:ly2])]))
 
-        # Right camera --> position = each px + displacement
+        # cam2 camera --> position = each px + displacement
         X_c2 = X_c1 + UV
         if i < N//2 :
-            Xleft_id.append(X_c2)
+            Xcam1_id.append(X_c2)
         else : 
-            Xright_id.append(X_c2)
+            Xcam2_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
-    nim, npts, naxis = Xleft_id.shape
-    Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    return (Xleft_id, Xright_id)
+    Xcam1_id = np.array(Xcam1_id)
+    Xcam2_id = np.array(Xcam2_id)
+    nim, npts, naxis = Xcam1_id.shape
+    Xcam1_id = Xcam1_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    Xcam2_id = Xcam2_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    return (Xcam1_id, Xcam2_id)
 
 def DIC_robust_metric (DIC_dict : dict,
                        flip : bool = False,
                        image_ids : list = [False]) -> (np.ndarray,
                                                        np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the other ones (other left and right pictures).
+    (first cam1 one) in the other ones (other cam1 and cam2 pictures).
     
     Args:
        DIC_dict : dict
@@ -1200,14 +1200,14 @@ def DIC_robust_metric (DIC_dict : dict,
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
        image_ids : list, optional
-           Define the list of images you want to compare in the left and right folders
+           Define the list of images you want to compare in the cam1 and cam2 folders
            
     Returns:
-       Xleft_id : numpy.ndarray
-           All the points of the left pictures (1 point per pixel) in an array 
+       Xcam1_id : numpy.ndarray
+           All the points of the cam1 pictures (1 point per pixel) in an array 
            arrange with their positions. 
-       Xright_id : numpy.ndarray
-           All the left pixels (points) localised on the right pictures.
+       Xcam2_id : numpy.ndarray
+           All the cam1 pixels (points) localised on the cam2 pictures.
    """
     try : 
         sys.path.append('/home/caroneddy/These/GCpu_Robust_Metrics/Src')
@@ -1215,25 +1215,25 @@ def DIC_robust_metric (DIC_dict : dict,
     except ImportError:
         raise('No module named optical_flow')
 
-    left_folder = DIC_dict['left_folder']
-    right_folder = DIC_dict['right_folder']
+    cam1_folder = DIC_dict['cam1_folder']
+    cam2_folder = DIC_dict['cam2_folder']
     ROI = DIC_dict['window']
     import rescale_img as ri
 
-    Images_left = sorted(glob(str(left_folder) + '/*'))
-    Images_right = sorted(glob(str(right_folder) + '/*'))
+    Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
+    Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
     if not len(image_ids) == 0 :
-        Images_left_cut = []
-        Images_right_cut = []
+        Images_cam1_cut = []
+        Images_cam2_cut = []
         for i in image_ids :
-            Images_left_cut.append(Images_left[i])
-            Images_right_cut.append(Images_right[i])
-        Images_left = Images_left_cut
-        Images_right = Images_right_cut
-    Images = Images_left
+            Images_cam1_cut.append(Images_cam1[i])
+            Images_cam2_cut.append(Images_cam2[i])
+        Images_cam1 = Images_cam1_cut
+        Images_cam2 = Images_cam2_cut
+    Images = Images_cam1
     N = len(Images)
     for i in range (N) :
-        Images.append(Images_right[i]) 
+        Images.append(Images_cam2[i]) 
     [lx1, lx2], [ly1, ly2] = ROI
     N = len(Images)
 
@@ -1248,24 +1248,24 @@ def DIC_robust_metric (DIC_dict : dict,
         all_U = np.load(Save_all_U)
         all_V = np.load(Save_all_V)
     else:
-        im0_left = cv2.imread(Images[0], 0)
-        im0_right = cv2.imread(Images[int(N/2)], 0)
+        im0_cam1 = cv2.imread(Images[0], 0)
+        im0_cam2 = cv2.imread(Images[int(N/2)], 0)
         if flip :
-            im0_left = cv2.flip(im0_left, 1)
-            im0_right = cv2.flip(im0_right, 1)
-        nx, ny = im0_left.shape
+            im0_cam1 = cv2.flip(im0_cam1, 1)
+            im0_cam2 = cv2.flip(im0_cam2, 1)
+        nx, ny = im0_cam1.shape
         all_U = np.zeros((N, nx, ny), dtype=np.float32)
         all_V = np.zeros((N, nx, ny), dtype=np.float32)
         x, y = np.meshgrid(np.arange(ny), np.arange(nx))
         x = x.astype(np.float32)
         y = y.astype(np.float32)
-        # Left0/left camera correlations + left0 / right0 correlation
+        # cam10/cam1 camera correlations + cam10 / cam20 correlation
         spacing = 2
         opt_flow = {"iter_gnc" : 3, # Gnc iteration
                     "gnc_pyram_levels" : 2, # Gnc levels
                     "gnc_factor" : 1.25, # Gnc factor
                     "gnc_spacing" : 1.25,
-                    "pyram_levels" : ri.compute_auto_pyramd_levels(im0_left,spacing), #Automatic detection of the number of levels
+                    "pyram_levels" : ri.compute_auto_pyramd_levels(im0_cam1,spacing), #Automatic detection of the number of levels
                     "factor" : 2,
                     "spacing" : spacing,
                     "ordre_inter" : 3, # Interpolation order
@@ -1292,9 +1292,9 @@ def DIC_robust_metric (DIC_dict : dict,
                 im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[0], image))
             t1 = time.time()
-            U, V = compute_flow(im0_left, 
+            U, V = compute_flow(im0_cam1, 
                                 im, 
-                                np.zeros((im0_left.shape)),
+                                np.zeros((im0_cam1.shape)),
                                 np.zeros((im.shape)), 
                                 optical_flow_parameters["iter_gnc"], 
                                 optical_flow_parameters["gnc_pyram_levels"],
@@ -1324,17 +1324,17 @@ def DIC_robust_metric (DIC_dict : dict,
             all_U[i+1], all_V[i+1] = U, V
             t2 = time.time()
             print('Elapsed time:', (t2-t1), '(s)  --> ', (t2-t1)/60, '(min)')
-        # Left0/right camera composed correlations 
+        # cam10/cam2 camera composed correlations 
         for i, image in enumerate(Images[(int(N/2)+1):]):
             im = cv2.imread(image, 0)
             if flip :
                 im = cv2.flip(im, 1)
             print('\nComputing flow between\n\t%s\n\t%s' % (Images[int(N/2)], image))
             t1 = time.time()
-            # Right0/right camera correlation    
-            Ur, Vr = compute_flow(im0_right,
+            # cam20/cam2 camera correlation    
+            Ur, Vr = compute_flow(im0_cam2,
                                   im,
-                                  np.zeros((im0_right.shape)),
+                                  np.zeros((im0_cam2.shape)),
                                   np.zeros((im.shape)), 
                                   optical_flow_parameters["iter_gnc"], 
                                   optical_flow_parameters["gnc_pyram_levels"],
@@ -1372,8 +1372,8 @@ def DIC_robust_metric (DIC_dict : dict,
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
     
-    Xleft_id = []
-    Xright_id = []
+    Xcam1_id = []
+    Xcam2_id = []
     for i in range (N) :
         U, V = all_U[i], all_V[i]
         nX1, nX2 = U.shape
@@ -1386,25 +1386,25 @@ def DIC_robust_metric (DIC_dict : dict,
         X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
         X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
 
-        # Left camera --> position = each px
+        # cam1 camera --> position = each px
         X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
                                       np.ravel(X2matrix_w)]))
         UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
                                     np.ravel(V[lx1:lx2, ly1:ly2])]))
 
-        # Right camera --> position = each px + displacement
+        # cam2 camera --> position = each px + displacement
         X_c2 = X_c1 + UV
         if i < N//2 :
-            Xleft_id.append(X_c2)
+            Xcam1_id.append(X_c2)
         else : 
-            Xright_id.append(X_c2)
+            Xcam2_id.append(X_c2)
     
-    Xleft_id = np.array(Xleft_id)
-    Xright_id = np.array(Xright_id)
-    nim, npts, naxis = Xleft_id.shape
-    Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    return (Xleft_id, Xright_id)
+    Xcam1_id = np.array(Xcam1_id)
+    Xcam2_id = np.array(Xcam2_id)
+    nim, npts, naxis = Xcam1_id.shape
+    Xcam1_id = Xcam1_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    Xcam2_id = Xcam2_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+    return (Xcam1_id, Xcam2_id)
 
 def DIC_get_positions (DIC_dict : dict,
                        flip : bool= False,
@@ -1412,7 +1412,7 @@ def DIC_get_positions (DIC_dict : dict,
                        method : str = 'disflow') -> (np.ndarray,
                                                           np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the other ones (other left and right pictures).
+    (first cam1 one) in the other ones (other cam1 and cam2 pictures).
     
     Args:
        DIC_dict : dict
@@ -1422,16 +1422,16 @@ def DIC_get_positions (DIC_dict : dict,
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
        image_ids : list, optional
-           Define the list of images you want to compare in the left and right folders
+           Define the list of images you want to compare in the cam1 and cam2 folders
        method : str
            DIC method between optical_flow, robust_metric and disflow
            
     Returns:
-       Xleft_id : numpy.ndarray
-           All the points of the left pictures (1 point per pixel) in an array 
+       Xcam1_id : numpy.ndarray
+           All the points of the cam1 pictures (1 point per pixel) in an array 
            arrange with their positions. 
-       Xright_id : numpy.ndarray
-           All the left pixels (points) localised on the right pictures.
+       Xcam2_id : numpy.ndarray
+           All the cam1 pixels (points) localised on the cam2 pictures.
     """
     if method == 'optical_flow' :
         try : 
@@ -1470,8 +1470,8 @@ def DIC_get_positions (DIC_dict : dict,
         print('No method known as ' + method + ', please chose "diflow", "optical_flow" or "robust_metric"')
         raise
 
-def DIC_get_positions2 (left_folder : str = 'left_identification',
-                       right_folder : str = 'right_identification',
+def DIC_get_positions2 (cam1_folder : str = 'cam1_identification',
+                       cam2_folder : str = 'cam2_identification',
                        name : str = 'identification',
                        saving_folder : str = 'results',
                        window : list = [False],
@@ -1480,13 +1480,13 @@ def DIC_get_positions2 (left_folder : str = 'left_identification',
                        method : str = 'compute_flow') ->(np.ndarray,
                                                          np.ndarray) :
     """Use the DIC to locate all the points from the reference picture
-    (first left one) in the other ones (other left and right pictures).
+    (first cam1 one) in the other ones (other cam1 and cam2 pictures).
     
     Args:
-       left_folder : str, optional
-           Left calibration images folder
-       right_folder : str, optional
-           Right calibration images folder
+       cam1_folder : str, optional
+           cam1 calibration images folder
+       cam2_folder : str, optional
+           cam2 calibration images folder
        name : str, optional
            identification
        saving_folder : str, optional
@@ -1497,20 +1497,20 @@ def DIC_get_positions2 (left_folder : str = 'left_identification',
            If True, all the pictures are flipped before the DIC (useful when 
            you're using a mirror)
        image_ids : list, optional
-           Define the list of images you want to compare in the left and right folders
+           Define the list of images you want to compare in the cam1 and cam2 folders
        method : str
            DIC method between compute_flow and disflow
            
     Returns:
-       Xleft_id : numpy.ndarray
-           All the points of the left pictures (1 point per pixel) in an array 
+       Xcam1_id : numpy.ndarray
+           All the points of the cam1 pictures (1 point per pixel) in an array 
            arrange with their positions. 
-       Xright_id : numpy.ndarray
-           All the left pixels (points) localised on the right pictures.
+       Xcam2_id : numpy.ndarray
+           All the cam1 pixels (points) localised on the cam2 pictures.
     """
     DIC_dict = {
-    'left_folder' : left_folder,
-    'right_folder' : right_folder,
+    'cam1_folder' : cam1_folder,
+    'cam2_folder' : cam2_folder,
     'name' : name,
     'saving_folder' : saving_folder,
     'window' : window
@@ -1539,7 +1539,7 @@ def DIC_fields (DIC_dict : dict,
                                          np.ndarray,
                                          np.ndarray,
                                          np.ndarray) :
-    """Use the DIC to calcul all the left and right displacements fields.
+    """Use the DIC to calcul all the cam1 and cam2 displacements fields.
     
     Args:
        DIC_dict : dict
@@ -1550,18 +1550,18 @@ def DIC_fields (DIC_dict : dict,
            you're using a mirror)
            
     Returns:
-       U_left : numpy.ndarray
-           All the left displacements fields in x direction.
-       V_left : numpy.ndarray 
-           All the left displacements fields in y direction.
-       U_right : numpy.ndarray 
-           All the right displacements fields in x direction.
-       V_right : numpy.ndarray
-           All the right displacements fields in y direction.
+       U_cam1 : numpy.ndarray
+           All the cam1 displacements fields in x direction.
+       V_cam1 : numpy.ndarray 
+           All the cam1 displacements fields in y direction.
+       U_cam2 : numpy.ndarray 
+           All the cam2 displacements fields in x direction.
+       V_cam2 : numpy.ndarray
+           All the cam2 displacements fields in y direction.
     """
     saving_folder = DIC_dict['saving_folder']
-    left_folder = DIC_dict['left_folder']
-    right_folder = DIC_dict['right_folder']
+    cam1_folder = DIC_dict['cam1_folder']
+    cam2_folder = DIC_dict['cam2_folder']
     name = DIC_dict['name']
     Save_UV = str(saving_folder) +"/all_UV_" + name + ".npy"
     vr_kwargs = DIC_dict['dic_kwargs'] if 'dic_kwargs' in DIC_dict else ()
@@ -1570,14 +1570,14 @@ def DIC_fields (DIC_dict : dict,
     if os.path.exists(Save_UV) :
         print('    - Taking datas from ', saving_folder)        
         all_UV = np.load(Save_UV)
-        U_left, V_left, U_right, V_right = all_UV
+        U_cam1, V_cam1, U_cam2, V_cam2 = all_UV
     else :
-        Images_left = sorted(glob(str(left_folder) + '/*'))
-        Images_right = sorted(glob(str(right_folder) + '/*'))
-        Images = Images_left
+        Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
+        Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
+        Images = Images_cam1
         N = len(Images)
         for i in range (N) :
-            Images.append(Images_right[i])    
+            Images.append(Images_cam2[i])    
 
         # Corners detection
         print('    - DIC in progress ...')
@@ -1602,19 +1602,19 @@ def DIC_fields (DIC_dict : dict,
                                             Imr2,
                                             vr_kwargs=vr_kwargs)
             if i == 0 :
-                U_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                V_left = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                U_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-                V_right = np.zeros((N, Ul.shape[0], Ul.shape[1]))
-            U_left[i] = Ul
-            V_left[i] = Vl
-            U_right[i] = Ur
-            V_right[i] = Vr
-        all_UV = np.array([U_left, V_left, U_right, V_right])       
+                U_cam1 = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_cam1 = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                U_cam2 = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+                V_cam2 = np.zeros((N, Ul.shape[0], Ul.shape[1]))
+            U_cam1[i] = Ul
+            V_cam1[i] = Vl
+            U_cam2[i] = Ur
+            V_cam2[i] = Vr
+        all_UV = np.array([U_cam1, V_cam1, U_cam2, V_cam2])       
         np.save(Save_UV, all_UV)
         print('    - Saving datas in ', saving_folder)
 
-    return(U_left, V_left, U_right, V_right)
+    return(U_cam1, V_cam1, U_cam2, V_cam2)
 
 def Strain_field (UVW : np.ndarray) -> (np.ndarray,
                                         np.ndarray,
@@ -1692,8 +1692,8 @@ def Strain_fields (UVW : np.ndarray) -> (np.ndarray,
         
     return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
 
-def cameras_size (left_folder : str = 'left_calibration',
-                  right_folder : str = 'right_calibration',
+def cameras_size (cam1_folder : str = 'cam1_calibration',
+                  cam2_folder : str = 'cam2_calibration',
                   name : str = 'calibration',
                   saving_folder : str = 'results',
                   ncx : int = 16,
@@ -1703,23 +1703,23 @@ def cameras_size (left_folder : str = 'left_calibration',
                   save : bool = True,
                   eject_crown : int = 0) -> (np.ndarray,
                                              np.ndarray) :
-    """Give the dimension in puxel of both cameras (left and right).
-    Only left_folder and right_folder are used.
+    """Give the dimension in puxel of both cameras (cam1 and cam2).
+    Only cam1_folder and cam2_folder are used.
     
     Args:
-       left_folder : str, optional
-           Left calibration images folder
-       right_folder : str, optional
-           Right calibration images folder
+       cam1_folder : str, optional
+           cam1 calibration images folder
+       cam2_folder : str, optional
+           cam2 calibration images folder
            
     Returns:
        Cameras_dimensions : list
-           Dimensions of left and right cameras
+           Dimensions of cam1 and cam2 cameras
     """
     # Taking the first image of each camera.
-    Image_left = cv2.imread(sorted(glob(str(left_folder) + '/*'))[0], 0) 
-    Image_right = cv2.imread(sorted(glob(str(right_folder) + '/*'))[0], 0) 
-    Left_dimensions = Image_left.shape
-    Right_dimensions = Image_right.shape
-    Cameras_dimensions = [Left_dimensions[0], Left_dimensions[1], Right_dimensions[0], Right_dimensions[1]]
+    Image_cam1 = cv2.imread(sorted(glob(str(cam1_folder) + '/*'))[0], 0) 
+    Image_cam2 = cv2.imread(sorted(glob(str(cam2_folder) + '/*'))[0], 0) 
+    cam1_dimensions = Image_cam1.shape
+    cam2_dimensions = Image_cam2.shape
+    Cameras_dimensions = [cam1_dimensions[0], cam1_dimensions[1], cam2_dimensions[0], cam2_dimensions[1]]
     return(Cameras_dimensions)

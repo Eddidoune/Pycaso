@@ -60,14 +60,14 @@ def Soloff_identification (Xc1_identified : np.ndarray,
                            Soloff_pform : int,
                            method : str = 'Peter',
                            cut : int = 0) -> np.ndarray :
-    """Identification of the points detected on both cameras left and right 
+    """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space
     
     Args:
        Xc1_identified : numpy.ndarray
-           Points identified on the left camera
+           Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
-           Points identified on the right camera
+           Points identified on the cam2 camera
        Soloff_constants0 : numpy.ndarray
            Constants of Soloff polynomial form '111'
        Soloff_constants : numpy.ndarray
@@ -86,36 +86,36 @@ def Soloff_identification (Xc1_identified : np.ndarray,
     if method == 'Peter' :
         if Soloff_pform != 332 :
             raise('No Peter resolution for the polynomial form ', Soloff_pform, ' for the moment (Only for the form 332')
-        Xl = np.copy(Xc1_identified[:,:,0])
-        Yl = np.copy(Xc1_identified[:,:,1])
-        Xr = np.copy(Xc2_identified[:,:,0])
-        Yr = np.copy(Xc2_identified[:,:,1])
-        Xl0 = []
-        Yl0 = []
-        Xr0 = []
-        Yr0 = []
+        Xc1 = np.copy(Xc1_identified[:,:,0])
+        Yc1 = np.copy(Xc1_identified[:,:,1])
+        Xc2 = np.copy(Xc2_identified[:,:,0])
+        Yc2 = np.copy(Xc2_identified[:,:,1])
+        Xc10 = []
+        Yc10 = []
+        Xc20 = []
+        Yc20 = []
 
         l = 20
-        nx,ny = Xl.shape
+        nx,ny = Xc1.shape
         nx = nx//l
         ny = ny//l
         for i in range (l) :
             for j in range (l) :
-                Xl0.append(Xl[i*nx, j*ny])
-                Yl0.append(Yl[i*nx, j*ny])
-                Xr0.append(Xr[i*nx, j*ny])
-                Yr0.append(Yr[i*nx, j*ny])
+                Xc10.append(Xc1[i*nx, j*ny])
+                Yc10.append(Yc1[i*nx, j*ny])
+                Xc20.append(Xc2[i*nx, j*ny])
+                Yc20.append(Yc2[i*nx, j*ny])
         
-        Xl0 = np.array(Xl0).reshape((l,l))
-        Yl0 = np.array(Yl0).reshape((l,l))
-        Xr0 = np.array(Xr0).reshape((l,l))
-        Yr0 = np.array(Yr0).reshape((l,l))
+        Xc10 = np.array(Xc10).reshape((l,l))
+        Yc10 = np.array(Yc10).reshape((l,l))
+        Xc20 = np.array(Xc20).reshape((l,l))
+        Yc20 = np.array(Yc20).reshape((l,l))
         Xc1_identified0 = np.zeros((l,l,2))
-        Xc1_identified0[:,:,0] = Xl0
-        Xc1_identified0[:,:,1] = Yl0
+        Xc1_identified0[:,:,0] = Xc10
+        Xc1_identified0[:,:,1] = Yc10
         Xc2_identified0 = np.zeros((l,l,2))
-        Xc2_identified0[:,:,0] = Xr0
-        Xc2_identified0[:,:,1] = Yr0        
+        Xc2_identified0[:,:,0] = Xc20
+        Xc2_identified0[:,:,1] = Yc20        
         x,y,z = Soloff_identification (Xc1_identified0,
                                        Xc2_identified0,
                                        Soloff_constants0, 
@@ -133,10 +133,10 @@ def Soloff_identification (Xc1_identified : np.ndarray,
         print('zmin',np.min(z))
         print('')
         print('')
-        xsolution = solvel.Peter(Xl,
-                                 Yl,
-                                 Xr,
-                                 Yr,
+        xsolution = solvel.Peter(Xc1,
+                                 Yc1,
+                                 Xc2,
+                                 Yc2,
                                  Soloff_constants,
                                  x,
                                  y,
@@ -175,14 +175,14 @@ def direct_identification (Xc1_identified : np.ndarray,
                            Xc2_identified : np.ndarray,
                            direct_constants : np.ndarray,
                            direct_pform : int) -> np.ndarray :
-    """Identification of the points detected on both cameras left and right 
+    """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space
     
     Args:
        Xc1_identified : numpy.ndarray
-           Points identified on the left camera
+           Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
-           Points identified on the right camera
+           Points identified on the cam2 camera
        direct_constants : numpy.ndarray
            Constants of direct polynomial
        direct_pform : int
@@ -202,14 +202,14 @@ def direct_identification (Xc1_identified : np.ndarray,
         modif_22_12_09 = False
     else :
         raise('Error, X_ci shape different than 2 or 3')
-    Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
-    Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
-    Xl = np.zeros((2,len(Xl1)))
-    Xr = np.zeros((2,len(Xr1)))
-    Xl = Xl1, Xl2
-    Xr = Xr1, Xr2
+    Xc11, Xc12 = Xc1_identified[:,0], Xc1_identified[:,1]
+    Xc21, Xc22 = Xc2_identified[:,0], Xc2_identified[:,1]
+    Xc1 = np.zeros((2,len(Xc11)))
+    Xc2 = np.zeros((2,len(Xc21)))
+    Xc1 = Xc11, Xc12
+    Xc2 = Xc21, Xc22
     
-    M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xl, Xr)
+    M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
     xsolution = np.matmul(direct_constants,M)
     if modif_22_12_09 :
         xsolution = xsolution.reshape((3, nx, ny))
@@ -220,14 +220,14 @@ def Zernike_identification (Xc1_identified : np.ndarray,
                             Zernike_constants : np.ndarray,
                             Zernike_pform : int,
                             Cameras_dimensions : list) -> np.ndarray :
-    """Identification of the points detected on both cameras left and right 
+    """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space
     
     Args:
        Xc1_identified : numpy.ndarray
-           Points identified on the left camera
+           Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
-           Points identified on the right camera
+           Points identified on the cam2 camera
        Zernike_constants : numpy.ndarray
            Constants of Zernike polynomial
        Zernike_pform : int
@@ -247,14 +247,14 @@ def Zernike_identification (Xc1_identified : np.ndarray,
         modif_22_12_09 = False
     else :
         raise('Error, X_ci shape different than 2 or 3')
-    Xl1, Xl2 = Xc1_identified[:,0], Xc1_identified[:,1]
-    Xr1, Xr2 = Xc2_identified[:,0], Xc2_identified[:,1]
-    Xl = np.zeros((2,len(Xl1)))
-    Xr = np.zeros((2,len(Xr1)))
-    Xl = Xl1, Xl2
-    Xr = Xr1, Xr2
+    Xc11, Xc12 = Xc1_identified[:,0], Xc1_identified[:,1]
+    Xc21, Xc22 = Xc2_identified[:,0], Xc2_identified[:,1]
+    Xc1 = np.zeros((2,len(Xc11)))
+    Xc2 = np.zeros((2,len(Xc21)))
+    Xc1 = Xc11, Xc12
+    Xc2 = Xc21, Xc22
     
-    M = solvel.Zernike_Polynome({'polynomial_form' : Zernike_pform}).pol_form(Xl, Xr, Cameras_dimensions)
+    M = solvel.Zernike_Polynome({'polynomial_form' : Zernike_pform}).pol_form(Xc1, Xc2, Cameras_dimensions)
     xsolution = np.matmul(Zernike_constants,M)
     if modif_22_12_09 :
         xsolution = xsolution.reshape((3, nx, ny))
@@ -269,14 +269,14 @@ def Soloff_Zernike_identification (Xc1_identified : np.ndarray,
                                    Zernike_pform : int = 3,
                                    method : str = 'Peter',
                                    cut : int = 0) -> np.ndarray :
-    """Identification of the points detected on both cameras left and right 
+    """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space
     
     Args:
        Xc1_identified : numpy.ndarray
-           Points identified on the left camera
+           Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
-           Points identified on the right camera
+           Points identified on the cam2 camera
        Soloff_constants0 : numpy.ndarray
            Constants of Soloff polynomial form '111'
        Soloff_constants : numpy.ndarray
@@ -295,36 +295,36 @@ def Soloff_Zernike_identification (Xc1_identified : np.ndarray,
     if method == 'Peter' :
         if Soloff_pform != 332 :
             raise('No Peter resolution for the polynomial form ', Soloff_pform, ' for the moment (Only for the form 332')
-        Xl = np.copy(Xc1_identified[:,:,0])
-        Yl = np.copy(Xc1_identified[:,:,1])
-        Xr = np.copy(Xc2_identified[:,:,0])
-        Yr = np.copy(Xc2_identified[:,:,1])
-        Xl0 = []
-        Yl0 = []
-        Xr0 = []
-        Yr0 = []
+        Xc1 = np.copy(Xc1_identified[:,:,0])
+        Yc1 = np.copy(Xc1_identified[:,:,1])
+        Xc2 = np.copy(Xc2_identified[:,:,0])
+        Yc2 = np.copy(Xc2_identified[:,:,1])
+        Xc10 = []
+        Yc10 = []
+        Xc20 = []
+        Yc20 = []
 
         l = 20
-        nx,ny = Xl.shape
+        nx,ny = Xc1.shape
         nx = nx//l
         ny = ny//l
         for i in range (l) :
             for j in range (l) :
-                Xl0.append(Xl[i*nx, j*ny])
-                Yl0.append(Yl[i*nx, j*ny])
-                Xr0.append(Xr[i*nx, j*ny])
-                Yr0.append(Yr[i*nx, j*ny])
+                Xc10.append(Xc1[i*nx, j*ny])
+                Yc10.append(Yc1[i*nx, j*ny])
+                Xc20.append(Xc2[i*nx, j*ny])
+                Yc20.append(Yc2[i*nx, j*ny])
         
-        Xl0 = np.array(Xl0).reshape((l,l))
-        Yl0 = np.array(Yl0).reshape((l,l))
-        Xr0 = np.array(Xr0).reshape((l,l))
-        Yr0 = np.array(Yr0).reshape((l,l))
+        Xc10 = np.array(Xc10).reshape((l,l))
+        Yc10 = np.array(Yc10).reshape((l,l))
+        Xc20 = np.array(Xc20).reshape((l,l))
+        Yc20 = np.array(Yc20).reshape((l,l))
         Xc1_identified0 = np.zeros((l,l,2))
-        Xc1_identified0[:,:,0] = Xl0
-        Xc1_identified0[:,:,1] = Yl0
+        Xc1_identified0[:,:,0] = Xc10
+        Xc1_identified0[:,:,1] = Yc10
         Xc2_identified0 = np.zeros((l,l,2))
-        Xc2_identified0[:,:,0] = Xr0
-        Xc2_identified0[:,:,1] = Yr0        
+        Xc2_identified0[:,:,0] = Xc20
+        Xc2_identified0[:,:,1] = Yc20        
         x,y,z = Soloff_identification (Xc1_identified0,
                                        Xc2_identified0,
                                        Soloff_constants0, 
@@ -342,10 +342,10 @@ def Soloff_Zernike_identification (Xc1_identified : np.ndarray,
         print('zmin',np.min(z))
         print('')
         print('')
-        xsolution = solvel.Peter(Xl,
-                                 Yl,
-                                 Xr,
-                                 Yr,
+        xsolution = solvel.Peter(Xc1,
+                                 Yc1,
+                                 Xc2,
+                                 Yc2,
                                  Soloff_constants,
                                  x,
                                  y,
@@ -386,8 +386,8 @@ def retroprojection_error (calibration_method : str,
                            z_points : np.ndarray,
                            all_X : np.ndarray,
                            all_xth : np.ndarray,
-                           left_folder : str = 'left_calibration',
-                           right_folder : str = 'right_calibration',
+                           cam1_folder : str = 'cam1_calibration',
+                           cam2_folder : str = 'cam2_calibration',
                            name : str = 'calibration',
                            saving_folder : str = 'results',
                            ncx : int = 16,
@@ -412,9 +412,9 @@ def retroprojection_error (calibration_method : str,
            List of the different z position
        all_X : numpy.ndarray
            The corners of the pattern detect by the camera ranged in an array 
-           arrange with all left pictures followed by all right pictures. 
-           Expl : [left_picture_1, left_picture_2, right_picture_1, 
-                   right_picture_2]
+           arrange with all cam1 pictures followed by all cam2 pictures. 
+           Expl : [cam1_picture_1, cam1_picture_2, cam2_picture_1, 
+                   cam2_picture_2]
        all_xth : numpy.ndarray
            The theoretical corners of the pattern
        ncx : int, optional
@@ -438,8 +438,8 @@ def retroprojection_error (calibration_method : str,
     z_iter = []
     n,npts,_ = all_X.shape
     n = n//2
-    Cameras_dimensions = data.cameras_size(left_folder,
-                                           right_folder)
+    Cameras_dimensions = data.cameras_size(cam1_folder,
+                                           cam2_folder)
     for i in range (n) :
         Xc1 = all_X[i]
         Xc2 = all_X[i+n]
@@ -532,7 +532,7 @@ def Soloff_calibration (z_list : np.ndarray,
            Constants of Soloff polynomial form chose (Soloff_pform)
        Magnification : numpy.ndarray
            Magnification between reals and detected positions 
-           [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
+           [[Mag cam1 x, Mag cam1 y], [Mag cam2 x, Mag cam2 y]]
     """
 
     if not Soloff_pform in [111, 1, 221, 222, 2, 332, 333, 3, 443, 444, 4, 554, 555, 5] :
@@ -558,7 +558,7 @@ def Soloff_calibration (z_list : np.ndarray,
                 all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
     
             # Using not well detected images, remove corresponding arrays from all_X 
-            # (right and left) and z_list
+            # (cam2 and cam1) and z_list
             nx,ny,nz = all_X.shape
             a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
             b, c = [], []
@@ -721,7 +721,7 @@ def direct_calibration (z_list : np.ndarray,
                 all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
     
             # Using not well detected images, remove corresponding arrays from all_X 
-            # (right and left) and z_list
+            # (cam2 and cam1) and z_list
             nx,ny,nz = all_X.shape
             a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
             b, c = [], []
@@ -863,7 +863,7 @@ def Zernike_calibration (z_list : np.ndarray,
            Constants of Zernike polynomial form chose (Zernike_pform)
        Magnification : numpy.ndarray
            Magnification between reals and detected positions 
-           [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
+           [[Mag cam1 x, Mag cam1 y], [Mag cam2 x, Mag cam2 y]]
     """
     if not Zernike_pform in list(range(1, 13)) :
         raise('Only define for polynomial forms '+ str(list(range(1, 13))))
@@ -885,7 +885,7 @@ def Zernike_calibration (z_list : np.ndarray,
                 all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
     
             # Using not well detected images, remove corresponding arrays from all_X 
-            # (right and left) and z_list
+            # (cam2 and cam1) and z_list
             nx,ny,nz = all_X.shape
             a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
             b, c = [], []
@@ -1017,7 +1017,7 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
                    Constants of Soloff polynomial form chose (Soloff_pform)
                Magnification : numpy.ndarray
                    Magnification between reals and detected positions 
-                   [[Mag Left x, Mag Left y], [Mag Right x, Mag Right y]]
+                   [[Mag cam1 x, Mag cam1 y], [Mag cam2 x, Mag cam2 y]]
             """
 
             if not Soloff_pform in [111, 1, 221, 222, 2, 332, 333, 3, 443, 444, 4, 554, 555, 5] :
@@ -1043,7 +1043,7 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
                         all_X, all_xth, nb_pts = data.pattern_detection(**kwargs)        
             
                     # Using not well detected images, remove corresponding arrays from all_X 
-                    # (right and left) and z_list
+                    # (cam2 and cam1) and z_list
                     nx,ny,nz = all_X.shape
                     a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
                     b, c = [], []
@@ -1164,15 +1164,15 @@ def hybrid_identification(Xc1_identified : np.ndarray,
                           Soloff_pform : int,
                           mask_median : list,
                           method : str = 'curve_fit') -> np.ndarray :
-    """Identification of the points detected on both cameras left and right 
+    """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space using direct method and Soloff method when direct
     can't do it well.
     
     Args:
        Xc1_identified : numpy.ndarray
-           Points identified on the left camera
+           Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
-           Points identified on the right camera
+           Points identified on the cam2 camera
        direct_constants : numpy.ndarray
            Constants of direct polynomial
        direct_pform : int
@@ -1238,15 +1238,15 @@ def hybrid_mask (Xc1_identified : np.ndarray,
                  mask_median : np.ndarray = np.array([False]),
                  gate : int = 5) -> (np.ndarray,
                                      list) :
-    """Identification of the points detected on both cameras left and right 
+    """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space using direct and Soloff methods. Detect the
     positions where directe method is not efficient and define the related mask.
     
     Args:
        Xc1_identified : numpy.ndarray
-           Points identified on the left camera
+           Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
-           Points identified on the right camera
+           Points identified on the cam2 camera
        direct_constants : numpy.ndarray
            Constants of direct polynomial
        direct_pform : int
@@ -1318,9 +1318,9 @@ def AI_training (X_c1 : np.ndarray,
     
     Args:
        X_c1 : numpy.ndarray
-           Left coordinates of points.
+           cam1 coordinates of points.
        X_c2 : numpy.ndarray
-           Right coordinates of points.
+           cam2 coordinates of points.
        xSoloff_solution : numpy.ndarray
            3D space coordinates identified with Soloff method.
        AI_training_size : int
@@ -1338,16 +1338,16 @@ def AI_training (X_c1 : np.ndarray,
     """
     # Organise the list of parameters
     if len(X_c1.shape) == 3 :
-        Xl0, Yl0 = np.ravel(X_c1[:,:,0]), np.ravel(X_c1[:,:,1])
-        Xr0, Yr0 = np.ravel(X_c2[:,:,0]), np.ravel(X_c2[:,:,1])
+        Xc10, Yc10 = np.ravel(X_c1[:,:,0]), np.ravel(X_c1[:,:,1])
+        Xc20, Yc20 = np.ravel(X_c2[:,:,0]), np.ravel(X_c2[:,:,1])
     elif len(X_c1.shape) == 2 :
-        Xl0, Yl0 = np.ravel(X_c1[:,0]), np.ravel(X_c1[:,1])
-        Xr0, Yr0 = np.ravel(X_c2[:,0]), np.ravel(X_c2[:,1])
+        Xc10, Yc10 = np.ravel(X_c1[:,0]), np.ravel(X_c1[:,1])
+        Xc20, Yc20 = np.ravel(X_c2[:,0]), np.ravel(X_c2[:,1])
     xS, yS, zS = xSoloff_solution
     xS = np.ravel(xS)
     yS = np.ravel(yS)
     zS = np.ravel(zS)
-    N = Xl0.shape[0]
+    N = Xc10.shape[0]
     if AI_training_size > N :
         print('AI_training_size reduced to size ', N)
         AI_training_size = N
@@ -1361,13 +1361,13 @@ def AI_training (X_c1 : np.ndarray,
                                 delimiter=' ',
                                 quotechar='|', 
                                 quoting=csv.QUOTE_MINIMAL)
-        spamwriter.writerow(['Xl'] + ['Yl'] + ['Xr'] + ['Yr'] + 
+        spamwriter.writerow(['Xc1'] + ['Yc1'] + ['Xc2'] + ['Yc2'] + 
                             ['x'] + ['y'] + ['z'])
         for i in range (AI_training_size) :
-            spamwriter.writerow([str(Xl0[rd_list[i]]), 
-                                 str(Yl0[rd_list[i]]), 
-                                 str(Xr0[rd_list[i]]), 
-                                 str(Yr0[rd_list[i]]), 
+            spamwriter.writerow([str(Xc10[rd_list[i]]), 
+                                 str(Yc10[rd_list[i]]), 
+                                 str(Xc20[rd_list[i]]), 
+                                 str(Yc20[rd_list[i]]), 
                                  str(xS[rd_list[i]]), 
                                  str(yS[rd_list[i]]), 
                                  str(zS[rd_list[i]])])
@@ -1392,9 +1392,9 @@ def AI_identification (X_c1 : np.ndarray,
     
     Args:
        X_c1 : numpy.ndarray
-           Left coordinates of points.
+           cam1 coordinates of points.
        X_c2 : numpy.ndarray
-           Right coordinates of points.
+           cam2 coordinates of points.
        model : sklearn.ensemble._forest.RandomForestRegressor
            AI model
        method : str
@@ -1408,13 +1408,13 @@ def AI_identification (X_c1 : np.ndarray,
     """
     # Solve on all pts
     if len(X_c1.shape) == 3 :
-        Xl0, Yl0 = np.ravel(X_c1[:,:,0]), np.ravel(X_c1[:,:,1])
-        Xr0, Yr0 = np.ravel(X_c2[:,:,0]), np.ravel(X_c2[:,:,1])
+        Xc10, Yc10 = np.ravel(X_c1[:,:,0]), np.ravel(X_c1[:,:,1])
+        Xc20, Yc20 = np.ravel(X_c2[:,:,0]), np.ravel(X_c2[:,:,1])
     elif len(X_c1.shape) == 2 :
-        Xl0, Yl0 = np.ravel(X_c1[:,0]), np.ravel(X_c1[:,1])
-        Xr0, Yr0 = np.ravel(X_c2[:,0]), np.ravel(X_c2[:,1])
-    X = np.transpose(np.array([Xl0, Yl0, 
-                               Xr0, Yr0]))   
+        Xc10, Yc10 = np.ravel(X_c1[:,0]), np.ravel(X_c1[:,1])
+        Xc20, Yc20 = np.ravel(X_c2[:,0]), np.ravel(X_c2[:,1])
+    X = np.transpose(np.array([Xc10, Yc10, 
+                               Xc20, Yc20]))   
      
     if method == 'simultaneously' :
         xAI_solution = model.predict(X)

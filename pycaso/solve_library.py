@@ -26,24 +26,24 @@ class Direct_Polynome(dict) :
         self.polynomial_form = _dict_['polynomial_form']
 
     def pol_form (self, 
-                  Xl : np.ndarray,
-                  Xr : np.ndarray) -> np.ndarray :
-        """Create the matrix M = f(Xl,Xr) with f the polynomial function of 
+                  Xc1 : np.ndarray,
+                  Xc2 : np.ndarray) -> np.ndarray :
+        """Create the matrix M = f(Xc1,Xc2) with f the polynomial function of 
         degree n
         
         Args:
-           Xl : numpy.ndarray
-               Left detected points  Xl(Xl1, Xl2)
-           Xr : numpy.ndarray
-               Right detected points  Xr(Xr1, Xr2)
+           Xc1 : numpy.ndarray
+               cam1 detected points  Xc1(Xc11, Xc12)
+           Xc2 : numpy.ndarray
+               cam2 detected points  Xc2(Xc21, Xc22)
                
         Returns:
            M : numpy.ndarray
-               M = f(Xl,Xr)
+               M = f(Xc1,Xc2)
         """
-        n = int(len(Xl[0]))
-        Xl = np.array(Xl)
-        Xr = np.array(Xr)
+        n = int(len(Xc1[0]))
+        Xc1 = np.array(Xc1)
+        Xc2 = np.array(Xc2)
         polynomial_form = self.polynomial_form
 
         for i in range (core_number) :
@@ -51,123 +51,123 @@ class Direct_Polynome(dict) :
             ni1 = (i+1)*n//core_number
             ni = ni1 - ni0
 
-            Xl1, Xl2 = Xl[:, ni0 : ni1]
-            Xr1, Xr2 = Xr[:, ni0 : ni1]
+            Xc11, Xc12 = Xc1[:, ni0 : ni1]
+            Xc21, Xc22 = Xc2[:, ni0 : ni1]
 
             if   polynomial_form == 1 :
                 if i == 0 :
                     M = np.zeros((5, n))
                 M[:,ni0 : ni1] = np.asarray (
-                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2])
+                                [np.ones((ni)),  Xc11,           Xc12,            Xc21,            Xc22])
     
             elif polynomial_form == 2 :
                 if i == 0 :
                     M = np.zeros((15, n))
-                Xl12 = Xl1 * Xl1
-                Xl22 = Xl2 * Xl2
-                Xr12 = Xr1 * Xr1
-                Xr22 = Xr2 * Xr2
+                Xc112 = Xc11 * Xc11
+                Xc122 = Xc12 * Xc12
+                Xc212 = Xc21 * Xc21
+                Xc222 = Xc22 * Xc22
                 M[:,ni0 : ni1] = np.asarray (
-                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
-                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22])
+                                [np.ones((ni)),  Xc11,           Xc12,            Xc21,            Xc22,
+                                 Xc112,           Xc11*Xc12,       Xc11*Xc21,        Xc11*Xc22,        Xc122,
+                                 Xc12*Xc21,        Xc12*Xc22,       Xc212,           Xc21*Xc22,        Xc222])
     
             elif polynomial_form == 3 :
                 if i == 0 :
                     M = np.zeros((35, n))
-                Xl12 = Xl1 * Xl1
-                Xl13 = Xl1 * Xl1 * Xl1
-                Xl22 = Xl2 * Xl2
-                Xl23 = Xl2 * Xl2 * Xl2
-                Xr12 = Xr1 * Xr1
-                Xr13 = Xr1 * Xr1 * Xr1
-                Xr22 = Xr2 * Xr2
-                Xr23 = Xr2 * Xr2 * Xr2
+                Xc112 = Xc11 * Xc11
+                Xc113 = Xc11 * Xc11 * Xc11
+                Xc122 = Xc12 * Xc12
+                Xc123 = Xc12 * Xc12 * Xc12
+                Xc212 = Xc21 * Xc21
+                Xc213 = Xc21 * Xc21 * Xc21
+                Xc222 = Xc22 * Xc22
+                Xc223 = Xc22 * Xc22 * Xc22
                 M[:,ni0 : ni1] = np.asarray (
-                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
-                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                                 Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                                 Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                                 Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                                 Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23])
+                                [np.ones((ni)),  Xc11,           Xc12,            Xc21,            Xc22,
+                                 Xc112,           Xc11*Xc12,       Xc11*Xc21,        Xc11*Xc22,        Xc122,
+                                 Xc12*Xc21,        Xc12*Xc22,       Xc212,           Xc21*Xc22,        Xc222,
+                                 Xc113,           Xc112*Xc12,      Xc112*Xc21,       Xc112*Xc22,       Xc11*Xc122,
+                                 Xc11*Xc12*Xc21,    Xc11*Xc12*Xc22,   Xc11*Xc212,       Xc11*Xc21*Xc22,    Xc11*Xc222,
+                                 Xc123,           Xc122*Xc21,      Xc122*Xc22,       Xc12*Xc212,       Xc12*Xc21*Xc22,    
+                                 Xc12*Xc222,       Xc213,          Xc212*Xc22,       Xc21*Xc222,       Xc223])
     
             elif polynomial_form == 4 :
                 if i == 0 :
                     M = np.zeros((70, n))
-                Xl12 = Xl1 * Xl1
-                Xl13 = Xl1 * Xl1 * Xl1
-                Xl14 = Xl1 * Xl1 * Xl1 * Xl1
-                Xl22 = Xl2 * Xl2
-                Xl23 = Xl2 * Xl2 * Xl2
-                Xl24 = Xl2 * Xl2 * Xl2 * Xl2
-                Xr12 = Xr1 * Xr1
-                Xr13 = Xr1 * Xr1 * Xr1
-                Xr14 = Xr1 * Xr1 * Xr1 * Xr1
-                Xr22 = Xr2 * Xr2
-                Xr23 = Xr2 * Xr2 * Xr2
-                Xr24 = Xr2 * Xr2 * Xr2 * Xr2
+                Xc112 = Xc11 * Xc11
+                Xc113 = Xc11 * Xc11 * Xc11
+                Xc114 = Xc11 * Xc11 * Xc11 * Xc11
+                Xc122 = Xc12 * Xc12
+                Xc123 = Xc12 * Xc12 * Xc12
+                Xc124 = Xc12 * Xc12 * Xc12 * Xc12
+                Xc212 = Xc21 * Xc21
+                Xc213 = Xc21 * Xc21 * Xc21
+                Xc214 = Xc21 * Xc21 * Xc21 * Xc21
+                Xc222 = Xc22 * Xc22
+                Xc223 = Xc22 * Xc22 * Xc22
+                Xc224 = Xc22 * Xc22 * Xc22 * Xc22
                 M[:,ni0 : ni1] = np.asarray (
-                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
-                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                                 Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                                 Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                                 Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                                 Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
-                                 Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
-                                 Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
-                                 Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
-                                 Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
-                                 Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
-                                 Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                                 Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24])
+                                [np.ones((ni)),  Xc11,           Xc12,            Xc21,            Xc22,
+                                 Xc112,           Xc11*Xc12,       Xc11*Xc21,        Xc11*Xc22,        Xc122,
+                                 Xc12*Xc21,        Xc12*Xc22,       Xc212,           Xc21*Xc22,        Xc222,
+                                 Xc113,           Xc112*Xc12,      Xc112*Xc21,       Xc112*Xc22,       Xc11*Xc122,
+                                 Xc11*Xc12*Xc21,    Xc11*Xc12*Xc22,   Xc11*Xc212,       Xc11*Xc21*Xc22,    Xc11*Xc222,
+                                 Xc123,           Xc122*Xc21,      Xc122*Xc22,       Xc12*Xc212,       Xc12*Xc21*Xc22,    
+                                 Xc12*Xc222,       Xc213,          Xc212*Xc22,       Xc21*Xc222,       Xc223,
+                                 Xc114,           Xc113*Xc12,      Xc113*Xc21,       Xc113*Xc22,       Xc112*Xc122,
+                                 Xc112*Xc12*Xc21,   Xc112*Xc12*Xc22,  Xc112*Xc212,      Xc112*Xc21*Xc22,   Xc112*Xc222,
+                                 Xc11*Xc123,       Xc11*Xc122*Xc21,  Xc11*Xc122*Xc22,   Xc11*Xc12*Xc212,   Xc11*Xc12*Xc21*Xc22,
+                                 Xc11*Xc12*Xc222,   Xc11*Xc213,      Xc11*Xc212*Xc22,   Xc11*Xc21*Xc222,   Xc11*Xc223,
+                                 Xc124,           Xc123*Xc21,      Xc123*Xc22,       Xc122*Xc212,      Xc122*Xc21*Xc22,
+                                 Xc122*Xc222,      Xc12*Xc213,      Xc12*Xc212*Xc22,   Xc12*Xc21*Xc222,   Xc12*Xc223,
+                                 Xc214,           Xc213*Xc22,      Xc212*Xc222,      Xc21*Xc223,       Xc224])
     
             elif polynomial_form == 5 :
                 if i == 0 :
                     M = np.zeros((121, n))
-                Xl12 = Xl1 * Xl1
-                Xl13 = Xl1 * Xl1 * Xl1
-                Xl14 = Xl1 * Xl1 * Xl1 * Xl1
-                Xl15 = Xl1 * Xl1 * Xl1 * Xl1 * Xl1
-                Xl22 = Xl2 * Xl2
-                Xl23 = Xl2 * Xl2 * Xl2
-                Xl24 = Xl2 * Xl2 * Xl2 * Xl2
-                Xl25 = Xl2 * Xl2 * Xl2 * Xl2 * Xl2
-                Xr12 = Xr1 * Xr1
-                Xr13 = Xr1 * Xr1 * Xr1
-                Xr14 = Xr1 * Xr1 * Xr1 * Xr1
-                Xr15 = Xr1 * Xr1 * Xr1 * Xr1 * Xr1
-                Xr22 = Xr2 * Xr2
-                Xr23 = Xr2 * Xr2 * Xr2
-                Xr24 = Xr2 * Xr2 * Xr2 * Xr2
-                Xr25 = Xr2 * Xr2 * Xr2 * Xr2 * Xr2
+                Xc112 = Xc11 * Xc11
+                Xc113 = Xc11 * Xc11 * Xc11
+                Xc114 = Xc11 * Xc11 * Xc11 * Xc11
+                Xc115 = Xc11 * Xc11 * Xc11 * Xc11 * Xc11
+                Xc122 = Xc12 * Xc12
+                Xc123 = Xc12 * Xc12 * Xc12
+                Xc124 = Xc12 * Xc12 * Xc12 * Xc12
+                Xc125 = Xc12 * Xc12 * Xc12 * Xc12 * Xc12
+                Xc212 = Xc21 * Xc21
+                Xc213 = Xc21 * Xc21 * Xc21
+                Xc214 = Xc21 * Xc21 * Xc21 * Xc21
+                Xc215 = Xc21 * Xc21 * Xc21 * Xc21 * Xc21
+                Xc222 = Xc22 * Xc22
+                Xc223 = Xc22 * Xc22 * Xc22
+                Xc224 = Xc22 * Xc22 * Xc22 * Xc22
+                Xc225 = Xc22 * Xc22 * Xc22 * Xc22 * Xc22
                 M[:,ni0 : ni1] = np.asarray (
-                                [np.ones((ni)),  Xl1,           Xl2,            Xr1,            Xr2,
-                                 Xl12,           Xl1*Xl2,       Xl1*Xr1,        Xl1*Xr2,        Xl22,
-                                 Xl2*Xr1,        Xl2*Xr2,       Xr12,           Xr1*Xr2,        Xr22,
-                                 Xl13,           Xl12*Xl2,      Xl12*Xr1,       Xl12*Xr2,       Xl1*Xl22,
-                                 Xl1*Xl2*Xr1,    Xl1*Xl2*Xr2,   Xl1*Xr12,       Xl1*Xr1*Xr2,    Xl1*Xr22,
-                                 Xl23,           Xl22*Xr1,      Xl22*Xr2,       Xl2*Xr12,       Xl2*Xr1*Xr2,    
-                                 Xl2*Xr22,       Xr13,          Xr12*Xr2,       Xr1*Xr22,       Xr23,
-                                 Xl14,           Xl13*Xl2,      Xl13*Xr1,       Xl13*Xr2,       Xl12*Xl22,
-                                 Xl12*Xl2*Xr1,   Xl12*Xl2*Xr2,  Xl12*Xr12,      Xl12*Xr1*Xr2,   Xl12*Xr22,
-                                 Xl1*Xl23,       Xl1*Xl22*Xr1,  Xl1*Xl22*Xr2,   Xl1*Xl2*Xr12,   Xl1*Xl2*Xr1*Xr2,
-                                 Xl1*Xl2*Xr22,   Xl1*Xr13,      Xl1*Xr12*Xr2,   Xl1*Xr1*Xr22,   Xl1*Xr23,
-                                 Xl24,           Xl23*Xr1,      Xl23*Xr2,       Xl22*Xr12,      Xl22*Xr1*Xr2,
-                                 Xl22*Xr22,      Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                                 Xr14,           Xr13*Xr2,      Xr12*Xr22,      Xr1*Xr23,       Xr24,
-                                 Xl15,           Xl14*Xl2,      Xl14*Xr1,       Xl14*Xr2,       Xl13*Xl22,
-                                 Xl13*Xl2*Xr1,   Xl13*Xl2*Xr2,  Xl13*Xr12,      Xl13*Xr1*Xr2,   Xl13*Xr22,
-                                 Xl2*Xl23,       Xl2*Xl22*Xr1,  Xl2*Xl22*Xr2,   Xl2*Xl2*Xr12,   Xl2*Xl2*Xr1*Xr2,
-                                 Xl2*Xl2*Xr22,   Xl2*Xr13,      Xl2*Xr12*Xr2,   Xl2*Xr1*Xr22,   Xl2*Xr23,
-                                 Xl1*Xl24,       Xl1*Xl23*Xr1,  Xl1*Xl23*Xr2,   Xl1*Xl22*Xr12,  Xl1*Xl22*Xr1*Xr2,
-                                 Xl1*Xl22*Xr22,  Xl1*Xl2*Xr13,  Xl1*Xl2*Xr12*Xr2,Xl1*Xl2*Xr1*Xr22,Xl1*Xl2*Xr23,
-                                 Xl25,           Xl24*Xr1,      Xl24*Xr2,       Xl23*Xr12,      Xl23*Xr1*Xr2,
-                                 Xl23*Xr22,      Xl22*Xr13,     Xl22*Xr12*Xr2,  Xl22*Xr1*Xr22,  Xl22*Xr23,
-                                 Xl2*Xr14,       Xl2*Xr13*Xr2,  Xl2*Xr12*Xr22,  Xl2*Xr1*Xr23,   Xl2*Xr24,
-                                 Xr15,           Xr14*Xr2,      Xr13*Xr22,      Xr12*Xr23,      Xr1*Xr24,
-                                 Xr25])
+                                [np.ones((ni)),  Xc11,           Xc12,            Xc21,            Xc22,
+                                 Xc112,           Xc11*Xc12,       Xc11*Xc21,        Xc11*Xc22,        Xc122,
+                                 Xc12*Xc21,        Xc12*Xc22,       Xc212,           Xc21*Xc22,        Xc222,
+                                 Xc113,           Xc112*Xc12,      Xc112*Xc21,       Xc112*Xc22,       Xc11*Xc122,
+                                 Xc11*Xc12*Xc21,    Xc11*Xc12*Xc22,   Xc11*Xc212,       Xc11*Xc21*Xc22,    Xc11*Xc222,
+                                 Xc123,           Xc122*Xc21,      Xc122*Xc22,       Xc12*Xc212,       Xc12*Xc21*Xc22,    
+                                 Xc12*Xc222,       Xc213,          Xc212*Xc22,       Xc21*Xc222,       Xc223,
+                                 Xc114,           Xc113*Xc12,      Xc113*Xc21,       Xc113*Xc22,       Xc112*Xc122,
+                                 Xc112*Xc12*Xc21,   Xc112*Xc12*Xc22,  Xc112*Xc212,      Xc112*Xc21*Xc22,   Xc112*Xc222,
+                                 Xc11*Xc123,       Xc11*Xc122*Xc21,  Xc11*Xc122*Xc22,   Xc11*Xc12*Xc212,   Xc11*Xc12*Xc21*Xc22,
+                                 Xc11*Xc12*Xc222,   Xc11*Xc213,      Xc11*Xc212*Xc22,   Xc11*Xc21*Xc222,   Xc11*Xc223,
+                                 Xc124,           Xc123*Xc21,      Xc123*Xc22,       Xc122*Xc212,      Xc122*Xc21*Xc22,
+                                 Xc122*Xc222,      Xc12*Xc213,      Xc12*Xc212*Xc22,   Xc12*Xc21*Xc222,   Xc12*Xc223,
+                                 Xc214,           Xc213*Xc22,      Xc212*Xc222,      Xc21*Xc223,       Xc224,
+                                 Xc115,           Xc114*Xc12,      Xc114*Xc21,       Xc114*Xc22,       Xc113*Xc122,
+                                 Xc113*Xc12*Xc21,   Xc113*Xc12*Xc22,  Xc113*Xc212,      Xc113*Xc21*Xc22,   Xc113*Xc222,
+                                 Xc12*Xc123,       Xc12*Xc122*Xc21,  Xc12*Xc122*Xc22,   Xc12*Xc12*Xc212,   Xc12*Xc12*Xc21*Xc22,
+                                 Xc12*Xc12*Xc222,   Xc12*Xc213,      Xc12*Xc212*Xc22,   Xc12*Xc21*Xc222,   Xc12*Xc223,
+                                 Xc11*Xc124,       Xc11*Xc123*Xc21,  Xc11*Xc123*Xc22,   Xc11*Xc122*Xc212,  Xc11*Xc122*Xc21*Xc22,
+                                 Xc11*Xc122*Xc222,  Xc11*Xc12*Xc213,  Xc11*Xc12*Xc212*Xc22,Xc11*Xc12*Xc21*Xc222,Xc11*Xc12*Xc223,
+                                 Xc125,           Xc124*Xc21,      Xc124*Xc22,       Xc123*Xc212,      Xc123*Xc21*Xc22,
+                                 Xc123*Xc222,      Xc122*Xc213,     Xc122*Xc212*Xc22,  Xc122*Xc21*Xc222,  Xc122*Xc223,
+                                 Xc12*Xc214,       Xc12*Xc213*Xc22,  Xc12*Xc212*Xc222,  Xc12*Xc21*Xc223,   Xc12*Xc224,
+                                 Xc215,           Xc214*Xc22,      Xc213*Xc222,      Xc212*Xc223,      Xc21*Xc224,
+                                 Xc225])
             
         return (M)
     
@@ -383,7 +383,7 @@ class Soloff_Polynome(dict) :
            x : numpy.ndarray
                Real points x(x1, x2, x3)
            X : numpy.ndarray
-               Measured points X(Xl1, Xl2, Xr1, Xr2)
+               Measured points X(Xc11, Xc12, Xc21, Xc22)
            a : numpy.ndarray
                cst of the polynomial function M = f(x)
            
@@ -427,44 +427,44 @@ class Zernike_Polynome(dict) :
         self.polynomial_form = _dict_['polynomial_form']
 
     def pol_form (self, 
-                  Xl : np.ndarray,
-                  Xr : np.ndarray,
+                  Xc1 : np.ndarray,
+                  Xc2 : np.ndarray,
                   Cameras_dimensions
                   ) -> np.ndarray :
-        """Create the matrix M = f(Xl,Xr) with f the polynomial function of 
+        """Create the matrix M = f(Xc1,Xc2) with f the polynomial function of 
         degree n
         
         Args:
-           Xl : numpy.ndarray
-               Left detected points  Xl(Xl1, Xl2)
-           Xr : numpy.ndarray
-               Right detected points  Xr(Xr1, Xr2)
+           Xc1 : numpy.ndarray
+               cam1 detected points  Xc1(Xc11, Xc12)
+           Xc2 : numpy.ndarray
+               cam2 detected points  Xc2(Xc21, Xc22)
            Cameras_dimensions : tuple
-               Dimensions of cameras = [left y, left x, right y, right x]
+               Dimensions of cameras = [cam1 y, cam1 x, cam2 y, cam2 x]
                
         Returns:
            M : numpy.ndarray
-               M = f(Xl,Xr)
+               M = f(Xc1,Xc2)
         """
-        n = int(len(Xl[0]))
-        Xl = np.array(Xl)
-        Xr = np.array(Xr)
+        n = int(len(Xc1[0]))
+        Xc1 = np.array(Xc1)
+        Xc2 = np.array(Xc2)
         polynomial_form = self.polynomial_form
-        left_y, left_x, right_y, right_x = Cameras_dimensions
-        Diagl = math.sqrt(left_y*left_y + left_x*left_x)/2
-        Diagr = math.sqrt(right_y*right_y + right_x*right_x)/2
+        cam1_y, cam1_x, cam2_y, cam2_x = Cameras_dimensions
+        Diagl = math.sqrt(cam1_y*cam1_y + cam1_x*cam1_x)/2
+        Diagr = math.sqrt(cam2_y*cam2_y + cam2_x*cam2_x)/2
 
         for i in range (core_number) :
             ni0 = i*n//core_number
             ni1 = (i+1)*n//core_number
             ni = ni1 - ni0
             
-            Xl1, Xl2 = Xl[:, ni0 : ni1]
-            Xr1, Xr2 = Xr[:, ni0 : ni1]
-            Xl1 = (Xl1 - left_x/2)/Diagl
-            Xl2 = (Xl2 - left_y/2)/Diagl
-            Xr1 = (Xr1 - right_x/2)/Diagr
-            Xr2 = (Xr2 - right_y/2)/Diagr
+            Xc11, Xc12 = Xc1[:, ni0 : ni1]
+            Xc21, Xc22 = Xc2[:, ni0 : ni1]
+            Xc11 = (Xc11 - cam1_x/2)/Diagl
+            Xc12 = (Xc12 - cam1_y/2)/Diagl
+            Xc21 = (Xc21 - cam2_x/2)/Diagr
+            Xc22 = (Xc22 - cam2_y/2)/Diagr
             one = np.ones((ni))
             degree_list = [5, 7, 11, 15, 19, 21, 25, 29, 33, 37, 41, 43]
             if i == 0 :
@@ -474,17 +474,17 @@ class Zernike_Polynome(dict) :
                 # Consider only tilt
                 M[:5,ni0 : ni1] = np.asarray (
                                 [one, 
-                                 Xl1, 
-                                 Xl2, 
-                                 Xr1, 
-                                 Xr2])
+                                 Xc11, 
+                                 Xc12, 
+                                 Xc21, 
+                                 Xc22])
                 
             if polynomial_form >= 2 :
                 # Add defocus
-                X2l1 = Xl1 * Xl1
-                X2l2 = Xl2 * Xl2
-                X2r1 = Xr1 * Xr1
-                X2r2 = Xr2 * Xr2
+                X2l1 = Xc11 * Xc11
+                X2l2 = Xc12 * Xc12
+                X2r1 = Xc21 * Xc21
+                X2r2 = Xc22 * Xc22
                 Rl = np.sqrt(X2l1 + X2l2)
                 Rr = np.sqrt(X2r1 + X2r2)
                 R2l = Rl*Rl
@@ -495,29 +495,29 @@ class Zernike_Polynome(dict) :
                 
             if polynomial_form >= 3 :
                 # Add astigmatism
-                Xl12 = Xl1 * Xl2
-                Xr12 = Xr1 * Xr2
+                Xc112 = Xc11 * Xc12
+                Xc212 = Xc21 * Xc22
                 M[7:11,ni0 : ni1] = np.asarray (
                                 [X2l1-X2l2, 
-                                 2*Xl12, 
+                                 2*Xc112, 
                                  X2r1-X2r2, 
-                                 2*Xr12])
+                                 2*Xc212])
 
             if polynomial_form >= 4 :
                 # Add coma
                 M[11:15,ni0 : ni1] = np.asarray (
-                                [(3*R2l-2)*Xl1, 
-                                 (3*R2l-2)*Xl2, 
-                                 (3*R2r-2)*Xr1, 
-                                 (3*R2r-2)*Xr2])
+                                [(3*R2l-2)*Xc11, 
+                                 (3*R2l-2)*Xc12, 
+                                 (3*R2r-2)*Xc21, 
+                                 (3*R2r-2)*Xc22])
                 
             if polynomial_form >= 5 :
                 # Add trefoil
                 M[15:19,ni0 : ni1] = np.asarray (
-                                [(3*X2l1-X2l2)*Xl2, 
-                                 (3*X2l2-X2l1)*Xl1, 
-                                 (3*X2r1-X2r2)*Xr2, 
-                                 (3*X2r2-X2r1)*Xr1])
+                                [(3*X2l1-X2l2)*Xc12, 
+                                 (3*X2l2-X2l1)*Xc11, 
+                                 (3*X2r1-X2r2)*Xc22, 
+                                 (3*X2r2-X2r1)*Xc21])
 
             if polynomial_form >= 6 :
                 # Add sphericity
@@ -536,41 +536,41 @@ class Zernike_Polynome(dict) :
                 X4r2 = X2r2 * X2r2
                 M[21:25,ni0 : ni1] = np.asarray (
                                 [4*(X4l1-X4l2)-3*(X2l1-X2l2), 
-                                 (8*R2l-6)*Xl1*Xl2,
+                                 (8*R2l-6)*Xc11*Xc12,
                                  4*(X4r1-X4r2)-3*(X2r1-X2r2), 
-                                 (8*R2r-6)*Xr1*Xr2])
+                                 (8*R2r-6)*Xc21*Xc22])
 
             if polynomial_form >= 8 :
                 # Add tetrafoil
                 M[25:29,ni0 : ni1] = np.asarray (
                                 [X4l1+X4l2-6*X2l1*X2l2, 
-                                 4*(X2l1-X2l2)*Xl1*Xl2,
+                                 4*(X2l1-X2l2)*Xc11*Xc12,
                                  X4r1+X4r2-6*X2r1*X2r2, 
-                                 4*(X2r1-X2r2)*Xr1*Xr2])
+                                 4*(X2r1-X2r2)*Xc21*Xc22])
 
             if polynomial_form >= 9 :
                 # Add second coma
                 M[29:33,ni0 : ni1] = np.asarray (
-                                [(10*R4l-12*R2l+3)*Xl1, 
-                                 (10*R4l-12*R2l+3)*Xl2,
-                                 (10*R4r-12*R2r+3)*Xr1, 
-                                 (10*R4r-12*R2r+3)*Xr2])
+                                [(10*R4l-12*R2l+3)*Xc11, 
+                                 (10*R4l-12*R2l+3)*Xc12,
+                                 (10*R4r-12*R2r+3)*Xc21, 
+                                 (10*R4r-12*R2r+3)*Xc22])
 
             if polynomial_form >= 10 :
                 # Add second trefoil
                 M[33:37,ni0 : ni1] = np.asarray (
-                                [(5*X4l1-10*X2l1*X2l2-15*X4l2-4*X2l1+12*X2l2)*Xl1, 
-                                 (15*X4l1+10*X2l1*X2l2-5*X4l2-12*X2l1+4*X2l2)*Xl2,
-                                 (5*X4r1-10*X2r1*X2r2-15*X4r2-4*X2r1+12*X2r2)*Xr1, 
-                                 (15*X4r1+10*X2r1*X2r2-5*X4r2-12*X2r1+4*X2r2)*Xr2])
+                                [(5*X4l1-10*X2l1*X2l2-15*X4l2-4*X2l1+12*X2l2)*Xc11, 
+                                 (15*X4l1+10*X2l1*X2l2-5*X4l2-12*X2l1+4*X2l2)*Xc12,
+                                 (5*X4r1-10*X2r1*X2r2-15*X4r2-4*X2r1+12*X2r2)*Xc21, 
+                                 (15*X4r1+10*X2r1*X2r2-5*X4r2-12*X2r1+4*X2r2)*Xc22])
                 
             if polynomial_form >= 11 :
                 # Add hexafoil
                 M[37:41,ni0 : ni1] = np.asarray (
-                                [(X4l1-10*X2l1*X2l2+5*X4l2)*Xl1,
-                                 (5*X4l1-10*X2l1*X2l2+X4l2)*Xl2,
-                                 (X4r1-10*X2r1*X2r2+5*X4r2)*Xr1,
-                                 (5*X4r1-10*X2r1*X2r2+X4r2)*Xr2])
+                                [(X4l1-10*X2l1*X2l2+5*X4l2)*Xc11,
+                                 (5*X4l1-10*X2l1*X2l2+X4l2)*Xc12,
+                                 (X4r1-10*X2r1*X2r2+5*X4r2)*Xc21,
+                                 (5*X4r1-10*X2r1*X2r2+X4r2)*Xc22])
                 
             if polynomial_form >= 12 :
                 # Add second sphericity
@@ -610,7 +610,7 @@ class Zernike_Polynome(dict) :
            x : numpy.ndarray
                Real points x(x1, x2, x3)
            X : numpy.ndarray
-               Measured points X(Xl1, Xl2, Xr1, Xr2)
+               Measured points X(Xc11, Xc12, Xc21, Xc22)
            a : numpy.ndarray
                cst of the polynomial function M = f(x)
            
@@ -1142,7 +1142,7 @@ def AI_solve_simultaneously (file : str,
                              bootstrap : bool = True,
                              hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
                                                                         int) :  
-    """Calculation of the AI model between all inputs (Xl and Xr) and 
+    """Calculation of the AI model between all inputs (Xc1 and Xc2) and 
     outputs (x,y and z)
     
     Args:
@@ -1261,7 +1261,7 @@ def AI_solve_independantly (file : str,
                             bootstrap : bool = True,
                             hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
                                                                        int) :  
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    """Calculation of the AI models between all inputs (Xc1 and Xc2) and each 
     output (x,y or z)
 
     
@@ -1435,7 +1435,7 @@ def AI_solve_zdependantly (file : str,
                            bootstrap : bool = True,
                            hyperparameters_tuning : bool = False) -> (sklearn.ensemble._forest.RandomForestRegressor,
                                                                       int) :    
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    """Calculation of the AI models between all inputs (Xc1 and Xc2) and each 
     output (x,y or z)
 
     Args:
@@ -1602,7 +1602,7 @@ def AI_solve_zdependantly (file : str,
 
 def AI_HGBoost (file : str) -> (list,
                                 list) :  
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    """Calculation of the AI models between all inputs (Xc1 and Xc2) and each 
     output (x,y or z)
 
     Args:
@@ -1702,7 +1702,7 @@ def AI_HGBoost (file : str) -> (list,
     
 def AI_LinearRegression (file : str) -> (list,
                                          list) : 
-    """Calculation of the AI models between all inputs (Xl and Xr) and each 
+    """Calculation of the AI models between all inputs (Xc1 and Xc2) and each 
     output (x,y or z)
 
     Args:
@@ -1761,10 +1761,10 @@ def AI_LinearRegression (file : str) -> (list,
     
     return(model, accuracy) 
           
-def Peter(Xl : np.ndarray,
-          Yl : np.ndarray,
-          Xr : np.ndarray,
-          Yr : np.ndarray,
+def Peter(Xc1 : np.ndarray,
+          Yc1 : np.ndarray,
+          Xc2 : np.ndarray,
+          Yc2 : np.ndarray,
           Soloff_constants : np.ndarray,
           x : np.ndarray,
           y : np.ndarray,
@@ -1778,13 +1778,13 @@ def Peter(Xl : np.ndarray,
     points detected and both cameras
     
     Args:
-        Xl : numpy.ndarray
+        Xc1 : numpy.ndarray
             Real x positions of camera 1
-        Yl : numpy.ndarray
+        Yc1 : numpy.ndarray
             Real y positions of camera 1
-        Xr : numpy.ndarray
+        Xc2 : numpy.ndarray
             Real x positions of camera 2
-        Yr : numpy.ndarray
+        Yc2 : numpy.ndarray
             Real y positions of camera 2
         Soloff_constants : numpy.ndarray
             Constants of the calibration polynome
@@ -1891,10 +1891,10 @@ def Peter(Xl : np.ndarray,
         X /= Xrang
         return(X, Xmid, Xrang)
     
-    Xl, Xlmid, Xlrang = Midrang(Xl)
-    Xr, Xrmid, Xrrang = Midrang(Xr)
-    Yl, Ylmid, Ylrang = Midrang(Yl)
-    Yr, Yrmid, Yrrang = Midrang(Yr)
+    Xc1, Xc1mid, Xc1rang = Midrang(Xc1)
+    Xc2, Xc2mid, Xc2rang = Midrang(Xc2)
+    Yc1, Yc1mid, Yc1rang = Midrang(Yc1)
+    Yc2, Yc2mid, Yc2rang = Midrang(Yc2)
     
     
     # normalisation des valeurs
@@ -1924,16 +1924,16 @@ def Peter(Xl : np.ndarray,
         cX /= Xrang
         return(cX)
     
-    cXl = Polys_to_matrix(Soloff_constants[0,0], Xlmid, Xlrang)
-    cYl = Polys_to_matrix(Soloff_constants[0,1], Ylmid, Ylrang)
-    cXr = Polys_to_matrix(Soloff_constants[1,0], Xrmid, Xrrang)
-    cYr = Polys_to_matrix(Soloff_constants[1,1], Yrmid, Yrrang)
+    cXc1 = Polys_to_matrix(Soloff_constants[0,0], Xc1mid, Xc1rang)
+    cYc1 = Polys_to_matrix(Soloff_constants[0,1], Yc1mid, Yc1rang)
+    cXc2 = Polys_to_matrix(Soloff_constants[1,0], Xc2mid, Xc2rang)
+    cYc2 = Polys_to_matrix(Soloff_constants[1,1], Yc2mid, Yc2rang)
     
     
     # on recupere les intervalles pour normaliser
     # il suffirait d'une bounding box a priori
     x, xmid, xrang = Midrang(x, security_factor=security_factor)
-    y, ymid, yrang = Midrang(y, security_factor=security_factor)
+    y, ymid, Yc2ang = Midrang(y, security_factor=security_factor)
     z, zmid, zrang = Midrang(z, security_factor=security_factor)
     
     # Derivation
@@ -1952,31 +1952,31 @@ def Peter(Xl : np.ndarray,
             cXz = np.polynomial.polynomial.polyder(cX,axis=2)*rangs[2]
             return (cXx, cXy, cXz)
     
-    rangs = (xrang, yrang, zrang)
+    rangs = (xrang, Yc2ang, zrang)
     
-    cXlx, cXly, cXlz = Derivation(cXl, rangs)
-    cXrx, cXry, cXrz = Derivation(cXr, rangs)
-    cYlx, cYly, cYlz = Derivation(cYl, rangs)
-    cYrx, cYry, cYrz = Derivation(cYr, rangs)
+    cXc1x, cXc1y, cXc1z = Derivation(cXc1, rangs)
+    cXc2x, cXc2y, cXc2z = Derivation(cXc2, rangs)
+    cYc1x, cYc1y, cYc1z = Derivation(cYc1, rangs)
+    cYc2x, cYc2y, cYc2z = Derivation(cYc2, rangs)
     
-    cXlxx, cXlxy, cXlxz = Derivation(cXlx, rangs)
-    cXlyy, cXlyz = Derivation(cXly, rangs)[1:3]
-    cXlzz = Derivation(cXlz, rangs)[2]
+    cXc1xx, cXc1xy, cXc1xz = Derivation(cXc1x, rangs)
+    cXc1yy, cXc1yz = Derivation(cXc1y, rangs)[1:3]
+    cXc1zz = Derivation(cXc1z, rangs)[2]
     
-    cYlxx, cYlxy, cYlxz = Derivation(cYlx, rangs)
-    cYlyy, cYlyz = Derivation(cYly, rangs)[1:3]
-    cYlzz = Derivation(cYlz, rangs)[2]
+    cYc1xx, cYc1xy, cYc1xz = Derivation(cYc1x, rangs)
+    cYc1yy, cYc1yz = Derivation(cYc1y, rangs)[1:3]
+    cYc1zz = Derivation(cYc1z, rangs)[2]
     
-    cXrxx, cXrxy, cXrxz = Derivation(cXrx, rangs)
-    cXryy, cXryz = Derivation(cXry, rangs)[1:3]
-    cXrzz = Derivation(cXrz, rangs)[2]
+    cXc2xx, cXc2xy, cXc2xz = Derivation(cXc2x, rangs)
+    cXc2yy, cXc2yz = Derivation(cXc2y, rangs)[1:3]
+    cXc2zz = Derivation(cXc2z, rangs)[2]
     
-    cYrxx, cYrxy, cYrxz = Derivation(cYrx, rangs)
-    cYryy, cYryz = Derivation(cYry, rangs)[1:3]
-    cYrzz = Derivation(cYrz, rangs)[2]
+    cYc2xx, cYc2xy, cYc2xz = Derivation(cYc2x, rangs)
+    cYc2yy, cYc2yz = Derivation(cYc2y, rangs)[1:3]
+    cYc2zz = Derivation(cYc2z, rangs)[2]
     
     
-    N,M=Xl.shape
+    N,M=Xc1.shape
     C0 = np.reshape(np.arange(0,1.+1/N,1/(N-1)),(N,1))
     C1 = np.reshape(np.arange(0,1.+1/M,1/(M-1)),(M,1))
     
@@ -1999,27 +1999,27 @@ def Peter(Xl : np.ndarray,
     
     for i in np.arange(loops):
         txi = xi*xrang+xmid
-        tyi = yi*yrang+ymid
+        tyi = yi*Yc2ang+ymid
         tzi = zi*zrang+zmid
     
-        resXl = resdir(txi,tyi,tzi,Xl,cXl)
-        resYl = resdir(txi,tyi,tzi,Yl,cYl)
-        resXr = resdir(txi,tyi,tzi,Xr,cXr)
-        resYr = resdir(txi,tyi,tzi,Yr,cYr)
+        resXc1 = resdir(txi,tyi,tzi,Xc1,cXc1)
+        resYc1 = resdir(txi,tyi,tzi,Yc1,cYc1)
+        resXc2 = resdir(txi,tyi,tzi,Xc2,cXc2)
+        resYc2 = resdir(txi,tyi,tzi,Yc2,cYc2)
         
-        resx = resXl*p3d(txi,tyi,tzi,cXlx) + resYl*p3d(txi,tyi,tzi,cYlx) + resXr*p3d(txi,tyi,tzi,cXrx) + resYr*p3d(txi,tyi,tzi,cYrx)
-        resy = resXl*p3d(txi,tyi,tzi,cXly) + resYl*p3d(txi,tyi,tzi,cYly) + resXr*p3d(txi,tyi,tzi,cXry) + resYr*p3d(txi,tyi,tzi,cYry)
-        resz = resXl*p3d(txi,tyi,tzi,cXlz) + resYl*p3d(txi,tyi,tzi,cYlz) + resXr*p3d(txi,tyi,tzi,cXrz) + resYr*p3d(txi,tyi,tzi,cYrz)
+        resx = resXc1*p3d(txi,tyi,tzi,cXc1x) + resYc1*p3d(txi,tyi,tzi,cYc1x) + resXc2*p3d(txi,tyi,tzi,cXc2x) + resYc2*p3d(txi,tyi,tzi,cYc2x)
+        resy = resXc1*p3d(txi,tyi,tzi,cXc1y) + resYc1*p3d(txi,tyi,tzi,cYc1y) + resXc2*p3d(txi,tyi,tzi,cXc2y) + resYc2*p3d(txi,tyi,tzi,cYc2y)
+        resz = resXc1*p3d(txi,tyi,tzi,cXc1z) + resYc1*p3d(txi,tyi,tzi,cYc1z) + resXc2*p3d(txi,tyi,tzi,cXc2z) + resYc2*p3d(txi,tyi,tzi,cYc2z)
     
-        Hxx = resXl*p3d(txi,tyi,tzi,cXlxx) + resYl*p3d(txi,tyi,tzi,cYlxx) + resXr*p3d(txi,tyi,tzi,cXrxx) + resYr*p3d(txi,tyi,tzi,cYrxx) + p3d(txi,tyi,tzi,cXlx)**2 + p3d(txi,tyi,tzi,cYlx)**2 + p3d(txi,tyi,tzi,cXrx)**2 + p3d(txi,tyi,tzi,cYrx)**2
-        Hyy = resXl*p3d(txi,tyi,tzi,cXlyy) + resYl*p3d(txi,tyi,tzi,cYlyy) + resXr*p3d(txi,tyi,tzi,cXryy) + resYr*p3d(txi,tyi,tzi,cYryy) + p3d(txi,tyi,tzi,cXly)**2 + p3d(txi,tyi,tzi,cYly)**2 + p3d(txi,tyi,tzi,cXry)**2 + p3d(txi,tyi,tzi,cYry)**2
-        Hzz = resXl*p3d(txi,tyi,tzi,cXlzz) + resYl*p3d(txi,tyi,tzi,cYlzz) + resXr*p3d(txi,tyi,tzi,cXrzz) + resYr*p3d(txi,tyi,tzi,cYrzz) + p3d(txi,tyi,tzi,cXlz)**2 + p3d(txi,tyi,tzi,cYlz)**2 + p3d(txi,tyi,tzi,cXrz)**2 + p3d(txi,tyi,tzi,cYrz)**2
+        Hxx = resXc1*p3d(txi,tyi,tzi,cXc1xx) + resYc1*p3d(txi,tyi,tzi,cYc1xx) + resXc2*p3d(txi,tyi,tzi,cXc2xx) + resYc2*p3d(txi,tyi,tzi,cYc2xx) + p3d(txi,tyi,tzi,cXc1x)**2 + p3d(txi,tyi,tzi,cYc1x)**2 + p3d(txi,tyi,tzi,cXc2x)**2 + p3d(txi,tyi,tzi,cYc2x)**2
+        Hyy = resXc1*p3d(txi,tyi,tzi,cXc1yy) + resYc1*p3d(txi,tyi,tzi,cYc1yy) + resXc2*p3d(txi,tyi,tzi,cXc2yy) + resYc2*p3d(txi,tyi,tzi,cYc2yy) + p3d(txi,tyi,tzi,cXc1y)**2 + p3d(txi,tyi,tzi,cYc1y)**2 + p3d(txi,tyi,tzi,cXc2y)**2 + p3d(txi,tyi,tzi,cYc2y)**2
+        Hzz = resXc1*p3d(txi,tyi,tzi,cXc1zz) + resYc1*p3d(txi,tyi,tzi,cYc1zz) + resXc2*p3d(txi,tyi,tzi,cXc2zz) + resYc2*p3d(txi,tyi,tzi,cYc2zz) + p3d(txi,tyi,tzi,cXc1z)**2 + p3d(txi,tyi,tzi,cYc1z)**2 + p3d(txi,tyi,tzi,cXc2z)**2 + p3d(txi,tyi,tzi,cYc2z)**2
     
-        Hxy = resXl*p3d(txi,tyi,tzi,cXlxy) + resYl*p3d(txi,tyi,tzi,cYlxy) + resXr*p3d(txi,tyi,tzi,cXrxy) + resYr*p3d(txi,tyi,tzi,cYrxy) + p3d(txi,tyi,tzi,cXlx)*p3d(txi,tyi,tzi,cXly) + p3d(txi,tyi,tzi,cYlx)*p3d(txi,tyi,tzi,cYly) + p3d(txi,tyi,tzi,cXrx)*p3d(txi,tyi,tzi,cXry) + p3d(txi,tyi,tzi,cYrx)*p3d(txi,tyi,tzi,cYrz)
-        Hyz = resXl*p3d(txi,tyi,tzi,cXlyz) + resYl*p3d(txi,tyi,tzi,cYlyz) + resXr*p3d(txi,tyi,tzi,cXryz) + resYr*p3d(txi,tyi,tzi,cYryz) + p3d(txi,tyi,tzi,cXly)*p3d(txi,tyi,tzi,cXlz) + p3d(txi,tyi,tzi,cYly)*p3d(txi,tyi,tzi,cYlz) + p3d(txi,tyi,tzi,cXry)*p3d(txi,tyi,tzi,cXrz) + p3d(txi,tyi,tzi,cYry)*p3d(txi,tyi,tzi,cYrz)
-        Hxz = resXl*p3d(txi,tyi,tzi,cXlxz) + resYl*p3d(txi,tyi,tzi,cYlxz) + resXr*p3d(txi,tyi,tzi,cXrxz) + resYr*p3d(txi,tyi,tzi,cYrxz) + p3d(txi,tyi,tzi,cXlz)*p3d(txi,tyi,tzi,cXlx) + p3d(txi,tyi,tzi,cYlz)*p3d(txi,tyi,tzi,cYlx) + p3d(txi,tyi,tzi,cXrz)*p3d(txi,tyi,tzi,cXrx) + p3d(txi,tyi,tzi,cYrz)*p3d(txi,tyi,tzi,cYrx)
+        Hxy = resXc1*p3d(txi,tyi,tzi,cXc1xy) + resYc1*p3d(txi,tyi,tzi,cYc1xy) + resXc2*p3d(txi,tyi,tzi,cXc2xy) + resYc2*p3d(txi,tyi,tzi,cYc2xy) + p3d(txi,tyi,tzi,cXc1x)*p3d(txi,tyi,tzi,cXc1y) + p3d(txi,tyi,tzi,cYc1x)*p3d(txi,tyi,tzi,cYc1y) + p3d(txi,tyi,tzi,cXc2x)*p3d(txi,tyi,tzi,cXc2y) + p3d(txi,tyi,tzi,cYc2x)*p3d(txi,tyi,tzi,cYc2z)
+        Hyz = resXc1*p3d(txi,tyi,tzi,cXc1yz) + resYc1*p3d(txi,tyi,tzi,cYc1yz) + resXc2*p3d(txi,tyi,tzi,cXc2yz) + resYc2*p3d(txi,tyi,tzi,cYc2yz) + p3d(txi,tyi,tzi,cXc1y)*p3d(txi,tyi,tzi,cXc1z) + p3d(txi,tyi,tzi,cYc1y)*p3d(txi,tyi,tzi,cYc1z) + p3d(txi,tyi,tzi,cXc2y)*p3d(txi,tyi,tzi,cXc2z) + p3d(txi,tyi,tzi,cYc2y)*p3d(txi,tyi,tzi,cYc2z)
+        Hxz = resXc1*p3d(txi,tyi,tzi,cXc1xz) + resYc1*p3d(txi,tyi,tzi,cYc1xz) + resXc2*p3d(txi,tyi,tzi,cXc2xz) + resYc2*p3d(txi,tyi,tzi,cYc2xz) + p3d(txi,tyi,tzi,cXc1z)*p3d(txi,tyi,tzi,cXc1x) + p3d(txi,tyi,tzi,cYc1z)*p3d(txi,tyi,tzi,cYc1x) + p3d(txi,tyi,tzi,cXc2z)*p3d(txi,tyi,tzi,cXc2x) + p3d(txi,tyi,tzi,cYc2z)*p3d(txi,tyi,tzi,cYc2x)
     
-        print("minPeter ",i,": ",np.linalg.norm(resXl,'fro')+np.linalg.norm(resYl,'fro')+np.linalg.norm(resXr,'fro')+np.linalg.norm(resYr,'fro'))
+        print("minPeter ",i,": ",np.linalg.norm(resXc1,'fro')+np.linalg.norm(resYc1,'fro')+np.linalg.norm(resXc2,'fro')+np.linalg.norm(resYc2,'fro'))
         print("resPeter ",i,": ",np.linalg.norm(resx,'fro')+np.linalg.norm(resy,'fro')+np.linalg.norm(resz,'fro'))
         Lxx = np.sqrt(Hxx)
         Lxy = Hxy/Lxx
@@ -2044,13 +2044,13 @@ def Peter(Xl : np.ndarray,
     if cpy :
         xi = xi*xrang + xmid
         xi = numpy.array(xi.get(),dtype="float32")
-        yi = yi*yrang + ymid
+        yi = yi*Yc2ang + ymid
         yi = numpy.array(yi.get(),dtype="float32")
         zi = zi*zrang + zmid
         zi = numpy.array(zi.get(),dtype="float32")
     else :
         xi = np.array(xi*xrang + xmid,dtype="float32")
-        yi = np.array(yi*yrang + ymid,dtype="float32")
+        yi = np.array(yi*Yc2ang + ymid,dtype="float32")
         zi = np.array(zi*zrang + zmid,dtype="float32")
     return (np.array([xi, yi, zi]))
 
