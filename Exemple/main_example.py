@@ -24,8 +24,8 @@ if __name__ == '__main__' :
     saving_folder = 'results/main_exemple'
     # Define the inputs
     calibration_dict = {
-    'left_folder' : 'Images_example/left_calibration11',
-    'right_folder' : 'Images_example/right_calibration11',
+    'cam1_folder' : 'Images_example/left_calibration11',
+    'cam2_folder' : 'Images_example/right_calibration11',
     'name' : 'micro_calibration',
     'saving_folder' : saving_folder,
     'ncx' : 16,
@@ -33,14 +33,14 @@ if __name__ == '__main__' :
     'sqr' : 0.3}
     
     DIC_dict = {
-    'left_folder' : 'Images_example/left_identification',
-    'right_folder' : 'Images_example/right_identification',
+    'cam1_folder' : 'Images_example/left_identification',
+    'cam2_folder' : 'Images_example/right_identification',
     'name' : 'micro_identification',
     'saving_folder' : saving_folder,
     'window' : [[300, 1700], [300, 1700]]}
     
     # Create the list of z plans
-    Folder = calibration_dict['left_folder']
+    Folder = calibration_dict['cam1_folder']
     Imgs = sorted(glob(str(Folder) + '/*'))
     z_list = np.zeros((len(Imgs)))
     for i in range (len(Imgs)) :
@@ -62,38 +62,34 @@ if __name__ == '__main__' :
     print('Direct method - Start calibration')
     print('#####       ')
     print('')
-    direct_A, Mag = pcs.direct_calibration (z_list,
-                                            direct_pform,
-                                            **calibration_dict)
+    direct_constants, Mag = pcs.direct_calibration (z_list,
+                                                    direct_pform,
+                                                    **calibration_dict)
 
     print('')
     print('#####       ')
     print('Soloff method - Start calibration')
     print('#####       ')  
-    A111, A_pol, Mag = pcs.Soloff_calibration (z_list,
-                                               Soloff_pform,
-                                               **calibration_dict)
+    Soloff_constants0, Soloff_constants, Mag = pcs.Soloff_calibration (z_list,
+                                                                       Soloff_pform,
+                                                                       **calibration_dict)
     
     print('')
     print('#####       ')
     print('Identification of displacements field by DIC')
     print('#####       ')
     print('')
-    Xleft_id, Xright_id = data.DIC_get_positions(DIC_dict)
+    Xcam1_id, Xcam2_id = data.DIC_get_positions(DIC_dict)
     
     print('')
     print('#####       ')
     print('Calculation of 3D view')
     print('#####       ')
-    print('')
-    # Chose right and left coordinates
-    X_c1 = Xleft_id[0]
-    X_c2 = Xright_id[0]
-    
+    print('')   
     # Direct identification
-    xDirect_solution = pcs.direct_identification (X_c1,
-                                                  X_c2,
-                                                  direct_A,
+    xDirect_solution = pcs.direct_identification (Xcam1_id[0],
+                                                  Xcam2_id[0],
+                                                  direct_constants,
                                                   direct_pform)
     xD, yD, zD = xDirect_solution
     wnd = DIC_dict['window']    
@@ -118,10 +114,10 @@ if __name__ == '__main__' :
     if os.path.exists(soloff_file) :
         xSoloff_solution = np.load(soloff_file)
     else :
-        xSoloff_solution = pcs.Soloff_identification (X_c1,
-                                                      X_c2,
-                                                      A111, 
-                                                      A_pol,
+        xSoloff_solution = pcs.Soloff_identification (Xcam1_id[0],
+                                                      Xcam2_id[0],
+                                                      Soloff_constants0, 
+                                                      Soloff_constants,
                                                       Soloff_pform,
                                                       method = 'curve_fit')
         np.save(soloff_file, xSoloff_solution)
@@ -143,14 +139,14 @@ if __name__ == '__main__' :
     
     AI_training_size = 50000
     AIfile = saving_folder + '/Soloff_AI_training.csv'
-    model = pcs.AI_training (X_c1,
-                             X_c2,
+    model = pcs.AI_training (Xcam1_id[0],
+                             Xcam2_id[0],
                              xSoloff_solution,
                              AI_training_size = AI_training_size,
                              file = AIfile)
     
-    xAI_solution = pcs.AI_identification (X_c1,
-                                          X_c2,
+    xAI_solution = pcs.AI_identification (Xcam1_id[0],
+                                          Xcam2_id[0],
                                           model)
 
     xAI, yAI, zAI = xAI_solution

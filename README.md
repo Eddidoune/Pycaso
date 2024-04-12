@@ -1,12 +1,12 @@
 # Pycaso
 PYthon module for CAlibration of cameras by SOloff’s method
 
-Pycaso is a python code used to calibrate any pair of cameras using the method of Soloff (or the direct method). This method links detected points X from cameras left an right to the real position x in the 3D-space. It is divided in two parts :
+Pycaso is a python code used to calibrate any pair of cameras using the method of Soloff (or the direct method). This method links detected points X from cameras 1 and 2 to the real position x in the 3D-space. It is divided in two parts :
 - Calibration : A lot of coordinates (**X**=(X,Y) and **x**(x,y,z)) are known and a polynomial form P can be estimate for each coordinate X_i = P(**x**)
 - Identification : With a Levenberg-Marcquardt algorithm, it is possible to build new points into the 3D-space using the detected points **X** and the polynomials P (**x** = f(P1(X1), P2(Y1), P3(X2), P4(Y2)) 
 
 
-The file main.py propose a typical protocol of resolution using few Pycaso functions (full_Soloff_calibration, full_Soloff_identification, DIC_3D_detection_lagrangian etc...).
+The file Exemple/main_example.py propose a typical protocol of resolution using few Pycaso functions.
 
 # Requirements
 To install Pycaso, you will need [Python 3](https://www.python.org/downloads/) (3.6 or higher) with the following modules :
@@ -40,30 +40,31 @@ The inputs of the device are :
 - A coin to identify
 
 And the outputs are :
-- 1) Right and left pictures of the pattern during calibration stage. One pair of
+- 1) cam1 and cam2 pictures of the pattern during calibration stage. One pair of
 pictures for each z coordinate.
-- 2) Right and left pictures of the coin during identification stage.
+- 2) cam1 and cam2 pictures of the coin during identification stage.
 
 ## Calibration of the volume of interest (VOI)
 Use the cameras and the z-axe to take a lot of picture of the pattern at different position z (100 position here).
-Save all of the left image (resp right) in a folder 'Folder_calibration_left' with the z position as a name 'z.png'.
+Save all of the cam1 image (resp cam2) in a folder 'Folder_calibration_cam1' with the z position as a name 'z.png'.
 - Define the calibration dictionnary :
 ```
 calibration_dict = {
-								'left_folder' : '/Folder_calibration_left',
-								'right_folder' : '/Folder_calibration_right',
-								'name' : 'Whatever',
+								'cam1_folder' : 'Images_example/left_calibration11',
+								'cam2_folder' : 'Images_example/right_calibration11',
+								'name' : 'micro_calibration',								
+								'saving_folder' : 'results/main_exemple',
 								'ncx' : 16,
 								'ncy' : 12,
 								'pixel_factor' : 10}
 ```
  - Create the list of z plans
 ```
-Folder = calibration_dict['left_folder']
+Folder = calibration_dict['cam1_folder']
 Imgs = sorted(glob(str(Folder) + '/*'))
-x3_list = np.zeros((len(Imgs)))
+z_list = np.zeros((len(Imgs)))
 for i in range (len(Imgs)) :
-    x3_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
+    z_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
 ```
 
 - Chose the degrees for Soloff and direct polynomial fitting
@@ -73,50 +74,51 @@ direct_polynomial_form = 4
 ```
 Create the result folder if not exist
 ```
-saving_folder = '/saving_folder_name'
+saving_folder = 'results/main_exemple'
 ```
 Lauch the Soloff calibration function in the main.py :
 ```
-A111, A_pol, Mag= Pycaso.Soloff_calibration (x3_list,
+Soloff_constants0, Soloff_constants, Mag= Pycaso.Soloff_calibration (z_list,
 																				Soloff_pform,
 																				**calibration_dict)
 ```
 And/Or the direct calibration function in the main.py :
 ```
-direct_A, Mag= Pycaso.direct_calibration (x3_list,
+direct_constants, Mag= Pycaso.direct_calibration (z_list,
 																		direct_pform,
-																		**calibration_dict)
+direct_constants, Mag= Pycaso.direct_calibration (z_list,																		**calibration_dict)
 ```
 The calibration parameters are identified and calibration part is done. For more information about the resolution, see the Hessian detection explaination.
 
 ## Identification of the coin
 Use the cameras to take some pair of pictures of the coin.
-Save all of the left image (resp right) in a folder 'Folder_identification_left'. Then, define a DIC dictionnary :
+Save all of the cam1 image (resp cam2) in a folder 'Folder_identification_cam1'. Then, define a DIC dictionnary :
 ```
 DIC_dict = {
-					'left_folder' : '/Folder_identification_left',
-					'right_folder' : '/Folder_identification_right',
-					'name' : 'Whatever',
+					'cam1_folder' : 'Images_example/left_identification',
+					'cam2_folder' : 'Images_example/right_identification',
+					'name' : 'micro_identification',
+					'saving_folder' : saving_folder,
 					'window' : [[300, 1700], [300, 1700]]}
 ```
 
 The identification can start :
-First, use the correlation process (default = GCpu_OpticalFlow or disflow) from left to right images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the left and the right cameras.
+First, use the correlation process (default = GCpu_OpticalFlow or disflow) from cam1 to cam2 images to identify DIC fields. With those fields, it is possible to detect a same point (pixel) on the cam1 and the cam2.
 ```
-Xleft_id, Xright_id = data.DIC_get_positions(DIC_dict)
+Xcam1_id, Xcam2_id = data.DIC_get_positions(DIC_dict)
 ```
-Then use one of the pairs (Xleft_id[0], Xright_id[0]) to create the points on the global referential (x,y,z) :
+Then use one of the pairs (Xcam1_id[0], Xcam2_id[0]) to create the points on the global referential (x,y,z) (Here show the Soloff method but the direct or Zernike method can be use) :
 ```
-xSoloff_solution = Soloff_identification(Xleft_id[0],
-																Xright_id[0],
-																A111, 
-																A_pol,
+xSoloff_solution = Soloff_identification(Xcam1_id[0],
+																Xcam2_id[0],
+																Soloff_constants0, 
+																Soloff_constants,
 																Soloff_pform,
 																method = 'curve_fit')       
 xS, yS, zS = xSoloff_solution
 ```
 Now all of the spacial points i are detected (xS[i], yS[i], zS[i]). 
-Then it is possible to project the zS on the left camera to tchek the cinematic field :
+Then it is possible to project the zS on the cam1 to tchek the cinematic field :
 ```
 zS = np.reshape(zS,(1400,1400))
 plt.imshow(zS)
@@ -142,7 +144,7 @@ xAI_solution = AI_identification (X_c1,
 xAI, yAI, zAI = xAI_solution
 ```
 Now all of the spacial points i are detected (xAI[i], yAI[i], zAI[i]). 
-Then it is possible to project the zAI on the left camera to tchek the cinematic field :
+Then it is possible to project the zAI on the cam1 to tchek the cinematic field :
 ```
 zAI = np.reshape(zAI,(1400,1400))
 plt.imshow(zAI)
