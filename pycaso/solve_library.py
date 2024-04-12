@@ -884,21 +884,21 @@ def xopt_mlib (xtuple : list) -> np.ndarray:
 
 def Levenberg_Marquardt_solving (Xc1_identified : np.ndarray, 
                                  Xc2_identified : np.ndarray, 
-                                 A : np.ndarray, 
+                                 Soloff_constants : np.ndarray, 
                                  x0 : np.ndarray, 
                                  Soloff_pform : int, 
                                  method : str = 'curve_fit') -> (np.ndarray,
                                                                  np.ndarray,
                                                                  np.ndarray) :
-    """Resolve by Levenberg-Marcquardt method the system A . x = X for each 
-    points detected and both cameras
+    """Resolve by Levenberg-Marcquardt method the system 
+    Soloff_constants . x = X for each points detected and both cameras
     
     Args:
         Xc1_identified : numpy.ndarray
             Real positions of camera 1
         Xc2_identified : numpy.ndarray
             Real positions of camera 2
-        A : numpy.ndarray
+        Soloff_constants : numpy.ndarray
             Constants of the calibration polynome
         x0 : numpy.ndarray
             Initial guess
@@ -931,7 +931,7 @@ def Levenberg_Marquardt_solving (Xc1_identified : np.ndarray,
                           Xc1_identified[:,1], 
                           Xc2_identified[:,0], 
                           Xc2_identified[:,1]])
-    A0 = np.array([A[0,0], A[0,1], A[1,0], A[1,1]])
+    A0 = np.array([Soloff_constants[0,0], Soloff_constants[0,1], Soloff_constants[1,0], Soloff_constants[1,1]])
     xopt = np.zeros((3,N))
     
     win_size = Xdetected.shape[1]/core_number
@@ -1005,6 +1005,132 @@ def Levenberg_Marquardt_solving (Xc1_identified : np.ndarray,
     Xdiff = np.absolute(Xcalculated - Xdetected)
     
     return (xopt, Xcalculated, Xdetected)
+
+def Levenberg_Zernike_solving (Xc1_identified : np.ndarray, 
+                               Xc2_identified : np.ndarray, 
+                               Soloff_constants : np.ndarray, 
+                               x0 : np.ndarray, 
+                               Soloff_pform : int, 
+                               method : str = 'curve_fit') -> (np.ndarray,
+                                                               np.ndarray,
+                                                               np.ndarray) :
+    """Resolve by Levenberg-Marcquardt method the system 
+    Soloff_constants . x = X for each points detected and both cameras
+    
+    Args:
+        Xc1_identified : numpy.ndarray
+            Real positions of camera 1
+        Xc2_identified : numpy.ndarray
+            Real positions of camera 2
+        Soloff_constants : numpy.ndarray
+            Constants of the calibration polynome
+        x0 : numpy.ndarray
+            Initial guess
+        Soloff_pform : int
+            Polynomial form
+        method : str
+            Chosen method of resolution. Can take 'curve_fit' or 'least_squares'
+           
+    Returns:
+        xopt : numpy.ndarray
+            Solution of the LM resolution
+        Xcalculated : numpy.ndarray
+            Solution calculated
+        Xdetected : numpy.ndarray
+            Solution detected (Xc1_identified, Xc2_identified)
+    """   
+    try : 
+        from multiprocessing import Pool
+        mlib = True
+    except ImportError:
+        mlib = False 
+        try : 
+            from joblib import Parallel, delayed
+            jlib = True
+        except ImportError:
+            jlib = False    
+    
+    N = len(x0[0])    
+    Xdetected = np.array([Xc1_identified[:,0], 
+                          Xc1_identified[:,1], 
+                          Xc2_identified[:,0], 
+                          Xc2_identified[:,1]])
+    A0 = np.array([Soloff_constants[0,0], Soloff_constants[0,1], Soloff_constants[1,0], Soloff_constants[1,1]])
+    xopt = np.zeros((3,N))
+    
+    win_size = Xdetected.shape[1]/core_number
+    slices = []
+    for i in range (core_number) :
+        start = i*win_size
+        if i == core_number-1 :
+            slices.append(slice(int(round(start)), Xdetected.shape[1]))
+        else :            
+            slices.append(slice(int(round(start)), int(round(start + win_size))))
+    
+    if mlib :       
+        with Pool(core_number) as p :
+            xtuple = []
+            for i in range (core_number) :
+                sl = slices[i]
+                Xti = Xdetected[:, sl]
+                x0i = x0[:,sl]
+                xtuple.append((Xti, x0i, Soloff_pform, A0))
+            xopt_parallel = p.map(xopt_mlib, xtuple)
+            
+        for part in range (len(xopt_parallel)) :
+            sl = slices[part]
+            xopt_part = xopt_parallel[part]
+            xopt[:,sl] = xopt_part.reshape((3,sl.stop - sl.start))
+
+    elif jlib :
+        def xopt_solve (Xdetected, sl) :
+            Ns = sl.stop - sl.start
+            xopt = np.zeros((3*Ns))
+            Xdetected_part = Xdetected[:,sl]
+            x0_part = x0[:,sl]
+            for i in range (Xdetected_part.shape[1]) :
+                X0i = Xdetected_part[:,i]
+                x0i = x0_part[:,i]
+                xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
+                                             A0, 
+                                             X0i, 
+                                             p0 = x0i, 
+                                             method ='lm')
+                xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
+            return (xopt)
+        
+        xopt_parallel = Parallel(n_jobs = core_number)(delayed(xopt_solve)(Xdetected, sl) for sl in slices)
+        
+        for part in range (len(xopt_parallel)) :
+            sl = slices[part]
+            xopt_part = xopt_parallel[part]
+            xopt[:,sl] = xopt_part.reshape((3,sl.stop - sl.start))
+
+    else :
+        print('Without joblib or multiprocessing libraries the calculation may be very long.')
+        def xopt_solve (Xdetected) :
+            Ns = Xdetected.shape[1]
+            xopt = np.zeros((3*Ns))
+            x0_part = x0
+            for i in range (Xdetected.shape[1]) :
+                X0i = Xdetected[:,i]
+                x0i = x0_part[:,i]
+                xopti, pcov = sopt.curve_fit(Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_LM_CF, 
+                                             A0, 
+                                             X0i, 
+                                             p0 = x0i, 
+                                             method ='lm')
+                xopt[i], xopt[Ns + i], xopt[2*Ns + i] = xopti
+            return (xopt)
+        xopt = xopt_solve (Xdetected)
+        xopt = xopt.reshape((3,N))
+
+    Xcalculated = Soloff_Polynome({'polynomial_form' : Soloff_pform}).polynomial_system(xopt, A0)
+    Xdiff = np.absolute(Xcalculated - Xdetected)
+    
+    return (xopt, Xcalculated, Xdetected)
+
+
 
 def AI_solve_simultaneously (file : str,
                              n_estimators : int = 800, 

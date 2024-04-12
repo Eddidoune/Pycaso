@@ -933,7 +933,7 @@ def DIC_disflow (DIC_dict : dict,
 
     print('    - DIC in progress ...')
     name = DIC_dict['name']
-    if any (image_ids) :
+    if not len(image_ids) == 0 :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
@@ -1063,7 +1063,7 @@ def DIC_optical_flow (DIC_dict : dict,
     N = len(Images)
 
     name = DIC_dict['name']
-    if any (image_ids) :
+    if not len(image_ids) == 0 :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/optical_flow_U_" + name + ".npy"
@@ -1238,7 +1238,7 @@ def DIC_robust_metric (DIC_dict : dict,
     N = len(Images)
 
     name = DIC_dict['name']
-    if any (image_ids) :
+    if not len(image_ids) == 0 :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/robust_metric_U_" + name + ".npy"
@@ -1405,8 +1405,6 @@ def DIC_robust_metric (DIC_dict : dict,
     Xleft_id = Xleft_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     Xright_id = Xright_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
     return (Xleft_id, Xright_id)
-
-
 
 def DIC_get_positions (DIC_dict : dict,
                        flip : bool= False,
