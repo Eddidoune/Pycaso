@@ -1130,8 +1130,6 @@ def Levenberg_Zernike_solving (Xc1_identified : np.ndarray,
     
     return (xopt, Xcalculated, Xdetected)
 
-
-
 def AI_solve_simultaneously (file : str,
                              n_estimators : int = 800, 
                              min_samples_leaf : int = 1, 

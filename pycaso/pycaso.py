@@ -642,10 +642,12 @@ def Soloff_calibration (z_list : np.ndarray,
             z_error = (z_mean-mz_points)*px
             
             plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-            plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-            plt.xlabel('z theoretical (mm)')
-            plt.ylabel('DELTA_z (px)')
-            plt.savefig(save_retro+'Soloff_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+            # plt.title('Soloff retroprojection error for iteration '+str(it+1))
+            # plt.xlabel('z theoretical (mm)')
+            plt.title("Erreur de rétroprojection (Soloff) pour l'iteration N°"+str(it+1))
+            plt.xlabel('z théorique (mm)')
+            plt.ylabel('$\Delta$z (px)')
+            plt.savefig(save_retro+'Retroprojection_error_Soloff_iteration'+str(it+1)+'.png', dpi = 500)
             plt.close()
             
             # Change the list to the new ajusted
@@ -793,10 +795,12 @@ def direct_calibration (z_list : np.ndarray,
             z_error = (z_mean-mz_points)*px
             
             plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-            plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-            plt.xlabel('z theoretical (mm)')
-            plt.ylabel('DELTA_z (px)')
-            plt.savefig(save_retro+'direct_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+            # plt.title('Direct retroprojection error for iteration '+str(it+1))
+            # plt.xlabel('z theoretical (mm)')
+            plt.title("Erreur de rétroprojection (directe) pour l'iteration N°"+str(it+1))
+            plt.xlabel('z théorique (mm)')
+            plt.ylabel('$\Delta$z (px)')
+            plt.savefig(save_retro+'Retroprojection_error_direct_iteration'+str(it+1)+'.png', dpi = 500)
             plt.close()
             
             # Change the list to the new ajusted
@@ -958,10 +962,12 @@ def Zernike_calibration (z_list : np.ndarray,
             z_error = (z_mean-mz_points)*px
             
             plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-            plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-            plt.xlabel('z theoretical (mm)')
-            plt.ylabel('DELTA_z (px)')
-            plt.savefig(save_retro+'Zernike_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+            # plt.title('Zernike retroprojection error for iteration '+str(it+1))
+            # plt.xlabel('z theoretical (mm)')
+            plt.title("Erreur de rétroprojection (Zernike) pour l'iteration N°"+str(it+1))
+            plt.xlabel('z théorique (mm)')
+            plt.ylabel('$\Delta$z (px)')
+            plt.savefig(save_retro+'Retroprojection_error_Zernike_iteration'+str(it+1)+'.png', dpi = 500)
             plt.close()
             
             # Change the list to the new ajusted
@@ -1127,10 +1133,12 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
                     z_error = (z_mean-mz_points)*px
                     
                     plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-                    plt.title('zmeasured - ztheoretical for iteration '+str(it+1))
-                    plt.xlabel('z theoretical (mm)')
-                    plt.ylabel('DELTA_z (px)')
-                    plt.savefig(save_retro+'Soloff_retroprojection_error_iteration'+str(it+1)+'.png', dpi = 500)
+                    # plt.title('Soloff retroprojection error for iteration '+str(it+1))
+                    # plt.xlabel('z theoretical (mm)')
+                    plt.title("Erreur de rétroprojection (Soloff) pour l'iteration N°"+str(it+1))
+                    plt.xlabel('z théorique (mm)')
+                    plt.ylabel('$\Delta$z (px)')
+                    plt.savefig(save_retro+'Retroprojection_error_Soloff_iteration'+str(it+1)+'.png', dpi = 500)
                     plt.close()
                     
                     # Change the list to the new ajusted
@@ -1311,7 +1319,7 @@ def hybrid_mask (Xc1_identified : np.ndarray,
 def AI_training (X_c1 : np.ndarray,
                  X_c2 : np.ndarray,
                  xSoloff_solution : np.ndarray,
-                 AI_training_size : int = 1000,
+                 AI_training_size : int = 50000,
                  file : str = 'Soloff_AI_training.csv',
                  method : str = 'simultaneously') -> sklearn.ensemble._forest.RandomForestRegressor :
     """Training the AI metamodel with already known datas.

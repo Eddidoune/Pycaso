@@ -12,7 +12,7 @@ import skimage.feature as sfe
 import skimage.filters as sfi
 from skimage.measure import label, regionprops
 from skimage.segmentation import clear_border
-
+    
 try : 
     import cupy 
     cpy = True
@@ -916,7 +916,7 @@ def DIC_disflow (DIC_dict : dict,
     
     Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
     Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
-    if not len(image_ids) == 0 :
+    if image_ids[0] :
         Images_cam1_cut = []
         Images_cam2_cut = []
         for i in image_ids :
@@ -933,7 +933,7 @@ def DIC_disflow (DIC_dict : dict,
 
     print('    - DIC in progress ...')
     name = DIC_dict['name']
-    if not len(image_ids) == 0 :
+    if image_ids[0] :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
@@ -1723,3 +1723,39 @@ def cameras_size (cam1_folder : str = 'cam1_calibration',
     cam2_dimensions = Image_cam2.shape
     Cameras_dimensions = [cam1_dimensions[0], cam1_dimensions[1], cam2_dimensions[0], cam2_dimensions[1]]
     return(Cameras_dimensions)
+
+def convert_npy_to_tif (npy_folder,
+                        tif_folder,
+                        remove_npy = False) :
+    try :
+        import tifffile
+    except ImportError:
+        raise ('No library "tifffile" found')
+
+    try :
+        import pathlib
+    except ImportError:
+        raise ('No library "pathlib" found')    
+    
+    Imgs = sorted(glob(npy_folder+'/*.npy'))
+    
+    # Create the result folder if not exist
+    if os.path.exists(tif_folder) :
+        ()
+    else :
+        P = pathlib.Path(tif_folder)
+        pathlib.Path.mkdir(P, parents = True)
+    
+    
+    # Load the NumPy array from the npy file
+    for npy_file_path in Imgs :
+        # Specify the output TIFF file path
+        tif_file_path = tif_folder + '/' + npy_file_path[len(npy_folder)+1:-4] + '.tif'
+        data_array = np.load(npy_file_path)
+        
+        # Save the PIL Image as a TIFF file with LZW compression and compression level
+        tifffile.imwrite(tif_file_path, data_array, metadata={'axes': 'XYZC'}, compression ='zlib')
+        
+        print(f"Conversion complete. TIFF file saved at: {tif_file_path}")
+        if remove_npy :
+            os.remove(npy_file_path) 
