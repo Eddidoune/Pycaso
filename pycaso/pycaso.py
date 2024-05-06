@@ -485,7 +485,7 @@ def retroprojection_error (calibration_method : str,
         # cb = plt.colorbar()
         # cb.set_label('z (mm)')
         # plt.title('z distribution on plan = ' +str(i)+ ' ; iteration = ' +str(it) + ' ; method = ' + calibration_method)
-        # plt.savefig(saving_folder +'/Pycaso_retroprojection_error/iteration' +str(it)+ '_z_plan' +str(i)+'_fit.png', dpi = 500)
+        # plt.savefig(saving_folder +'/Pycaso_retroprojection_error/iteration' +str(it)+ '_z_plan' +str(i)+'_fit.pdf', dpi = 500)
         # plt.close()
         
         z_mean.append(np.mean(Solution[2]))
@@ -544,7 +544,7 @@ def Soloff_calibration (z_list : np.ndarray,
     try :
         save_retro = kwargs['saving_folder']+'/Pycaso_retroprojection_error/'
     except :
-        save_retro = ''
+        save_retro = 'Pycaso_retroprojection_error'
     if not os.path.exists(save_retro) :
         P = pathlib.Path(save_retro)
         pathlib.Path.mkdir(P, parents = True)
@@ -644,11 +644,14 @@ def Soloff_calibration (z_list : np.ndarray,
             plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
             # plt.title('Soloff retroprojection error for iteration '+str(it+1))
             # plt.xlabel('z theoretical (mm)')
-            plt.title("Erreur de rétroprojection (Soloff) pour l'iteration N°"+str(it+1))
-            plt.xlabel('z théorique (mm)')
-            plt.ylabel('$\Delta$z (px)')
-            plt.savefig(save_retro+'Retroprojection_error_Soloff_iteration'+str(it+1)+'.png', dpi = 500)
+            plt.title("Erreur de rétroprojection (Soloff) : iteration N°"+str(it+1), size=17)
+            plt.xlabel('z théorique (mm)', size=17)
+            plt.ylabel('$\Delta$z (px)', size=17)
+            plt.savefig(save_retro+'Retroprojection_error_Soloff_iteration'+str(it+1)+'.pdf', dpi = 500)
             plt.close()
+                        
+            # Save the z list
+            np.save(save_retro+"z_list_Soloff.npy", z_points)
             
             # Change the list to the new ajusted
             z_points = z_iter
@@ -710,7 +713,7 @@ def direct_calibration (z_list : np.ndarray,
     try :
         save_retro = kwargs['saving_folder']+'/Pycaso_retroprojection_error/'
     except :
-        save_retro = ''
+        save_retro = 'Pycaso_retroprojection_error/'
     if not os.path.exists(save_retro) :
         P = pathlib.Path(save_retro)
         pathlib.Path.mkdir(P, parents = True)
@@ -797,11 +800,14 @@ def direct_calibration (z_list : np.ndarray,
             plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
             # plt.title('Direct retroprojection error for iteration '+str(it+1))
             # plt.xlabel('z theoretical (mm)')
-            plt.title("Erreur de rétroprojection (directe) pour l'iteration N°"+str(it+1))
-            plt.xlabel('z théorique (mm)')
-            plt.ylabel('$\Delta$z (px)')
-            plt.savefig(save_retro+'Retroprojection_error_direct_iteration'+str(it+1)+'.png', dpi = 500)
+            plt.title("Erreur de rétroprojection (directe) : iteration N°"+str(it+1), size=17)
+            plt.xlabel('z théorique (mm)', size=17)
+            plt.ylabel('$\Delta$z (px)', size=17)
+            plt.savefig(save_retro+'Retroprojection_error_direct_iteration'+str(it+1)+'.pdf', dpi = 500)
             plt.close()
+            
+            # Save the z list
+            np.save(save_retro+"z_list_direct.npy", z_points)
             
             # Change the list to the new ajusted
             z_points = z_iter
@@ -820,7 +826,6 @@ def direct_calibration (z_list : np.ndarray,
           str(sgf.round(np.nanmax(z_error/px), sigfigs =3)),';',
           str(sgf.round(np.nanmin(z_error/px), sigfigs =3)),'mm')
         
-
     return(direct_constants, Magnification)    
 
 def Zernike_calibration (z_list : np.ndarray,
@@ -876,7 +881,7 @@ def Zernike_calibration (z_list : np.ndarray,
     try :
         save_retro = kwargs['saving_folder']+'/Pycaso_retroprojection_error/'
     except :
-        save_retro = ''
+        save_retro = 'Pycaso_retroprojection_error'
     if not os.path.exists(save_retro) :
         P = pathlib.Path(save_retro)
         pathlib.Path.mkdir(P, parents = True)
@@ -964,11 +969,14 @@ def Zernike_calibration (z_list : np.ndarray,
             plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
             # plt.title('Zernike retroprojection error for iteration '+str(it+1))
             # plt.xlabel('z theoretical (mm)')
-            plt.title("Erreur de rétroprojection (Zernike) pour l'iteration N°"+str(it+1))
-            plt.xlabel('z théorique (mm)')
-            plt.ylabel('$\Delta$z (px)')
-            plt.savefig(save_retro+'Retroprojection_error_Zernike_iteration'+str(it+1)+'.png', dpi = 500)
+            plt.title("Erreur de rétroprojection (Zernike) : iteration N°"+str(it+1), size=17)
+            plt.xlabel('z théorique (mm)', size=17)
+            plt.ylabel('$\Delta$z (px)', size=17)
+            plt.savefig(save_retro+'Retroprojection_error_Zernike_iteration'+str(it+1)+'.pdf', dpi = 500)
             plt.close()
+            
+            # Save the z list
+            np.save(save_retro+"z_list_Zernike.npy", z_points)
             
             # Change the list to the new ajusted
             z_points = z_iter
@@ -1138,7 +1146,7 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
                     plt.title("Erreur de rétroprojection (Soloff) pour l'iteration N°"+str(it+1))
                     plt.xlabel('z théorique (mm)')
                     plt.ylabel('$\Delta$z (px)')
-                    plt.savefig(save_retro+'Retroprojection_error_Soloff_iteration'+str(it+1)+'.png', dpi = 500)
+                    plt.savefig(save_retro+'Retroprojection_error_Soloff_iteration'+str(it+1)+'.pdf', dpi = 500)
                     plt.close()
                     
                     # Change the list to the new ajusted
