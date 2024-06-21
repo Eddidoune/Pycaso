@@ -916,7 +916,7 @@ def DIC_disflow (DIC_dict : dict,
     
     Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
     Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
-    if image_ids[0] :
+    if type(image_ids[0]) == int :
         Images_cam1_cut = []
         Images_cam2_cut = []
         for i in image_ids :
@@ -933,7 +933,7 @@ def DIC_disflow (DIC_dict : dict,
 
     print('    - DIC in progress ...')
     name = DIC_dict['name']
-    if image_ids[0] :
+    if type(image_ids[0]) == int :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
@@ -959,39 +959,33 @@ def DIC_disflow (DIC_dict : dict,
 
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
-
-    Xcam1_id = []
-    Xcam2_id = []        
+        
+    Xcam1_id = np.zeros((N//2, lx2-lx1, ly2-ly1, 2))
+    Xcam2_id = np.zeros((N//2, lx2-lx1, ly2-ly1, 2)) 
     for i in range (N) :
         U, V = all_U[i], all_V[i]
-        nX1, nX2 = U.shape
-        linsp1 = np.arange(nX1)+1
-        linsp2 = np.arange(nX2)+1
-        linsp1 = np.reshape (linsp1, (1,nX1))
-        linsp2 = np.reshape (linsp2, (1,nX2))
-        X1matrix = np.matmul(np.ones((nX1, 1)), linsp2)
-        X2matrix = np.matmul(np.transpose(linsp1), np.ones((1, nX2)))
-        X1matrix_w = X1matrix[lx1:lx2, ly1:ly2]
-        X2matrix_w = X2matrix[lx1:lx2, ly1:ly2]
-
-        # cam1 camera --> position = each px
-        X_c1 = np.transpose(np.array([np.ravel(X1matrix_w), 
-                                      np.ravel(X2matrix_w)]))
-        UV = np.transpose(np.array([np.ravel(U[lx1:lx2, ly1:ly2]), 
-                                    np.ravel(V[lx1:lx2, ly1:ly2])]))
-
-        # cam2 camera --> position = each px + displacement
-        X_c2 = X_c1 + UV
+        
+        # Make a grid with pixel coordinates
+        ny, nx = U.shape
+        x = np.linspace(1, nx, nx)
+        y = np.linspace(1, ny, ny)
+        xm, ym = np.meshgrid(x, y)
+        
+        xm = xm[lx1:lx2, ly1:ly2]
+        ym = ym[lx1:lx2, ly1:ly2]
+        
+        # Add displacements UV to the pixel coordinates
+        Xu = xm+U[lx1:lx2, ly1:ly2]
+        Yv = ym+V[lx1:lx2, ly1:ly2]
+        
         if i < N//2 :
-            Xcam1_id.append(X_c2)
+            Xcam1_id[i,:,:,0] = Xu
+            Xcam1_id[i,:,:,1] = Yv
+
         else : 
-            Xcam2_id.append(X_c2)
-    
-    Xcam1_id = np.array(Xcam1_id)
-    Xcam2_id = np.array(Xcam2_id)
-    nim, npts, naxis = Xcam1_id.shape
-    Xcam1_id = Xcam1_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
-    Xcam2_id = Xcam2_id.reshape((nim, lx2-lx1, ly2-ly1, naxis))
+            Xcam2_id[i-N//2,:,:,0] = Xu
+            Xcam2_id[i-N//2,:,:,1] = Yv
+
     return(Xcam1_id, Xcam2_id)
 
 def DIC_optical_flow (DIC_dict : dict,
@@ -1047,7 +1041,7 @@ def DIC_optical_flow (DIC_dict : dict,
 
     Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
     Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
-    if not len(image_ids) == 0 :
+    if type(image_ids[0]) == int :
         Images_cam1_cut = []
         Images_cam2_cut = []
         for i in image_ids :
@@ -1063,7 +1057,7 @@ def DIC_optical_flow (DIC_dict : dict,
     N = len(Images)
 
     name = DIC_dict['name']
-    if not len(image_ids) == 0 :
+    if type(image_ids[0]) == int :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/optical_flow_U_" + name + ".npy"
@@ -1222,7 +1216,7 @@ def DIC_robust_metric (DIC_dict : dict,
 
     Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
     Images_cam2 = sorted(glob(str(cam2_folder) + '/*'))
-    if not len(image_ids) == 0 :
+    if type(image_ids[0]) == int :
         Images_cam1_cut = []
         Images_cam2_cut = []
         for i in image_ids :
@@ -1238,7 +1232,7 @@ def DIC_robust_metric (DIC_dict : dict,
     N = len(Images)
 
     name = DIC_dict['name']
-    if not len(image_ids) == 0 :
+    if type(image_ids[0]) == int :
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/robust_metric_U_" + name + ".npy"
