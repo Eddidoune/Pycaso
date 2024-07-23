@@ -911,7 +911,6 @@ def DIC_disflow (DIC_dict : dict,
     """
     cam1_folder = DIC_dict['cam1_folder']
     cam2_folder = DIC_dict['cam2_folder']
-    window = DIC_dict['window']
     vr_kwargs = DIC_dict['dic_kwargs'] if 'dic_kwargs' in DIC_dict else ()
     
     Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
@@ -928,7 +927,6 @@ def DIC_disflow (DIC_dict : dict,
     N = len(Images)
     for i in range (N) :
         Images.append(Images_cam2[i]) 
-    [lx1, lx2], [ly1, ly2] = window
     N = len(Images)
 
     print('    - DIC in progress ...')
@@ -959,6 +957,12 @@ def DIC_disflow (DIC_dict : dict,
 
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
+    try : 
+        ROI = DIC_dict['window']
+    except :
+        _,nx,ny = all_U.shape
+        ROI = [[0, nx],[0, ny]]
+    [lx1, lx2], [ly1, ly2] = ROI
         
     Xcam1_id = np.zeros((N//2, lx2-lx1, ly2-ly1, 2))
     Xcam2_id = np.zeros((N//2, lx2-lx1, ly2-ly1, 2)) 
@@ -1020,7 +1024,7 @@ def DIC_optical_flow (DIC_dict : dict,
 
     cam1_folder = DIC_dict['cam1_folder']
     cam2_folder = DIC_dict['cam2_folder']
-    ROI = DIC_dict['window']
+
     opt_flow = {"pyram_levels": 3, 
                 "factor": 1/0.5, 
                 "ordre_inter": 3, 
@@ -1053,7 +1057,6 @@ def DIC_optical_flow (DIC_dict : dict,
     N = len(Images)
     for i in range (N) :
         Images.append(Images_cam2[i]) 
-    [lx1, lx2], [ly1, ly2] = ROI
     N = len(Images)
 
     name = DIC_dict['name']
@@ -1145,6 +1148,12 @@ def DIC_optical_flow (DIC_dict : dict,
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
     
+    try : 
+        ROI = DIC_dict['window']
+    except :
+        nx,ny = Ur.shape
+        ROI = [[0, nx],[0, ny]]
+    [lx1, lx2], [ly1, ly2] = ROI
     Xcam1_id = []
     Xcam2_id = []
     for i in range (N) :
@@ -1211,7 +1220,6 @@ def DIC_robust_metric (DIC_dict : dict,
 
     cam1_folder = DIC_dict['cam1_folder']
     cam2_folder = DIC_dict['cam2_folder']
-    ROI = DIC_dict['window']
     import rescale_img as ri
 
     Images_cam1 = sorted(glob(str(cam1_folder) + '/*'))
@@ -1228,7 +1236,6 @@ def DIC_robust_metric (DIC_dict : dict,
     N = len(Images)
     for i in range (N) :
         Images.append(Images_cam2[i]) 
-    [lx1, lx2], [ly1, ly2] = ROI
     N = len(Images)
 
     name = DIC_dict['name']
@@ -1365,7 +1372,12 @@ def DIC_robust_metric (DIC_dict : dict,
         print('Saving data to\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
-    
+    try : 
+        ROI = DIC_dict['window']
+    except :
+        nx,ny = Ur.shape
+        ROI = [[0, nx],[0, ny]]
+    [lx1, lx2], [ly1, ly2] = ROI
     Xcam1_id = []
     Xcam2_id = []
     for i in range (N) :
