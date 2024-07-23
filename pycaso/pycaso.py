@@ -559,17 +559,17 @@ def Soloff_calibration (z_list : np.ndarray,
     
             # Using not well detected images, remove corresponding arrays from all_X 
             # (cam2 and cam1) and z_list
-            nx,ny,nz = all_X.shape
+            nz,npts,_ = all_X.shape
             a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
             b, c = [], []
             for i in a :
                 b.append(i)
-                if i < nx//2 :
-                    b.append(i+nx//2)
+                if i < nz//2 :
+                    b.append(i+nz//2)
                     c.append(i)
                 else :
-                    b.append(i-nx//2)
-                    c.append(i-nx//2)
+                    b.append(i-nz//2)
+                    c.append(i-nz//2)
             
             b = list(set(b))
             c = list(set(c))
@@ -584,9 +584,9 @@ def Soloff_calibration (z_list : np.ndarray,
         
             # Creation of the reference matrix Xref and the real position Ucam for 
             # each camera
-            nx, ny, _ = all_xth.shape
-            z_points = np.ones((nx//2, ny))
-            for i in range(nx//2) :
+            nz, npts, _ = all_xth.shape
+            z_points = np.ones((nz//2, npts))
+            for i in range(nz//2) :
                 z_points[i] = z_points[i]*z_list[i]
         
         Soloff_constants0 = []
@@ -727,17 +727,17 @@ def direct_calibration (z_list : np.ndarray,
     
             # Using not well detected images, remove corresponding arrays from all_X 
             # (cam2 and cam1) and z_list
-            nx,ny,nz = all_X.shape
+            nz,npts,_ = all_X.shape
             a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
             b, c = [], []
             for i in a :
                 b.append(i)
-                if i < nx//2 :
-                    b.append(i+nx//2)
+                if i < nz//2 :
+                    b.append(i+nz//2)
                     c.append(i)
                 else :
-                    b.append(i-nx//2)
-                    c.append(i-nx//2)
+                    b.append(i-nz//2)
+                    c.append(i-nz//2)
             
             b = list(set(b))
             c = list(set(c))
@@ -752,9 +752,9 @@ def direct_calibration (z_list : np.ndarray,
         
             # Creation of the reference matrix Xref and the real position Ucam for 
             # each camera
-            nx, ny, _ = all_xth.shape
-            z_points = np.ones((nx//2, ny))
-            for i in range(nx//2) :
+            nz, npts, _ = all_xth.shape
+            z_points = np.ones((nz//2, npts))
+            for i in range(nz//2) :
                 z_points[i] = z_points[i]*z_list[i]
         
         # Creation of the reference matrix Xref and the real position Ucam for 
@@ -895,17 +895,17 @@ def Zernike_calibration (z_list : np.ndarray,
     
             # Using not well detected images, remove corresponding arrays from all_X 
             # (cam2 and cam1) and z_list
-            nx,ny,nz = all_X.shape
+            nz,npts,_ = all_X.shape
             a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
             b, c = [], []
             for i in a :
                 b.append(i)
-                if i < nx//2 :
-                    b.append(i+nx//2)
+                if i < nz//2 :
+                    b.append(i+nz//2)
                     c.append(i)
                 else :
-                    b.append(i-nx//2)
-                    c.append(i-nx//2)
+                    b.append(i-nz//2)
+                    c.append(i-nz//2)
             
             b = list(set(b))
             c = list(set(c))
@@ -920,9 +920,9 @@ def Zernike_calibration (z_list : np.ndarray,
         
             # Creation of the reference matrix Xref and the real position Ucam for 
             # each camera
-            nx, ny, _ = all_xth.shape
-            z_points = np.ones((nx//2, ny))
-            for i in range(nx//2) :
+            nz, npts, _ = all_xth.shape
+            z_points = np.ones((nz//2, npts))
+            for i in range(nz//2) :
                 z_points[i] = z_points[i]*z_list[i]
             
         # Creation of the reference matrix Xref and the real position Ucam for 
@@ -1058,17 +1058,17 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
             
                     # Using not well detected images, remove corresponding arrays from all_X 
                     # (cam2 and cam1) and z_list
-                    nx,ny,nz = all_X.shape
+                    nz,npts,_ = all_X.shape
                     a = np.where(np.isnan(all_X[:,0,0]) == True)[0]
                     b, c = [], []
                     for i in a :
                         b.append(i)
-                        if i < nx//2 :
-                            b.append(i+nx//2)
+                        if i < nz//2 :
+                            b.append(i+nz//2)
                             c.append(i)
                         else :
-                            b.append(i-nx//2)
-                            c.append(i-nx//2)
+                            b.append(i-nz//2)
+                            c.append(i-nz//2)
                     
                     b = list(set(b))
                     c = list(set(c))
@@ -1083,9 +1083,9 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
                 
                     # Creation of the reference matrix Xref and the real position Ucam for 
                     # each camera
-                    nx, ny, _ = all_xth.shape
-                    z_points = np.ones((nx//2, ny))
-                    for i in range(nx//2) :
+                    nz, npts, _ = all_xth.shape
+                    z_points = np.ones((nz//2, npts))
+                    for i in range(nz//2) :
                         z_points[i] = z_points[i]*z_list[i]
                 
                 Soloff_constants0 = []

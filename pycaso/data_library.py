@@ -222,7 +222,7 @@ def complete_missing_points (corners_list : np.ndarray,
                 alpha2 += math.pi
             alpha1 = alpha - alpha2
             Cx = l * math.cos(alpha1)
-            xy = - l * math.sin(alpha1)
+            Cy = - l * math.sin(alpha1)
             Ly = - l * math.cos(alpha1)
             Lx = - l * math.sin(alpha1)
     

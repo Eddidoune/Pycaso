@@ -63,8 +63,8 @@ def ChAruco_board (ncx : int,
 
 if __name__ == '__main__' :
     # Show the reals and theoreticals points  
-    ncx = 25
-    ncy = 10
+    ncx = 2
+    ncy = 2
     pixel_factor = 10 
     Pattern = ChAruco_board(ncx,
                             ncy,
