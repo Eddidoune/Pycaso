@@ -14,7 +14,7 @@ import pathlib
 import os
 from glob import glob
 
-sys.path.append('/home/caroneddy/These/Github/Pycaso/pycaso')
+sys.path.append('../pycaso')
 
 import pycaso as pcs
 import data_library as data
@@ -46,9 +46,10 @@ if __name__ == '__main__' :
     for i in range (len(Imgs)) :
         z_list[i] = float(Imgs[i][len(Folder)+ 1:-4])
     
-    # Chose the degrees for Soloff and direct polynomial fitting
+    # Chose the degrees for Soloff, direct and Zernike polynomial fitting
     Soloff_pform = 332
     direct_pform = 4
+    Zernike_pform = 4
     
     # Create the result folder if not exist
     if os.path.exists(saving_folder) :
@@ -65,6 +66,14 @@ if __name__ == '__main__' :
     direct_constants, Mag = pcs.direct_calibration (z_list,
                                                     direct_pform,
                                                     **calibration_dict)
+    sys.exit()
+    print('')
+    print('#####       ')
+    print('Zernike method - Start calibration')
+    print('#####       ')  
+    Zernike_constants, Magnification = pcs.Zernike_calibration (z_list,
+                                                                Zernike_pform,
+                                                                **calibration_dict)
 
     print('')
     print('#####       ')
@@ -103,6 +112,25 @@ if __name__ == '__main__' :
     cb.set_label('z in mm')
     plt.show() 
     
+    # Zernike identification
+    # Identify the calibration dimensions
+    Cameras_dimensions = data.cameras_size(**calibration_dict)
+    xZernike_solution = pcs.Zernike_identification (Xcam1_id[0],
+                                                    Xcam2_id[0],
+                                                    Zernike_constants,
+                                                    Zernike_pform,
+                                                    Cameras_dimensions)
+    xZ, yZ, zZ = xZernike_solution
+    wnd = DIC_dict['window']    
+    zZ = zZ.reshape((wnd[0][1] - wnd[0][0], wnd[1][1] - wnd[1][0]))
+    
+    plt.figure()
+    plt.imshow(zZ)
+    plt.title('Z projected on left camera with Zernike calculation')
+    cb = plt.colorbar()
+    plt.clim(2.6, 3)
+    cb.set_label('z in mm')
+    plt.show() 
     
     # Soloff identification
     soloff_file = saving_folder + '/xsolution_soloff0.npy'
