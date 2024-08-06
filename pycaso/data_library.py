@@ -809,10 +809,10 @@ def hybrid_mask_creation (image : np.ndarray,
     return (mask_median)
 
 def camera_coordinates (all_X : np.ndarray, 
-                              all_xth : np.ndarray, 
-                              z_list : np.ndarray) -> (np.ndarray,
-                                                       np.ndarray,
-                                                       np.ndarray) :
+                        all_xth : np.ndarray, 
+                        z_list : np.ndarray) -> (np.ndarray,
+                                                 np.ndarray,
+                                                 np.ndarray) :
     """Organising the coordinates of the calibration
     
     Args:
@@ -1147,11 +1147,11 @@ def DIC_optical_flow (DIC_dict : dict,
         print('Saving data to\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
         np.save(Save_all_U, all_U)
         np.save(Save_all_V, all_V)
-    
+
     try : 
         ROI = DIC_dict['window']
     except :
-        nx,ny = Ur.shape
+        _,nx,ny = all_U.shape
         ROI = [[0, nx],[0, ny]]
     [lx1, lx2], [ly1, ly2] = ROI
     Xcam1_id = []
@@ -1622,8 +1622,8 @@ def DIC_fields (DIC_dict : dict,
 
     return(U_cam1, V_cam1, U_cam2, V_cam2)
 
-def Strain_field (UVW : np.ndarray) -> (np.ndarray,
-                                        np.ndarray,
+def strain_fields (UVW : np.ndarray,
+                   projector : int = False) -> (np.ndarray,
                                         np.ndarray,
                                         np.ndarray,
                                         np.ndarray,
@@ -1633,70 +1633,48 @@ def Strain_field (UVW : np.ndarray) -> (np.ndarray,
     Args:
        UVW : numpy.ndarray
            Displacements field
+       projector : int, optional
            
+       
     Returns:
-       Exy : numpy.ndarray
-           strains field in %
        Exx : numpy.ndarray
-           strains field in %
+           strains field in ratio
        Eyy : numpy.ndarray
-           strains field in %
-       Eyx : numpy.ndarray
-           strains field in %
-       Ezy : numpy.ndarray
-           strains field in %
-       Ezx : numpy.ndarray
-           strains field in %
+           strains field in ratio
+       Exy : numpy.ndarray
+           strains field in ratio
+       dUyz : numpy.ndarray
+           Displacement derivation field in ratio
+       dUxz : numpy.ndarray
+           Displacement derivation field in ratio
     """
-    axis, nx, ny = UVW.shape
-    Exyz = np.zeros((6, nx, ny))
-    U, V, W = UVW
-    Exyz[0], Exyz[1] = np.gradient(U)
-    Exyz[2], Exyz[3] = np.gradient(V)
-    Exyz[4], Exyz[5] = np.gradient(W)
-
-    Exy, Exx, Eyy, Eyx, Ezy, Ezx = Exyz*100
-            
-    return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
-
-def Strain_fields (UVW : np.ndarray) -> (np.ndarray,
-                                         np.ndarray,
-                                         np.ndarray,
-                                         np.ndarray,
-                                         np.ndarray,
-                                         np.ndarray) :
-    """Calcul all the strains fields from displacements fields
+    def rad (projector) :
+        return (projector/360*2*math.pi)
+    def rotation_transformation (Rotation_matrix, A, B) :
+        C = A * Rotation_matrix[0,0] + B * Rotation_matrix[0,1]
+        D = A * Rotation_matrix[1,0] + B * Rotation_matrix[1,1]
+        return(C, D)
     
-    Args:
-       UVW : numpy.ndarray
-           Displacements fields
-           
-    Returns:
-       Exy : numpy.ndarray
-           strains fields in %
-       Exx : numpy.ndarray
-           strains fields in %
-       Eyy : numpy.ndarray
-           strains fields in %
-       Eyx : numpy.ndarray
-           strains fields in %
-       Ezy : numpy.ndarray
-           strains fields in %
-       Ezx : numpy.ndarray
-           strains fields in %
-    """
-    Np_img, axis, nx, ny = UVW.shape
-    Exy, Exx, Eyy, Eyx, Ezy, Ezx = [], [], [], [], [], []
-    for i in range(Np_img) :
-        Exyi, Exxi, Eyyi, Eyxi, Ezyi, Ezxi = Strain_field (UVW[i])
-        Exy.append(Exyi)
-        Exx.append(Exxi)
-        Eyy.append(Eyyi)
-        Eyx.append(Eyxi)
-        Ezy.append(Ezyi)
-        Ezx.append(Ezxi)
-        
-    return(Exy, Exx, Eyy, Eyx, Ezy, Ezx)
+    P = rad(projector)
+    # The first column of rotation matrix is opposite the the classic one 
+    # because axis x and y are indirect referential in python images.
+    Rotation_matrix = np.array([[-math.cos(P), math.sin(P)], 
+                                [math.sin(P), math.cos(P)]])
+    axis, nx, ny = UVW.shape
+    U, V, W = UVW
+    
+    dUyx, dUxx = np.gradient(U)
+    Exx, dUyx = rotation_transformation (Rotation_matrix, dUxx, dUyx)
+    
+    dUyy, dUxy = np.gradient(V)
+    dUxy, Eyy = rotation_transformation (Rotation_matrix, dUxy, dUyy)    
+    
+    dUyz, dUxz = np.gradient(W)
+    dUxz, dUyz = rotation_transformation (Rotation_matrix, dUxz, dUyz)    
+
+    Exy = (dUyx + dUxy)/2
+    
+    return(Exx, Eyy, Exy, dUyz, dUxz)
 
 def cameras_size (cam1_folder : str = 'cam1_calibration',
                   cam2_folder : str = 'cam2_calibration',

@@ -1168,8 +1168,40 @@ def Soloff_Zernike_calibration (z_list : np.ndarray,
                 
             return(Soloff_constants0, Soloff_constants, Magnification)
 
-
-
+def projector_3D (calibration_dict : dict) -> np.ndarray :
+    """Calculation of the projection angle between 2D and 3D axis (x and y)
+    
+    Args:
+       calibration_dict : dict
+           Dictionnary of calibration 
+           
+    Returns:
+       projector_3D : int
+           projection angle (in degrees) between 2D and 3D axis (x and y)
+    """
+    name = calibration_dict['name']
+    saving_calibration = calibration_dict['saving_folder']
+    all_X_file = saving_calibration+'/all_X_' + name + '.npy'
+    ncx = calibration_dict['ncx']
+    ncy = calibration_dict['ncy']
+    all_X = np.load(all_X_file)
+    i,j,_ = all_X.shape
+    all_X = all_X[i//2:]
+    all_X = np.mean(all_X.reshape(i//2, ncy-1, ncx-1,2), axis = 0)
+    pxy,pxx = np.gradient(all_X[:,:,0])
+    pyy,pyx = np.gradient(all_X[:,:,1])
+    Sin_theta = (np.mean(pxy) - np.mean(pyx))/2
+    Cos_theta = (np.mean(pxx) + np.mean(pyy))/2
+    size_factor = math.sqrt(Cos_theta*Cos_theta+Sin_theta*Sin_theta)
+    Cos_theta = Cos_theta/size_factor
+    Sin_theta = Sin_theta/size_factor
+    a_acos = math.acos(Cos_theta)
+    if Sin_theta < 0:
+       projector_3D = math.degrees(-a_acos) % 360
+    else: 
+       projector_3D = math.degrees(a_acos)
+       
+    return(projector_3D)
 
 def hybrid_identification(Xc1_identified : np.ndarray,
                           Xc2_identified : np.ndarray,
