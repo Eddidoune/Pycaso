@@ -1662,19 +1662,18 @@ def strain_fields (UVW : np.ndarray,
                                 [math.sin(P), math.cos(P)]])
     axis, nx, ny = UVW.shape
     U, V, W = UVW
+    U, V = rotation_transformation (Rotation_matrix, U, V)
     
-    dUyx, dUxx = np.gradient(U)
-    Exx, dUyx = rotation_transformation (Rotation_matrix, dUxx, dUyx)
+    dUyx, Exx = np.gradient(U)
     
-    dUyy, dUxy = np.gradient(V)
-    dUxy, Eyy = rotation_transformation (Rotation_matrix, dUxy, dUyy)    
+    Eyy, dUxy = np.gradient(V)
     
     dUyz, dUxz = np.gradient(W)
-    dUxz, dUyz = rotation_transformation (Rotation_matrix, dUxz, dUyz)    
 
     Exy = (dUyx + dUxy)/2
     
-    return(Exx, Eyy, Exy, dUyz, dUxz)
+    return(Exx, Eyy, Exy, dUyx, dUxy)
+    # return(Exx, Eyy, Exy, dUyz, dUxz)
 
 def cameras_size (cam1_folder : str = 'cam1_calibration',
                   cam2_folder : str = 'cam2_calibration',
