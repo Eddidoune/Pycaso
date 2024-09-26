@@ -780,7 +780,7 @@ def hybrid_mask_creation (image : np.ndarray,
     
     Args:
        image : numpy.ndarray
-           Difference between direct and Soloff methods
+           Difference between Lagrange and Soloff methods
        ROI : str, optional
            Region Of Interest
        kernel : int, optional
@@ -790,8 +790,8 @@ def hybrid_mask_creation (image : np.ndarray,
            
     Returns:
        mask_median : list
-           Mask used to replace on direct method + the median of the difference
-           between Soloff and direct solutions
+           Mask used to replace on Lagrange method + the median of the difference
+           between Soloff and Lagrange solutions
     """      
     median = np.median(image)     
     kernel = np.ones((kernel,kernel),np.float32)/kernel**2
@@ -905,7 +905,6 @@ def DIC_disflow (DIC_dict : dict,
     Returns:
        Xcam1_id : numpy.ndarray
            All the points of the cam1 pictures (1 point per pixel) in an array 
-           arrange with their positions. 
        Xcam2_id : numpy.ndarray
            All the cam1 pixels (points) localised on the cam2 pictures.
     """

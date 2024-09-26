@@ -171,10 +171,10 @@ def Soloff_identification (Xc1_identified : np.ndarray,
             xsolution = xsolution.reshape((3, nx, ny))
     return (xsolution)
 
-def direct_identification (Xc1_identified : np.ndarray,
+def Lagrange_identification (Xc1_identified : np.ndarray,
                            Xc2_identified : np.ndarray,
-                           direct_constants : np.ndarray,
-                           direct_pform : int) -> np.ndarray :
+                           Lagrange_constants : np.ndarray,
+                           Lagrange_pform : int) -> np.ndarray :
     """Identification of the points detected on both cameras cam1 and cam2 
     into the global 3D-space
     
@@ -183,16 +183,16 @@ def direct_identification (Xc1_identified : np.ndarray,
            Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
            Points identified on the cam2 camera
-       direct_constants : numpy.ndarray
-           Constants of direct polynomial
-       direct_pform : int
+       Lagrange_constants : numpy.ndarray
+           Constants of Lagrange polynomial
+       Lagrange_pform : int
            Polynomial form
 
     Returns:
        x_solution : numpy.ndarray
            Identification in the 3D space of the detected points
     """    
-    # Solve by direct method
+    # Solve by Lagrange method
     if len(Xc1_identified.shape) == 3 : 
         modif_22_12_09 = True
         nx, ny, naxis = Xc1_identified.shape
@@ -209,8 +209,8 @@ def direct_identification (Xc1_identified : np.ndarray,
     Xc1 = Xc11, Xc12
     Xc2 = Xc21, Xc22
     
-    M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
-    xsolution = np.matmul(direct_constants,M)
+    M = solvel.Lagrange_Polynome({'polynomial_form' : Lagrange_pform}).pol_form(Xc1, Xc2)
+    xsolution = np.matmul(Lagrange_constants,M)
     if modif_22_12_09 :
         xsolution = xsolution.reshape((3, nx, ny))
     return(xsolution)
@@ -403,7 +403,7 @@ def retroprojection_error (calibration_method : str,
     
     Args:
        calibration_method : str
-           Calibration method of your choice (Soloff, direct or Zernike)
+           Calibration method of your choice (Soloff, Lagrange or Zernike)
        pform : int
            Polynomial form of the method.
        calibration_constants : np.ndarray (or tuple for Soloff calibration_method)
@@ -459,18 +459,18 @@ def retroprojection_error (calibration_method : str,
             A111, A_pol = calibration_constants
             Soloff_pform = pform
             Solution = Soloff_identification (Xc1,
-                                                  Xc2,
-                                                  A111, 
-                                                  A_pol,
-                                                  Soloff_pform,
-                                                  method = method)
-        elif calibration_method == 'direct' :
-            direct_A = calibration_constants
-            direct_pform = pform
-            Solution = direct_identification (Xc1,
-                                                  Xc2,
-                                                  direct_A,
-                                                  direct_pform)
+                                              Xc2,
+                                              A111, 
+                                              A_pol,
+                                              Soloff_pform,
+                                              method = method)
+        elif calibration_method == 'Lagrange' :
+            Lagrange_A = calibration_constants
+            Lagrange_pform = pform
+            Solution = Lagrange_identification (Xc1,
+                                                Xc2,
+                                                Lagrange_A,
+                                                Lagrange_pform)
         
 
         z_theoric = np.reshape(z_points[i],(ny,nx))
@@ -725,8 +725,8 @@ def Soloff_calibration (z_list : np.ndarray,
         Soloff_constants = np.asarray(Soloff_constants)
     return(Soloff_constants0, Soloff_constants, Magnification)
 
-def direct_calibration (z_list : np.ndarray,
-                        direct_pform : int,
+def Lagrange_calibration (z_list : np.ndarray,
+                        Lagrange_pform : int,
                         multifolder : bool = False,
                         plotting : bool = False,
                         iterations = 1,
@@ -739,7 +739,7 @@ def direct_calibration (z_list : np.ndarray,
        z_list : numpy.ndarray
            List of the different z position. (WARNING : Should be order the 
                                               same way in the target folder)
-       direct_pform : int
+       Lagrange_pform : int
            Polynomial degree
        multifolder : bool, optional
            Used for specific image acquisition when all directions moved
@@ -753,13 +753,13 @@ def direct_calibration (z_list : np.ndarray,
        
            
     Returns:
-       direct_constants : numpy.ndarray
-           Constants of direct polynomial
+       Lagrange_constants : numpy.ndarray
+           Constants of Lagrange polynomial
        Magnification : numpy.ndarray
            Magnification between reals and detected positions
     """
     # Test the constant form
-    if not direct_pform in range(1, 5) :
+    if not Lagrange_pform in range(1, 5) :
         raise ('Only define for polynomial degrees (1, 2, 3, 4 or 5')
         
     z_list = np.array(z_list)
@@ -814,12 +814,12 @@ def direct_calibration (z_list : np.ndarray,
             # each camera i
             x, Xc1, Xc2 = data.camera_coordinates(all_X, all_xth, z_points)
         
-            # Calcul of the direct polynome's constants. X = A . M
+            # Calcul of the Lagrange polynome's constants. X = A . M
             # Do the system x = Ap*M, where M is the monomial of the real 
             # coordinates of crosses and x the image coordinates, and M the unknow
-            M = solvel.Direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
+            M = solvel.Lagrange_Polynome({'polynomial_form' : Lagrange_pform}).pol_form(Xc1, Xc2)
             Ap = np.matmul(x, np.linalg.pinv(M))
-            direct_constants = np.asarray(Ap)
+            Lagrange_constants = np.asarray(Ap)
             
             # Find and eventually plot the references plans
             if plotting :
@@ -839,9 +839,9 @@ def direct_calibration (z_list : np.ndarray,
             
             #Calcul the retroprojection error
             try :
-                z_mean, z_std, z_iter = retroprojection_error('direct',
-                                                               direct_pform,
-                                                               direct_constants,
+                z_mean, z_std, z_iter = retroprojection_error('Lagrange',
+                                                               Lagrange_pform,
+                                                               Lagrange_constants,
                                                                z_points,
                                                                all_X,
                                                                all_xth,
@@ -851,16 +851,16 @@ def direct_calibration (z_list : np.ndarray,
                 z_error = (z_mean-mz_points)*px
                 
                 plt.errorbar(mz_points, z_error, (z_std)*px, linestyle='None', marker='^')
-                # plt.title('Direct retroprojection error for iteration '+str(it+1))
+                # plt.title('Lagrange retroprojection error for iteration '+str(it+1))
                 # plt.xlabel('z theoretical (mm)')
-                plt.title("Erreur de rétroprojection (directe) : iteration N°"+str(it+1), size=17)
+                plt.title("Erreur de rétroprojection (de Lagrange) : iteration N°"+str(it+1), size=17)
                 plt.xlabel('z théorique (mm)', size=17)
                 plt.ylabel('$\Delta$z (px)', size=17)
-                plt.savefig(save_retro+'Retroprojection_error_direct_iteration'+str(it+1)+'.pdf', dpi = 500)
+                plt.savefig(save_retro+'Retroprojection_error_Lagrange_iteration'+str(it+1)+'.pdf', dpi = 500)
                 plt.close()
                 
                 # Save the z list
-                np.save(save_retro+"z_list_direct.npy", z_points)
+                np.save(save_retro+"z_list_Lagrange.npy", z_points)
                 
                 # Change the list to the new ajusted
                 z_points = z_iter
@@ -873,7 +873,7 @@ def direct_calibration (z_list : np.ndarray,
                np.min(z_list), 'mm and', np.max(z_list), 'mm.\n')    
         
         print('RETROPROJECTION ERROR : \n\t Max ; min (polynomial form', 
-              str(direct_pform),') \n\t =',
+              str(Lagrange_pform),') \n\t =',
               str(sgf.round(np.nanmax(z_error), sigfigs =3)),';',
               str(sgf.round(np.nanmin(z_error), sigfigs =3)),'px\n\t =',
               str(sgf.round(np.nanmax(z_error/px), sigfigs =3)),';',
@@ -899,12 +899,12 @@ def direct_calibration (z_list : np.ndarray,
         # each camera
         x, Xc1, Xc2 = data.camera_coordinates(all_X, all_xth, z_points)
 
-        # Calcul of the direct polynome's constants. X = A . M
+        # Calcul of the Lagrange polynome's constants. X = A . M
         # Do the system x = Ap*M, where M is the monomial of the real 
         # coordinates of crosses and x the image coordinates, and M the unknow
-        M = solvel.direct_Polynome({'polynomial_form' : direct_pform}).pol_form(Xc1, Xc2)
+        M = solvel.Lagrange_Polynome({'polynomial_form' : Lagrange_pform}).pol_form(Xc1, Xc2)
         Ap = np.matmul(x, np.linalg.pinv(M))
-        direct_constants = np.asarray(Ap)
+        Lagrange_constants = np.asarray(Ap)
         
         # Find and eventually plot the references plans
         if plotting :
@@ -922,7 +922,7 @@ def direct_calibration (z_list : np.ndarray,
             Magnification[camera-1] = magnification (X1, X2, x1, x2)
         px = 1/np.mean(Magnification)
     
-    return(direct_constants, Magnification)    
+    return(Lagrange_constants, Magnification)    
 
 def Zernike_calibration (z_list : np.ndarray,
                          Zernike_pform : int,
@@ -1353,15 +1353,15 @@ def projector_3D (calibration_dict : dict) -> np.ndarray :
 
 def hybrid_identification(Xc1_identified : np.ndarray,
                           Xc2_identified : np.ndarray,
-                          direct_constants : np.ndarray,
-                          direct_pform : int,
+                          Lagrange_constants : np.ndarray,
+                          Lagrange_pform : int,
                           Soloff_constants0 : np.ndarray, 
                           Soloff_constants : np.ndarray,
                           Soloff_pform : int,
                           mask_median : list,
                           method : str = 'curve_fit') -> np.ndarray :
     """Identification of the points detected on both cameras cam1 and cam2 
-    into the global 3D-space using direct method and Soloff method when direct
+    into the global 3D-space using Lagrange method and Soloff method when Lagrange
     can't do it well.
     
     Args:
@@ -1369,9 +1369,9 @@ def hybrid_identification(Xc1_identified : np.ndarray,
            Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
            Points identified on the cam2 camera
-       direct_constants : numpy.ndarray
-           Constants of direct polynomial
-       direct_pform : int
+       Lagrange_constants : numpy.ndarray
+           Constants of Lagrange polynomial
+       Lagrange_pform : int
            Polynomial form
        Soloff_constants0 : numpy.ndarray
            Constants of Soloff polynomial form '111'
@@ -1380,20 +1380,20 @@ def hybrid_identification(Xc1_identified : np.ndarray,
        Soloff_pform : int
            Polynomial form
        mask_median : list
-           Mask used to replace on direct method + the median of the difference
-           between Soloff and direct solutions
+           Mask used to replace on Lagrange method + the median of the difference
+           between Soloff and Lagrange solutions
        method : str, optional
            Python method used to solve it ('Least-squares' or 'curve-fit')
            
     Returns:
-       direct_mask : numpy.ndarray
+       Lagrange_mask : numpy.ndarray
            Identification in the 3D space of the detected points
     """    
     mask, median = mask_median
-    xsolution = direct_identification (Xc1_identified,
-                                       Xc2_identified,
-                                       direct_constants,
-                                       direct_pform)
+    xsolution = Lagrange_identification (Xc1_identified,
+                                         Xc2_identified,
+                                         Lagrange_constants,
+                                         Lagrange_pform)
     xsolution = xsolution - median
     mask_crop = np.empty((mask.shape[0],mask.shape[1],2))
     mask_crop[:,:,0], mask_crop[:,:,1] = mask, mask
@@ -1423,8 +1423,8 @@ def hybrid_identification(Xc1_identified : np.ndarray,
     
 def hybrid_mask (Xc1_identified : np.ndarray,
                  Xc2_identified : np.ndarray,
-                 direct_constants : np.ndarray,
-                 direct_pform : int,
+                 Lagrange_constants : np.ndarray,
+                 Lagrange_pform : int,
                  Soloff_constants0 : np.ndarray, 
                  Soloff_constants : np.ndarray,
                  Soloff_pform : int,
@@ -1435,17 +1435,17 @@ def hybrid_mask (Xc1_identified : np.ndarray,
                  gate : int = 5) -> (np.ndarray,
                                      list) :
     """Identification of the points detected on both cameras cam1 and cam2 
-    into the global 3D-space using direct and Soloff methods. Detect the
-    positions where directe method is not efficient and define the related mask.
+    into the global 3D-space using Lagrange and Soloff methods. Detect the
+    positions where Lagrange method is not efficient and define the related mask.
     
     Args:
        Xc1_identified : numpy.ndarray
            Points identified on the cam1 camera
        Xc2_identified : numpy.ndarray
            Points identified on the cam2 camera
-       direct_constants : numpy.ndarray
-           Constants of direct polynomial
-       direct_pform : int
+       Lagrange_constants : numpy.ndarray
+           Constants of Lagrange polynomial
+       Lagrange_pform : int
            Polynomial form
        Soloff_constants0 : numpy.ndarray
            Constants of Soloff polynomial form '111'
@@ -1460,8 +1460,8 @@ def hybrid_mask (Xc1_identified : np.ndarray,
        kernel : int, optional
            Size of smoothing filter
        mask_median : list
-           Mask used to replace on direct method + the median of the difference
-           between Soloff and direct solutions
+           Mask used to replace on Lagrange method + the median of the difference
+           between Soloff and Lagrange solutions
        gate : int, optional
            Output value (in µm) where the mask is True
            
@@ -1469,14 +1469,14 @@ def hybrid_mask (Xc1_identified : np.ndarray,
        xsolution : numpy.ndarray
            Solution
        mask_median : list
-           Mask used to replace on direct method + the median of the difference
-           between Soloff and direct solutions
+           Mask used to replace on Lagrange method + the median of the difference
+           between Soloff and Lagrange solutions
     """        
     if len(mask_median) == 1 :
-        xdirect = direct_identification (Xc1_identified,
+        xLagrange = Lagrange_identification (Xc1_identified,
                                          Xc2_identified,
-                                         direct_constants,
-                                         direct_pform)
+                                         Lagrange_constants,
+                                         Lagrange_pform)
 
         xSoloff = Soloff_identification (Xc1_identified,
                                          Xc2_identified,
@@ -1485,7 +1485,7 @@ def hybrid_mask (Xc1_identified : np.ndarray,
                                          Soloff_pform,
                                          method = method)
         
-        image = xdirect[2] - xSoloff[2]
+        image = xLagrange[2] - xSoloff[2]
         
         mask_median = data.hybrid_mask_creation(image,
                                                 ROI = ROI,
@@ -1494,8 +1494,8 @@ def hybrid_mask (Xc1_identified : np.ndarray,
     
     xsolution, mask_median = hybrid_identification(Xc1_identified,
                                                    Xc2_identified,
-                                                   direct_constants,
-                                                   direct_pform,
+                                                   Lagrange_constants,
+                                                   Lagrange_pform,
                                                    Soloff_constants0, 
                                                    Soloff_constants,
                                                    Soloff_pform,

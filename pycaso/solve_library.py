@@ -20,7 +20,7 @@ import time
 core_number = os.cpu_count()
 
   
-class Direct_Polynome(dict) :
+class Lagrange_Polynome(dict) :
     def __init__(self, _dict_):
         self._dict_ = _dict_
         self.polynomial_form = _dict_['polynomial_form']
