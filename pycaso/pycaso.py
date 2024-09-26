@@ -1334,11 +1334,12 @@ def projector_3D (calibration_dict : dict) -> np.ndarray :
     all_X = np.load(all_X_file)
     i,j,_ = all_X.shape
     all_X = all_X[i//2:]
-    all_X = np.nanmean(all_X.reshape(i//2, ncy-1, ncx-1,2), axis = 0)
-    pxy,pxx = np.gradient(all_X[:,:,0])
-    pyy,pyx = np.gradient(all_X[:,:,1])
-    Sin_theta = (np.nanmean(pxy) - np.nanmean(pyx))/2
-    Cos_theta = (np.nanmean(pxx) + np.nanmean(pyy))/2
+    all_X = all_X.reshape(i//2, ncy-1, ncx-1,2)
+    all_X = np.nanmean(all_X, axis = 0)
+    Gxy,Gxx = np.gradient(all_X[:,:,0])
+    Gyy,Gyx = np.gradient(all_X[:,:,1])
+    Sin_theta = (np.nanmean(Gxy) - np.nanmean(Gyx))/2
+    Cos_theta = (np.nanmean(Gxx) + np.nanmean(Gyy))/2
     size_factor = math.sqrt(Cos_theta*Cos_theta+Sin_theta*Sin_theta)
     Cos_theta = Cos_theta/size_factor
     Sin_theta = Sin_theta/size_factor

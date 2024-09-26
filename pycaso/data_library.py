@@ -935,6 +935,7 @@ def DIC_disflow (DIC_dict : dict,
         for i in image_ids :
             name = name + str(i)
     Save_all_U = str(DIC_dict['saving_folder']) +"/compute_flow_U_" + name + ".npy"
+    print(Save_all_U)
     Save_all_V = str(DIC_dict['saving_folder']) +"/compute_flow_V_" + name + ".npy"
     if os.path.exists(Save_all_U) and os.path.exists(Save_all_V):
         print('Loading data from\n\t%s\n\t%s' % (Save_all_U, Save_all_V))
@@ -1623,7 +1624,7 @@ def DIC_fields (DIC_dict : dict,
     return(U_cam1, V_cam1, U_cam2, V_cam2)
 
 def strain_fields (UVW : np.ndarray,
-                   projector : int = False) -> (np.ndarray,
+                   projector : int = 0) -> (np.ndarray,
                                         np.ndarray,
                                         np.ndarray,
                                         np.ndarray,
@@ -1635,7 +1636,7 @@ def strain_fields (UVW : np.ndarray,
            Displacements field
        projector : int, optional
            
-       
+    
     Returns:
        Exx : numpy.ndarray
            strains field in ratio
@@ -1648,22 +1649,24 @@ def strain_fields (UVW : np.ndarray,
        dUxz : numpy.ndarray
            Displacement derivation field in ratio
     """
-    def rad (projector) :
-        return (projector/360*2*math.pi)
-    def rotation_transformation (Rotation_matrix, A, B) :
-        C = A * Rotation_matrix[0,0] + B * Rotation_matrix[0,1]
-        D = A * Rotation_matrix[1,0] + B * Rotation_matrix[1,1]
-        return(C, D)
-    
-    P = rad(projector)
-    # The first column of rotation matrix is opposite the the classic one 
-    # because axis x and y are indirect referential in python images.
-    Rotation_matrix = np.array([[-math.cos(P), math.sin(P)], 
-                                [math.sin(P), math.cos(P)]])
     axis, nx, ny = UVW.shape
     U, V, W = UVW
-    U, V = rotation_transformation (Rotation_matrix, U, V)
-    
+    if projector != 0 :
+        def rad (projector) :
+            return (projector/360*2*math.pi)
+        def rotation_transformation (Rotation_matrix, A, B) :
+            C = A * Rotation_matrix[0,0] + B * Rotation_matrix[0,1]
+            D = A * Rotation_matrix[1,0] + B * Rotation_matrix[1,1]
+            return(C, D)
+        
+        P = rad(projector)
+        # The first column of rotation matrix is opposite the the classic one 
+        # because axis x and y are indirect referential in python images.
+        Rotation_matrix = np.array([[-math.cos(P), math.sin(P)], 
+                                    [math.sin(P), math.cos(P)]])
+        U, V = rotation_transformation (Rotation_matrix, U, V)
+    else :
+        ()
     dUyx, Exx = np.gradient(U)
     
     Eyy, dUxy = np.gradient(V)
@@ -1672,8 +1675,7 @@ def strain_fields (UVW : np.ndarray,
 
     Exy = (dUyx + dUxy)/2
     
-    return(Exx, Eyy, Exy, dUyx, dUxy)
-    # return(Exx, Eyy, Exy, dUyz, dUxz)
+    return(Exx, Eyy, Exy, dUxz, dUyz) 
 
 def cameras_size (cam1_folder : str = 'cam1_calibration',
                   cam2_folder : str = 'cam2_calibration',
